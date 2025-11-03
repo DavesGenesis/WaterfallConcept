@@ -933,22 +933,37 @@
         function renderWaterfallVisualization() {
             const container = document.getElementById('waterfallVisualization');
 
+            // --- EDIT START ---
+            // Mr. John on his own row, followed by "Terpakai" (Left) and "Tersisa" (Right) boxes side-by-side.
             let html = `
-                <!-- Gen 1: Mr. John with Retained Capital -->
-                <div class="flex flex-wrap justify-center items-center gap-6">
-                    <div class="flex flex-col items-center">
-                        <div class="rounded-full h-28 w-28 flex flex-col items-center justify-center shadow-xl border-4"
-                             style="background: linear-gradient(135deg, var(--accent) 0%, var(--accent-darker) 100%); 
-                                    border-color: var(--accent); color: var(--bg-primary);">
-                            <p class="text-sm font-bold">Mr. John</p>
-                            <p class="text-xs">(Gen 1)</p>
-                        </div>
-                        <p class="mt-2 text-sm font-semibold" style="color: var(--text-secondary);">
-                            Aset Awal: ${formatShortRupiah(state.initialAssets)}
+                <!-- Gen 1: Mr. John -->
+                <div class="flex flex-col items-center">
+                    <div class="rounded-full h-28 w-28 flex flex-col items-center justify-center shadow-xl border-4"
+                         style="background: linear-gradient(135deg, var(--accent) 0%, var(--accent-darker) 100%); 
+                                border-color: var(--accent); color: var(--bg-primary);">
+                        <p class="text-sm font-bold">Mr. John</p>
+                        <p class="text-xs">(Gen 1)</p>
+                    </div>
+                    <p class="mt-2 text-sm font-semibold" style="color: var(--text-secondary);">
+                        Aset Awal: ${formatShortRupiah(state.initialAssets)}
+                    </p>
+                </div>
+
+                <!-- Gen 1 Results: Used (Left) vs Retained (Right) -->
+                <div class="flex flex-wrap justify-center items-stretch gap-6 mt-6">
+                    <!-- NEW: Aset Terpakai Box (Left) -->
+                    <div class="kpi-card border-2 p-4 shadow-xl max-w-xs flex flex-col justify-center" style="border-color: var(--danger);">
+                        <p class="text-xs font-semibold" style="color: var(--text-secondary);">Aset Terpakai (Waterfall)</p>
+                        <p class="font-extrabold text-xl" style="color: var(--danger);">
+                            ${formatShortRupiah(state.legacyAllocationChildren + state.legacyAllocationGrandchildren)}
+                        </p>
+                        <p class="text-xs mt-1" style="color: var(--text-muted);">
+                            (Alokasi Anak + Cucu)
                         </p>
                     </div>
-
-                    <div class="kpi-card border-2 p-4 shadow-xl max-w-xs" style="border-color: var(--warning);">
+                    
+                    <!-- Aset Tersisa Box (Right) -->
+                    <div class="kpi-card border-2 p-4 shadow-xl max-w-xs flex flex-col justify-center" style="border-color: var(--warning);">
                         <p class="text-xs font-semibold" style="color: var(--text-secondary);">Aset Tersisa Mr. John</p>
                         <p class="font-extrabold text-xl" style="color: var(--warning);">
                             ${formatShortRupiah(state.retainedCapital)}
@@ -958,6 +973,7 @@
                         </p>
                     </div>
                 </div>
+                <!-- --- EDIT END --- -->
 
                 <!-- Arrow -->
                 <div class="text-8xl leading-none" style="color: var(--warning);">↓</div>
@@ -1135,3 +1151,5 @@
 </body>
 
 </html>
+
+
