@@ -150,7 +150,7 @@
             top: 0;
             height: 100vh;
             overflow-y: auto;
-            transition: transform 0.3s ease-in-out;
+            transition: transform 0.3s ease-in-out, width 0.3s ease-in-out, padding 0.3s ease-in-out, border-width 0.3s ease-in-out;
         }
 
         .sidebar-open {
@@ -161,9 +161,46 @@
             transform: translateX(-100%);
         }
 
+        /* NEW: Class for desktop collapsed state */
+        .sidebar-desktop-closed {
+            /* This is the key fix for the "peeking" text */
+            padding: 0 !important;
+            width: 3rem !important;
+            overflow-x: hidden !important;
+            border-right-width: 1px !important; /* Keep the right border visible */
+        }
+        
+        /* Ensure that the toggle element remains visible when the sidebar is closed */
+        .sidebar-desktop-closed #parameterControlToggle {
+            /* Adjust padding/margin to move the icon to the very left edge */
+            padding: 1.5rem 0.5rem !important; /* Adjusted vertical padding for look */
+            /* We rely on the parent width (3rem) to constrain it */
+            width: 100%; 
+        }
+
+        /* Hide the rest of the content entirely when sidebar is closed */
+        .sidebar-desktop-closed #sidebarContent {
+            display: none !important;
+        }
+
+        .sidebar-desktop-closed #parameterControlToggle h2,
+        .sidebar-desktop-closed #parameterControlToggle #closeSidebar {
+             display: none;
+        }
+
+
         @media (min-width: 1024px) {
             .sidebar {
-                transform: translateX(0) !important;
+                transform: translateX(0) !important; 
+                position: sticky;
+            }
+            .sidebar-closed, .sidebar-open {
+                transform: translateX(0); /* Mobile classes do nothing on desktop */
+            }
+            
+            /* Overwrite the mobile padding for open state on desktop */
+            .sidebar:not(.sidebar-desktop-closed) {
+                 padding: 1.5rem 1rem;
             }
         }
 
@@ -347,6 +384,12 @@
             color: var(--warning);
             font-weight: 600;
         }
+        
+        /* FIX: Pointer events for visualization containers */
+        #traditionalVisualization,
+        #waterfallVisualization {
+            pointer-events: none; /* Allows clicks to pass through static visual elements to elements underneath (like the tab buttons) */
+        }
 
         /* COMPACT VISUALIZATION STYLES */
         .visualization-compact {
@@ -438,6 +481,108 @@
             font-size: 0.75rem !important;
         }
 
+        /* --- NEW SUMMARY STYLES (v2) --- */
+        .summary-chart-box {
+            background: var(--bg-card-darker);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .summary-chart-box h3 {
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            font-weight: 700;
+            text-align: center;
+        }
+        .summary-chart-box .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            min-height: 2.5em; /* Reserve space */
+        }
+        .summary-chart-box .subtitle span {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .summary-chart-box .note {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-align: center;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+        .summary-chart-box .note span {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        .summary-chart-box-traditional .note span {
+            color: var(--danger);
+        }
+        .summary-chart-box-waterfall {
+            border: 2px solid var(--success);
+            box-shadow: 0 0 20px rgba(100, 255, 218, 0.3); /* Glow effect */
+        }
+        .summary-chart-box-waterfall .note span {
+            color: var(--success);
+        }
+
+        .chart-container-new {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 250px;
+            width: 100%;
+            margin: 0 auto;
+            background: var(--bg-primary);
+            padding: 1rem 1rem 0 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            flex-grow: 1; /* Make chart fill space */
+        }
+        .bar-wrapper {
+            display: flex;
+            flex-direction: column-reverse; /* <<< THIS IS THE FIX */
+            height: 100%; /* <<< AND THIS IS THE *REAL* FIX */
+            align-items: center;
+            width: 45%; /* Wider bars */
+            text-align: center;
+        }
+        .bar-value {
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            opacity: 1; /* CHANGED - Was 0, removed complex animation */
+            /* transition: opacity 0.5s 0.5s ease; */ /* REMOVED */
+            height: 2.5em; /* Reserve space */
+            word-break: break-all;
+        }
+        .bar-fill {
+            width: 100%;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.7s ease-out;
+            height: 0; /* Starts at 0 */
+        }
+        .bar-fill.traditional {
+            background: linear-gradient(180deg, var(--danger) 0%, #a03c5a 100%);
+        }
+        .bar-fill.waterfall {
+            background: linear-gradient(180deg, var(--success) 0%, #0a7d5b 100%);
+        }
+        .bar-label {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+            line-height: 1.2;
+        }
+        /* --- END NEW STYLES --- */
+
+
         /* Responsive improvements */
         @media (max-width: 768px) {
             .grid-cols-4 {
@@ -462,6 +607,10 @@
 
             .main-content {
                 padding: 1rem;
+            }
+
+            .summary-box-waterfall {
+                transform: scale(1); /* Disable pop effect on mobile for better layout */
             }
         }
 
@@ -504,6 +653,7 @@
         <header class="card-header"
             style="background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-card-darker) 100%); border-bottom: 2px solid var(--accent); margin-bottom: 0;">
             <div class="container mx-auto px-4 py-6">
+                <!-- MODIFIED: Restored original header layout and placement of mobile toggle -->
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <div class="text-4xl">💧</div>
@@ -517,7 +667,8 @@
                             </p>
                         </div>
                     </div>
-                    <button id="menuToggle" class="lg:hidden p-2 rounded"
+                    <!-- This button is for mobile ONLY (lg:hidden) and uses a simple menu icon -->
+                    <button id="menuToggleMobile" class="lg:hidden p-2 rounded"
                         style="color: var(--text-primary); background: var(--bg-card-darker);">
                         <i class="fas fa-bars h-6 w-6"></i>
                     </button>
@@ -528,16 +679,19 @@
         <div class="flex relative">
             <!-- Sidebar -->
             <aside id="sidebar"
-                class="sidebar sidebar-closed fixed lg:sticky top-0 left-0 h-screen shadow-2xl z-40 overflow-y-auto">
-                <div class="p-6 space-y-6">
-                    <div class="flex items-center justify-between lg:justify-start gap-2">
-                        <i class="fas fa-sliders-h h-6 w-6 highlight"></i>
-                        <h2 class="text-xl font-bold" style="color: var(--text-primary);">Parameter Kontrol</h2>
-                        <button id="closeSidebar" class="lg:hidden ml-auto" style="color: var(--text-primary);">
-                            <i class="fas fa-times h-5 w-5"></i>
-                        </button>
-                    </div>
+                class="sidebar fixed lg:sticky top-0 left-0 h-screen shadow-2xl z-40 overflow-y-auto">
+                
+                <!-- Toggle element MUST be outside the sidebarContent to remain visible -->
+                <div id="parameterControlToggle" class="flex items-center justify-between lg:justify-start gap-2 cursor-pointer" style="padding: 1.5rem 1rem 0.5rem 1rem;">
+                    <i class="fas fa-sliders-h h-6 w-6 highlight"></i>
+                    <h2 class="text-xl font-bold" style="color: var(--text-primary);">Parameter Kontrol</h2>
+                    <button id="closeSidebar" class="lg:hidden ml-auto" style="color: var(--text-primary);">
+                        <i class="fas fa-times h-5 w-5"></i>
+                    </button>
+                </div>
 
+                <!-- NEW: Wrapper for all collapsible content -->
+                <div id="sidebarContent" class="p-6 space-y-6 pt-0">
                     <hr style="border-color: var(--border-color);">
 
                     <!-- Aset Awal -->
@@ -619,12 +773,13 @@
                             </div>
                         </div>
 
-                        <hr class="my-6" style="border-color: var(--border-color);">
+                        <!-- Spacer added here (equivalent to vertical margin) -->
+                        <div class="my-6"></div>
 
                         <!-- LEGACY Allocation Cucu -->
                         <div class="space-y-2">
                             <label class="text-sm font-semibold" style="color: var(--text-secondary);">
-                                LEGACY untuk Cucu
+                                Alokasi LEGACY untuk Cucu
                             </label>
                             <div id="legacyAllocationGrandchildrenDisplay" class="text-sm font-bold highlight">
                                 Rp 4.000.000.000
@@ -633,8 +788,6 @@
                                 placeholder="Masukkan alokasi Legacy" />
                             <p class="text-xs" style="color: var(--text-muted);">Start from Rp100.000.000</p>
                         </div>
-
-                        <div class="my-6"></div>
 
                         <!-- Usia Anak -->
                         <div class="space-y-2">
@@ -743,6 +896,59 @@
                             </p>
                         </div>
                     </div>
+
+                    <!-- Comparison Summary Card -->
+                    <div class="card">
+                        <div class="card-header"
+                            style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-primary) 100%); border-bottom: 2px solid var(--accent);">
+                            <h2 class="text-2xl text-center font-bold" style="color: var(--accent);">
+                                Ringkasan Perbandingan
+                            </h2>
+                        </div>
+                        <div class="card-body">
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Traditional Chart Box -->
+                                <div class="summary-chart-box summary-chart-box-traditional">
+                                    <h3>Konsep Traditional</h3>
+                                    <p class="subtitle">Initial Assets Available: <span id="chartTradSubtitle"></span></p>
+                                    <div class="chart-container-new">
+                                        <div class="bar-wrapper">
+                                            <div class="bar-value" id="tradBarRequiredValue"></div>
+                                            <div class="bar-fill traditional" id="tradBarRequiredFill" style="height: 0%;"></div>
+                                            <div class="bar-label">Amount Required</div>
+                                        </div>
+                                        <div class="bar-wrapper">
+                                            <div class="bar-value" id="tradBarLegacyValue"></div>
+                                            <div class="bar-fill traditional" id="tradBarLegacyFill" style="height: 0%;"></div>
+                                            <div class="bar-label">Total Legacy</div>
+                                        </div>
+                                    </div>
+                                    <p class="note">Wealth Multiplication Factor: <span id="chartTradNote">1x</span></p>
+                                </div>
+                                
+                                <!-- Waterfall Chart Box -->
+                                <div class="summary-chart-box summary-chart-box-waterfall">
+                                    <h3>Konsep Waterfall</h3>
+                                    <p class="subtitle">Initial Assets Available: <span id="chartWaterSubtitle"></span></p>
+                                    <div class="chart-container-new">
+                                        <div class="bar-wrapper">
+                                            <div class="bar-value" id="waterBarRequiredValue"></div>
+                                            <div class="bar-fill traditional" id="waterBarRequiredFill" style="height: 0%;"></div>
+                                            <div class="bar-label">Amount Required</div>
+                                        </div>
+                                        <div class="bar-wrapper">
+                                            <div class="bar-value" id="waterBarLegacyValue"></div>
+                                            <div class="bar-fill waterfall" id="waterBarLegacyFill" style="height: 0%;"></div>
+                                            <div class="bar-label">Total Legacy</div>
+                                        </div>
+                                    </div>
+                                    <p class="note">Wealth Multiplication Factor: <span id="chartWaterNote"></span></p>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
                 </div>
             </main>
         </div>
@@ -768,7 +974,13 @@
             childrenTotalSA: 0,
             childrenLegacyEach: 0,
             grandchildrenTotalSA: 0,
-            grandchildrenLegacyEach: 0
+            grandchildrenLegacyEach: 0,
+            // --- NEW STATE VARS ---
+            totalLegacyTraditional: 0,
+            totalLegacyWaterfall: 0,
+            totalRequiredTraditional: 0,
+            totalRequiredWaterfall: 0,
+            waterfallMultiplier: 0
         };
 
         // Utility functions
@@ -827,16 +1039,24 @@
             state.retainedCapital = Math.max(0, state.initialAssets - totalSetAside);
 
             const childSA = state.legacyAllocationChildren * state.fatherMultiplier;
+            state.childrenTotalSA = childSA;
             state.childrenLegacyEach = state.numChildren > 0
                 ? Math.floor(childSA / state.numChildren)
                 : 0;
-            state.childrenTotalSA = childSA;
-
+            
             const gcSA = state.legacyAllocationGrandchildren * state.childMultiplier;
+            state.grandchildrenTotalSA = gcSA;
             state.grandchildrenLegacyEach = state.numGrandchildren > 0
                 ? Math.floor(gcSA / state.numGrandchildren)
                 : 0;
-            state.grandchildrenTotalSA = gcSA;
+            
+            // --- NEW SUMMARY CALCULATIONS ---
+            state.totalLegacyTraditional = state.initialAssets;
+            state.totalLegacyWaterfall = state.childrenTotalSA + state.grandchildrenTotalSA;
+            state.totalRequiredTraditional = state.initialAssets;
+            state.totalRequiredWaterfall = state.legacyAllocationChildren + state.legacyAllocationGrandchildren;
+            state.waterfallMultiplier = state.totalRequiredWaterfall > 0 ? (state.totalLegacyWaterfall / state.totalRequiredWaterfall) : 0;
+            // --- END NEW CALCULATIONS ---
 
             updateUI();
         }
@@ -865,6 +1085,56 @@
             // Update visualizations
             renderTraditionalVisualization();
             renderWaterfallVisualization();
+
+            // --- NEW UI UPDATES FOR SUMMARY (v2) ---
+            // Update chart subtitles
+            document.getElementById('chartTradSubtitle').innerHTML = `Initial Assets Available: <br><span class="highlight">${formatShortRupiah(state.initialAssets)}</span>`;
+            document.getElementById('chartWaterSubtitle').innerHTML = `Initial Assets Available: <br><span class="highlight">${formatShortRupiah(state.initialAssets)}</span>`;
+            
+            // Update chart notes
+            document.getElementById('chartTradNote').textContent = '1x'; // This is static
+            document.getElementById('chartWaterNote').textContent = state.waterfallMultiplier.toFixed(1) + 'x';
+
+            // Update bar chart elements
+            const tradBarRequiredFill = document.getElementById('tradBarRequiredFill');
+            const tradBarLegacyFill = document.getElementById('tradBarLegacyFill');
+            const waterBarRequiredFill = document.getElementById('waterBarRequiredFill');
+            const waterBarLegacyFill = document.getElementById('waterBarLegacyFill');
+            
+            const tradBarRequiredValue = document.getElementById('tradBarRequiredValue');
+            const tradBarLegacyValue = document.getElementById('tradBarLegacyValue');
+            const waterBarRequiredValue = document.getElementById('waterBarRequiredValue');
+            const waterBarLegacyValue = document.getElementById('waterBarLegacyValue');
+
+            // Find max value across all 4 bars for consistent scaling
+            const maxVal = Math.max(
+                state.totalRequiredTraditional, 
+                state.totalLegacyTraditional, 
+                state.totalRequiredWaterfall, 
+                state.totalLegacyWaterfall, 
+                1 // Avoid division by zero
+            ); 
+
+            // Calculate heights
+            const tradReqHeight = Math.max(1, (state.totalRequiredTraditional / maxVal) * 100);
+            const tradLegHeight = Math.max(1, (state.totalLegacyTraditional / maxVal) * 100);
+            const waterReqHeight = Math.max(1, (state.totalRequiredWaterfall / maxVal) * 100);
+            const waterLegHeight = Math.max(1, (state.totalLegacyWaterfall / maxVal) * 100);
+
+            // Use requestAnimationFrame for smooth animation on load/update
+            requestAnimationFrame(() => {
+                tradBarRequiredFill.style.height = tradReqHeight + '%';
+                tradBarLegacyFill.style.height = tradLegHeight + '%';
+                waterBarRequiredFill.style.height = waterReqHeight + '%';
+                waterBarLegacyFill.style.height = waterLegHeight + '%';
+            });
+
+            // Update bar values
+            tradBarRequiredValue.textContent = formatShortRupiah(state.totalRequiredTraditional);
+            tradBarLegacyValue.textContent = formatShortRupiah(state.totalLegacyTraditional);
+            waterBarRequiredValue.textContent = formatShortRupiah(state.totalRequiredWaterfall);
+            waterBarLegacyValue.textContent = formatShortRupiah(state.totalLegacyWaterfall);
+            // --- END NEW UI UPDATES ---
         }
 
         // Render Traditional Visualization
@@ -933,10 +1203,8 @@
         function renderWaterfallVisualization() {
             const container = document.getElementById('waterfallVisualization');
 
-            // --- EDIT START ---
-            // Mr. John on his own row, followed by "Terpakai" (Left) and "Tersisa" (Right) boxes side-by-side.
             let html = `
-                <!-- Gen 1: Mr. John -->
+                <!-- Gen 1: Mr. John with Retained Capital -->
                 <div class="flex flex-col items-center">
                     <div class="rounded-full h-28 w-28 flex flex-col items-center justify-center shadow-xl border-4"
                          style="background: linear-gradient(135deg, var(--accent) 0%, var(--accent-darker) 100%); 
@@ -949,9 +1217,9 @@
                     </p>
                 </div>
 
-                <!-- Gen 1 Results: Used (Left) vs Retained (Right) -->
+                <!-- Split Boxes -->
                 <div class="flex flex-wrap justify-center items-stretch gap-6 mt-6">
-                    <!-- NEW: Aset Terpakai Box (Left) -->
+                    <!-- Aset Terpakai -->
                     <div class="kpi-card border-2 p-4 shadow-xl max-w-xs flex flex-col justify-center" style="border-color: var(--danger);">
                         <p class="text-xs font-semibold" style="color: var(--text-secondary);">Aset Terpakai (Waterfall)</p>
                         <p class="font-extrabold text-xl" style="color: var(--danger);">
@@ -962,7 +1230,7 @@
                         </p>
                     </div>
                     
-                    <!-- Aset Tersisa Box (Right) -->
+                    <!-- Aset Tersisa -->
                     <div class="kpi-card border-2 p-4 shadow-xl max-w-xs flex flex-col justify-center" style="border-color: var(--warning);">
                         <p class="text-xs font-semibold" style="color: var(--text-secondary);">Aset Tersisa Mr. John</p>
                         <p class="font-extrabold text-xl" style="color: var(--warning);">
@@ -973,7 +1241,6 @@
                         </p>
                     </div>
                 </div>
-                <!-- --- EDIT END --- -->
 
                 <!-- Arrow -->
                 <div class="text-8xl leading-none" style="color: var(--warning);">↓</div>
@@ -1044,24 +1311,62 @@
         // Event Listeners
         document.addEventListener('DOMContentLoaded', function () {
             // Sidebar toggle
-            const menuToggle = document.getElementById('menuToggle');
+            const menuToggleMobile = document.getElementById('menuToggleMobile');
             const closeSidebar = document.getElementById('closeSidebar');
+            const parameterControlToggle = document.getElementById('parameterControlToggle');
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('overlay');
 
-            menuToggle.addEventListener('click', () => {
-                sidebar.classList.remove('sidebar-closed');
-                sidebar.classList.add('sidebar-open');
-                overlay.classList.remove('hidden');
-            });
+            // --- Initial State Check (Desktop) ---
+            // If on desktop on load, ensure the sidebar starts open.
+            if (window.innerWidth >= 1024) {
+                 sidebar.classList.remove('sidebar-desktop-closed');
+            } else {
+                 sidebar.classList.add('sidebar-closed');
+            }
 
-            closeSidebar.addEventListener('click', () => {
-                sidebar.classList.remove('sidebar-open');
-                sidebar.classList.add('sidebar-closed');
-                overlay.classList.add('hidden');
-            });
+            // --- NEW: Created a single function for toggling the sidebar ---
+            const sidebarToggleLogic = () => {
+                const isDesktop = window.innerWidth >= 1024;
+                
+                if (isDesktop) {
+                    // Toggle desktop class (toggles between full width and minimized icon mode)
+                    sidebar.classList.toggle('sidebar-desktop-closed');
+                    // Ensure mobile classes are irrelevant
+                    overlay.classList.add('hidden');
+                    sidebar.classList.remove('sidebar-open');
+                    sidebar.classList.remove('sidebar-closed'); 
+                } else {
+                    // Toggle mobile classes (toggles between hidden (-100%) and visible (0))
+                    if (sidebar.classList.contains('sidebar-open')) {
+                        // Is open, so close it
+                        sidebar.classList.remove('sidebar-open');
+                        sidebar.classList.add('sidebar-closed');
+                        overlay.classList.add('hidden');
+                    } else {
+                        // Is closed, so open it
+                        sidebar.classList.remove('sidebar-closed');
+                        sidebar.classList.add('sidebar-open');
+                        overlay.classList.remove('hidden');
+                    }
+                    // Reset desktop class if it was applied on mobile resize or otherwise
+                    sidebar.classList.remove('sidebar-desktop-closed'); 
+                }
+            };
 
+            // --- Attach listeners to all controls ---
+            // 1. Mobile Hamburger Button (in Header)
+            menuToggleMobile.addEventListener('click', sidebarToggleLogic);
+            
+            // 2. Sidebar Title/Icon (for Desktop/Mobile close) - This is the primary toggle
+            parameterControlToggle.addEventListener('click', sidebarToggleLogic);
+
+            // 3. Mobile Close Button (inside sidebar)
+            closeSidebar.addEventListener('click', sidebarToggleLogic);
+
+            // 4. Overlay (for mobile close)
             overlay.addEventListener('click', () => {
+                // This is mobile-only and should ONLY close
                 sidebar.classList.remove('sidebar-open');
                 sidebar.classList.add('sidebar-closed');
                 overlay.classList.add('hidden');
@@ -1128,7 +1433,7 @@
             // LEGACY Allocation Grandchildren input
             const legacyAllocationGrandchildrenInput = document.getElementById('legacyAllocationGrandchildrenInput');
             legacyAllocationGrandchildrenInput.addEventListener('input', (e) => {
-                const cleaned = e.target.value.replace(/[^0-9]/g, '');
+                const cleaned = e.target.value.replace(/[^0-9]/g, ''); // Fixed typo e.g.target to e.target
                 const num = parseInt(cleaned) || 0;
                 state.legacyAllocationGrandchildren = num;
                 calculate();
@@ -1151,5 +1456,3 @@
 </body>
 
 </html>
-
-
