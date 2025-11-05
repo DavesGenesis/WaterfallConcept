@@ -745,18 +745,35 @@
                     const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
                     const localSessions = JSON.parse(localStorage.getItem('sessionHistory') || '[]');
                     
-                    // Combine and deduplicate sessions
-                    const allSessions = [...globalSessions, ...localSessions];
-                    const uniqueSessions = allSessions.filter((session, index, self) => 
-                        index === self.findIndex(s => s.sessionToken === session.sessionToken)
-                    );
+                    console.log('=== SESSION ANALYSIS ===');
+                    console.log('Global sessions raw:', globalSessions);
+                    console.log('Local sessions raw:', localSessions);
                     
-                    // Consider session active if last activity within 2 hours
-                    const twoHoursAgo = Date.now() - (2 * 60 * 60 * 1000);
-                    return uniqueSessions.filter(session => {
-                        const lastActivity = session.lastActivity || session.loginTime;
-                        return lastActivity > twoHoursAgo;
+                    // Combine sessions (don't deduplicate yet for debugging)
+                    const allSessions = [...globalSessions, ...localSessions];
+                    console.log('Combined sessions:', allSessions);
+                    
+                    // Filter by time first (more lenient - 8 hours)
+                    const eightHoursAgo = Date.now() - (8 * 60 * 60 * 1000);
+                    const timeSessions = allSessions.filter(session => {
+                        const lastActivity = session.lastActivity || session.loginTime || session.registryTimestamp;
+                        const isActive = lastActivity && lastActivity > eightHoursAgo;
+                        console.log(`Session ${session.email}: lastActivity=${lastActivity}, isActive=${isActive}`);
+                        return isActive;
                     });
+                    
+                    console.log('Time-filtered sessions:', timeSessions);
+                    
+                    // Now deduplicate by email + device (not just session token)
+                    const uniqueSessions = timeSessions.filter((session, index, self) => {
+                        const key = `${session.email}-${session.deviceFingerprint}`;
+                        return index === self.findIndex(s => `${s.email}-${s.deviceFingerprint}` === key);
+                    });
+                    
+                    console.log('Final unique sessions:', uniqueSessions);
+                    console.log('=== END SESSION ANALYSIS ===');
+                    
+                    return uniqueSessions;
                 } catch (error) {
                     console.error('Error getting active sessions:', error);
                     return [];
@@ -1010,14 +1027,34 @@
                 // Show debug info
                 const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
                 const localSessions = JSON.parse(localStorage.getItem('sessionHistory') || '[]');
-                console.log('=== SESSION DEBUG INFO ===');
-                console.log('Global sessions:', globalSessions);
-                console.log('Local sessions:', localSessions);
-                console.log('Total global:', globalSessions.length);
-                console.log('Total local:', localSessions.length);
+                const activeSessions = dashboard.getActiveSessions();
                 
-                // Show alert with session count for debugging
-                alert(`Debug Info:\nGlobal Sessions: ${globalSessions.length}\nLocal Sessions: ${localSessions.length}\nCheck browser console for details.`);
+                console.log('=== DETAILED SESSION DEBUG ===');
+                console.log('Raw global sessions:', globalSessions);
+                console.log('Raw local sessions:', localSessions);
+                console.log('Processed active sessions:', activeSessions);
+                console.log('Current time:', Date.now());
+                
+                // Check each session's validity
+                globalSessions.forEach((session, index) => {
+                    const lastActivity = session.lastActivity || session.loginTime || session.registryTimestamp;
+                    const eightHoursAgo = Date.now() - (8 * 60 * 60 * 1000);
+                    const isActive = lastActivity && lastActivity > eightHoursAgo;
+                    console.log(`Global Session ${index}:`, {
+                        email: session.email,
+                        lastActivity: lastActivity,
+                        isActive: isActive,
+                        ageHours: lastActivity ? (Date.now() - lastActivity) / (60 * 60 * 1000) : 'unknown'
+                    });
+                });
+                
+                // Show comprehensive alert
+                alert(`Detailed Debug Info:
+Global Sessions: ${globalSessions.length}
+Local Sessions: ${localSessions.length}
+Active Sessions (processed): ${activeSessions.length}
+
+Check browser console for detailed analysis.`);
             }, 1000);
         }
 

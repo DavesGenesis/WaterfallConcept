@@ -619,29 +619,45 @@
 
             updateGlobalSessionRegistry(sessionData) {
                 try {
+                    console.log('=== UPDATING GLOBAL SESSION REGISTRY ===');
+                    console.log('New session data:', sessionData);
+                    
                     // Get existing global sessions
                     const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
+                    console.log('Existing global sessions:', globalSessions);
                     
                     // Remove old sessions for same user/device
                     const filteredGlobal = globalSessions.filter(s => 
                         !(s.email === sessionData.email && s.deviceFingerprint === sessionData.deviceFingerprint)
                     );
+                    console.log('After removing duplicates:', filteredGlobal);
                     
                     // Add current session
-                    filteredGlobal.push({
+                    const newSessionEntry = {
                         ...sessionData,
-                        registryTimestamp: Date.now()
-                    });
+                        registryTimestamp: Date.now(),
+                        lastActivity: Date.now() // Ensure lastActivity is set
+                    };
+                    
+                    filteredGlobal.push(newSessionEntry);
+                    console.log('After adding new session:', filteredGlobal);
                     
                     // Keep only sessions from last 8 hours
                     const eightHoursAgo = Date.now() - (8 * 60 * 60 * 1000);
-                    const activeSessions = filteredGlobal.filter(s => s.loginTime > eightHoursAgo);
+                    const activeSessions = filteredGlobal.filter(s => {
+                        const sessionTime = s.loginTime || s.registryTimestamp;
+                        return sessionTime > eightHoursAgo;
+                    });
+                    
+                    console.log('Final active sessions to store:', activeSessions);
                     
                     // Store updated registry
                     localStorage.setItem('globalSessionRegistry', JSON.stringify(activeSessions));
                     
                     // Trigger storage event for other tabs/windows
                     localStorage.setItem('sessionUpdate', Date.now().toString());
+                    
+                    console.log('=== GLOBAL SESSION REGISTRY UPDATED ===');
                 } catch (error) {
                     console.error('Error updating global session registry:', error);
                 }
