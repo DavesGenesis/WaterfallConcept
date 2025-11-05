@@ -53,8 +53,8 @@ const WaterfallConfig = {
             allowedCountries: ['ID'],
             sessionTimeout: 8 * 60 * 60 * 1000 // 8 hours
         },
-        'FerryUser': {
-            password: 'FerryUser2025',
+        'ferry1112@gmail.com': {
+            password: 'FerryGmail2025',
             role: 'user',
             name: 'User One',
             permissions: ['view'],
@@ -280,3 +280,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = { WaterfallConfig, SecurityUtils };
 
 }
+
