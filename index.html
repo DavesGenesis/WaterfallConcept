@@ -1,75 +1,17 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Legacy Multiplier: Waterfall Concept</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Protection Scripts -->
-    <script>
-        // Disable right-click context menu
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-            return false;
-        });
-
-        // Disable keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            // Prevent F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+S
-            if (e.keyCode === 123 || // F12
-                (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
-                (e.ctrlKey && e.shiftKey && e.keyCode === 74) || // Ctrl+Shift+J
-                (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
-                (e.ctrlKey && e.keyCode === 83)) { // Ctrl+S
-                e.preventDefault();
-                return false;
-            }
-        });
-
-        // Detect DevTools opening (basic detection)
-        (function() {
-            const threshold = 160;
-            let devtools = {open: false};
-            
-            setInterval(function() {
-                if (window.outerWidth - window.innerWidth > threshold || 
-                    window.outerHeight - window.innerHeight > threshold) {
-                    if (!devtools.open) {
-                        // Redirect or show warning when DevTools detected
-                        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a192f;color:#64ffda;font-family:Montserrat,sans-serif;font-size:24px;text-align:center;padding:20px;">⚠️ Developer Tools detected. Please close it to continue.</div>';
-                    }
-                    devtools.open = true;
-                } else {
-                    devtools.open = false;
-                }
-            }, 500);
-        })();
-
-        // Disable text selection and copy
-        document.addEventListener('selectstart', function(e) {
-            e.preventDefault();
-            return false;
-        });
-
-        document.addEventListener('copy', function(e) {
-            e.preventDefault();
-            return false;
-        });
-    </script>
-    
+    <title>Secure Access - Waterfall Concept</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="config-advanced.js"></script>
     <style>
         :root {
             --bg-primary: #0a192f;
             --bg-card: #172a46;
             --bg-card-darker: #111e35;
-            --bg-card-lighter: #1d3555;
             --accent: #64ffda;
-            --accent-darker: #4ecdb8;
             --text-primary: #e2e8f0;
             --text-secondary: #a8b2c1;
             --text-muted: #718096;
@@ -89,1370 +31,741 @@
             font-family: 'Montserrat', sans-serif;
             background-color: var(--bg-primary);
             color: var(--text-primary);
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(100, 255, 218, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(100, 255, 218, 0.05) 0%, transparent 50%);
         }
 
-        /* Prevent drag and drop */
-        * {
-            -webkit-user-drag: none;
-            -khtml-user-drag: none;
-            -moz-user-drag: none;
-            -o-user-drag: none;
-            user-drag: none;
+        .auth-container {
+            background: var(--bg-card);
+            padding: 3rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            max-width: 450px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
         }
 
-        .highlight {
+        .auth-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), #4ecdb8);
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .auth-header .logo {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .auth-header h1 {
+            color: var(--accent);
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .auth-header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .security-notice {
+            background: var(--bg-card-darker);
+            border: 1px solid var(--warning);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.8rem;
+            color: var(--warning);
+        }
+
+        .security-notice h4 {
+            margin-bottom: 0.5rem;
             color: var(--accent);
         }
 
-        .card {
-            background-color: var(--bg-card);
-            border-radius: 0.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        .device-info {
+            background: var(--bg-primary);
             border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
         }
 
-        .card-header {
-            padding: 1.5rem 2rem 1rem 2rem;
-            border-bottom: 1px solid var(--border-color);
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
         }
 
-        .card-body {
-            padding: 1.5rem;
-        }
-
-        .card-title {
-            color: var(--text-primary);
-            margin: 0;
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
-
-        .card-subtitle {
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
             color: var(--text-secondary);
-            margin-top: 0.5rem;
+            font-weight: 500;
             font-size: 0.875rem;
         }
 
-        .sidebar {
-            width: 320px;
-            background-color: var(--bg-card);
-            padding: 1.5rem 1rem;
-            flex-shrink: 0;
-            border-right: 1px solid var(--border-color);
-            position: sticky;
-            top: 0;
-            height: 100vh;
-            overflow-y: auto;
-            transition: transform 0.3s ease-in-out, width 0.3s ease-in-out, padding 0.3s ease-in-out, border-width 0.3s ease-in-out;
-        }
-
-        .sidebar-open {
-            transform: translateX(0);
-        }
-
-        .sidebar-closed {
-            transform: translateX(-100%);
-        }
-
-        /* NEW: Class for desktop collapsed state */
-        .sidebar-desktop-closed {
-            /* This is the key fix for the "peeking" text */
-            padding: 0 !important;
-            width: 3rem !important;
-            overflow-x: hidden !important;
-            border-right-width: 1px !important; /* Keep the right border visible */
-        }
-        
-        /* Ensure that the toggle element remains visible when the sidebar is closed */
-        .sidebar-desktop-closed #parameterControlToggle {
-            /* Adjust padding/margin to move the icon to the very left edge */
-            padding: 1.5rem 0.5rem !important; /* Adjusted vertical padding for look */
-            /* We rely on the parent width (3rem) to constrain it */
-            width: 100%; 
-        }
-
-        /* Hide the rest of the content entirely when sidebar is closed */
-        .sidebar-desktop-closed #sidebarContent {
-            display: none !important;
-        }
-
-        .sidebar-desktop-closed #parameterControlToggle h2,
-        .sidebar-desktop-closed #parameterControlToggle #closeSidebar {
-             display: none;
-        }
-
-
-        @media (min-width: 1024px) {
-            .sidebar {
-                transform: translateX(0) !important; 
-                position: sticky;
-            }
-            .sidebar-closed, .sidebar-open {
-                transform: translateX(0); /* Mobile classes do nothing on desktop */
-            }
-            
-            /* Overwrite the mobile padding for open state on desktop */
-            .sidebar:not(.sidebar-desktop-closed) {
-                 padding: 1.5rem 1rem;
-            }
-        }
-
-        .main-content {
-            flex-grow: 1;
-            padding: 2rem 3rem;
-            overflow-y: auto;
-            max-height: 100vh;
-            max-width: 100%;
-            box-sizing: border-box;
-        }
-
-        .kpi-card {
-            background: var(--bg-card-darker);
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-            text-align: center;
-            border: 1px solid var(--border-color);
-            transition: transform 0.2s ease;
-        }
-
-        .kpi-card:hover {
-            transform: translateY(-2px);
-            border-color: var(--accent);
-        }
-
-        .kpi-title {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.75rem;
-            font-weight: 500;
-        }
-
-        .kpi-value {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            line-height: 1.2;
-            margin-bottom: 0.5rem;
-        }
-
-        .kpi-subtitle {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-top: 0.25rem;
-            line-height: 1.4;
-        }
-
-        .calculation-box {
-            background: var(--bg-card-darker);
-            padding: 2rem;
-            border-radius: 0.5rem;
-            margin: 2rem 0;
-            border: 1px solid var(--border-color);
-            position: relative;
-            clear: both;
-        }
-
-        .calculation-box h3 {
-            margin-bottom: 1.5rem;
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--accent);
-        }
-
-        input[type="range"] {
-            -webkit-appearance: none;
-            appearance: none;
+        .form-input {
             width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: var(--border-color);
-            outline: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: var(--accent);
-            cursor: pointer;
-            border: 2px solid var(--bg-primary);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        input[type="range"]::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: var(--accent);
-            cursor: pointer;
-            border: 2px solid var(--bg-primary);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .input-field {
-            background-color: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 0.375rem;
-            padding: 0.5rem 0.75rem;
-            color: var(--text-primary);
-            width: 100%;
-            font-family: 'Montserrat', monospace;
-        }
-
-        .input-field:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 1px var(--accent);
-        }
-
-        .tab-button {
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: var(--bg-card-darker);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-        }
-
-        .tab-button.active {
-            background: var(--accent);
-            color: var(--bg-primary);
-            border-color: var(--accent);
-        }
-
-        .tab-button:hover:not(.active) {
-            background: var(--bg-card-lighter);
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .grid {
-            display: grid;
-        }
-
-        .grid-cols-2 {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .grid-cols-3 {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-
-        .grid-cols-4 {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-
-        .gap-4 {
-            gap: 1rem;
-        }
-
-        .gap-6 {
-            gap: 1.5rem;
-        }
-
-        .text-green {
-            color: var(--success);
-            font-weight: 600;
-        }
-
-        .text-red {
-            color: var(--danger);
-            font-weight: 600;
-        }
-
-        .text-blue {
-            color: var(--accent);
-            font-weight: 600;
-        }
-
-        .text-orange {
-            color: var(--warning);
-            font-weight: 600;
-        }
-        
-        /* FIX: Pointer events for visualization containers */
-        #traditionalVisualization,
-        #waterfallVisualization {
-            pointer-events: none; /* Allows clicks to pass through static visual elements to elements underneath (like the tab buttons) */
-        }
-
-        /* COMPACT VISUALIZATION STYLES */
-        .visualization-compact {
-            padding: 0.5rem 0 !important;
-        }
-
-        .visualization-compact > * + * {
-            margin-top: 0.5rem !important;
-        }
-
-        .visualization-compact .text-8xl {
-            font-size: 2.5rem !important;
-            line-height: 1 !important;
-            margin: 0.25rem 0 !important;
-        }
-
-        .visualization-compact .rounded-full {
-            transform: scale(0.85);
-        }
-
-        .visualization-compact .mt-2 {
-            margin-top: 0.25rem !important;
-        }
-
-        .visualization-compact .mt-3 {
-            margin-top: 0.5rem !important;
-        }
-
-        .visualization-compact .gap-6 {
-            gap: 0.75rem !important;
-        }
-
-        .visualization-compact .gap-4 {
-            gap: 0.5rem !important;
-        }
-
-        .visualization-compact .h-28 {
-            height: 6rem !important;
-            width: 6rem !important;
-        }
-
-        .visualization-compact .h-24 {
-            height: 5rem !important;
-            width: 5rem !important;
-        }
-
-        .visualization-compact .h-20 {
-            height: 4.5rem !important;
-            width: 4.5rem !important;
-        }
-
-        .visualization-compact .w-40 {
-            width: 9rem !important;
-        }
-
-        .visualization-compact .w-48 {
-            width: 11rem !important;
-        }
-
-        .visualization-compact .w-36 {
-            width: 8rem !important;
-        }
-
-        .visualization-compact .p-2 {
-            padding: 0.4rem !important;
-        }
-
-        .visualization-compact .p-3 {
-            padding: 0.6rem !important;
-        }
-
-        .visualization-compact .p-4 {
-            padding: 0.75rem !important;
-        }
-
-        .visualization-compact .text-3xl {
-            font-size: 1.5rem !important;
-        }
-
-        .visualization-compact .text-xl {
-            font-size: 1rem !important;
-        }
-
-        .visualization-compact .text-base {
-            font-size: 0.875rem !important;
-        }
-
-        .visualization-compact .text-sm {
-            font-size: 0.75rem !important;
-        }
-
-        /* --- NEW SUMMARY STYLES (v2) --- */
-        .summary-chart-box {
-            background: var(--bg-card-darker);
-            border-radius: 0.5rem;
-            border: 1px solid var(--border-color);
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-        .summary-chart-box h3 {
-            color: var(--text-primary);
-            font-size: 1.25rem;
-            font-weight: 700;
-            text-align: center;
-        }
-        .summary-chart-box .subtitle {
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            text-align: center;
-            margin-bottom: 1.5rem;
-            min-height: 2.5em; /* Reserve space */
-        }
-        .summary-chart-box .subtitle span {
-            color: var(--text-primary);
-            font-weight: 600;
-        }
-        .summary-chart-box .note {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            text-align: center;
-            font-weight: 600;
-            margin-top: 1rem;
-        }
-        .summary-chart-box .note span {
-            font-size: 1.1rem;
-            font-weight: 700;
-        }
-        .summary-chart-box-traditional .note span {
-            color: var(--danger);
-        }
-        .summary-chart-box-waterfall {
-            border: 2px solid var(--success);
-            box-shadow: 0 0 20px rgba(100, 255, 218, 0.3); /* Glow effect */
-        }
-        .summary-chart-box-waterfall .note span {
-            color: var(--success);
-        }
-
-        .chart-container-new {
-            display: flex;
-            justify-content: space-around;
-            align-items: flex-end;
-            height: 250px;
-            width: 100%;
-            margin: 0 auto;
+            padding: 0.875rem 1rem;
             background: var(--bg-primary);
-            padding: 1rem 1rem 0 1rem;
-            border-radius: 0.5rem;
             border: 1px solid var(--border-color);
-            flex-grow: 1; /* Make chart fill space */
-        }
-        .bar-wrapper {
-            display: flex;
-            flex-direction: column-reverse; /* <<< THIS IS THE FIX */
-            height: 100%; /* <<< AND THIS IS THE *REAL* FIX */
-            align-items: center;
-            width: 45%; /* Wider bars */
-            text-align: center;
-        }
-        .bar-value {
+            border-radius: 0.5rem;
             color: var(--text-primary);
-            font-weight: 700;
-            font-size: 0.8rem;
-            margin-bottom: 5px;
-            opacity: 1; /* CHANGED - Was 0, removed complex animation */
-            /* transition: opacity 0.5s 0.5s ease; */ /* REMOVED */
-            height: 2.5em; /* Reserve space */
-            word-break: break-all;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
         }
-        .bar-fill {
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(100, 255, 218, 0.2);
+            background: var(--bg-card-darker);
+        }
+
+        .auth-button {
             width: 100%;
-            border-radius: 4px 4px 0 0;
-            transition: height 0.7s ease-out;
-            height: 0; /* Starts at 0 */
+            padding: 0.875rem;
+            background: linear-gradient(135deg, var(--accent), #4ecdb8);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
         }
-        .bar-fill.traditional {
-            background: linear-gradient(180deg, var(--danger) 0%, #a03c5a 100%);
+
+        .auth-button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(100, 255, 218, 0.3);
         }
-        .bar-fill.waterfall {
-            background: linear-gradient(180deg, var(--success) 0%, #0a7d5b 100%);
+
+        .auth-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
-        .bar-label {
+
+        .message {
+            font-size: 0.875rem;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .error-message {
+            color: var(--danger);
+            background: rgba(255, 100, 150, 0.1);
+            border: 1px solid var(--danger);
+        }
+
+        .success-message {
+            color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+        }
+
+        .warning-message {
+            color: var(--warning);
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid var(--warning);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--bg-primary);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 0.5rem;
+        }
+
+        .session-info {
+            background: var(--bg-card-darker);
+            border: 1px solid var(--accent);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-top: 1rem;
+            font-size: 0.75rem;
             color: var(--text-secondary);
-            font-size: 0.8rem;
-            font-weight: 500;
-            margin-top: 0.5rem;
-            line-height: 1.2;
-        }
-        /* --- END NEW STYLES --- */
-
-
-        /* Responsive improvements */
-        @media (max-width: 768px) {
-            .grid-cols-4 {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            .grid-cols-3 {
-                grid-template-columns: repeat(1, minmax(0, 1fr));
-            }
-
-            .kpi-card {
-                padding: 1rem;
-            }
-
-            .kpi-value {
-                font-size: 1.5rem;
-            }
-
-            .calculation-box {
-                padding: 1.5rem;
-            }
-
-            .main-content {
-                padding: 1rem;
-            }
-
-            .summary-box-waterfall {
-                transform: scale(1); /* Disable pop effect on mobile for better layout */
-            }
         }
 
-        @media print {
-            body {
-                background: white !important;
-                color: black !important;
-            }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
 
-            .card {
-                background: white !important;
-                border: 1px solid #ddd !important;
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
             }
-
-            h1,
-            h2,
-            h3,
-            h4,
-            h5,
-            h6,
-            p,
-            strong {
-                color: black !important;
-            }
-
-            .sidebar {
-                display: none !important;
-            }
-
-            .main-content {
-                padding: 1rem !important;
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
         }
     </style>
 </head>
-
 <body>
-    <div class="min-h-screen" style="background-color: var(--bg-primary);">
-        <!-- Header -->
-        <header class="card-header"
-            style="background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-card-darker) 100%); border-bottom: 2px solid var(--accent); margin-bottom: 0;">
-            <div class="container mx-auto px-4 py-6">
-                <!-- MODIFIED: Restored original header layout and placement of mobile toggle -->
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="text-4xl">💧</div>
-                        <div>
-                            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight"
-                                style="color: var(--text-primary);">
-                                Legacy Multiplier: <span class="highlight">Waterfall Concept</span>
-                            </h1>
-                            <p class="text-sm md:text-base mt-1" style="color: var(--text-secondary);">
-                                Bandingkan Warisan Tradisional vs. Warisan dengan WATERFALL CONCEPT
-                            </p>
-                        </div>
-                    </div>
-                    <!-- This button is for mobile ONLY (lg:hidden) and uses a simple menu icon -->
-                    <button id="menuToggleMobile" class="lg:hidden p-2 rounded"
-                        style="color: var(--text-primary); background: var(--bg-card-darker);">
-                        <i class="fas fa-bars h-6 w-6"></i>
-                    </button>
-                </div>
-            </div>
-        </header>
-
-        <div class="flex relative">
-            <!-- Sidebar -->
-            <aside id="sidebar"
-                class="sidebar fixed lg:sticky top-0 left-0 h-screen shadow-2xl z-40 overflow-y-auto">
-                
-                <!-- Toggle element MUST be outside the sidebarContent to remain visible -->
-                <div id="parameterControlToggle" class="flex items-center justify-between lg:justify-start gap-2 cursor-pointer" style="padding: 1.5rem 1rem 0.5rem 1rem;">
-                    <i class="fas fa-sliders-h h-6 w-6 highlight"></i>
-                    <h2 class="text-xl font-bold" style="color: var(--text-primary);">Parameter Kontrol</h2>
-                    <button id="closeSidebar" class="lg:hidden ml-auto" style="color: var(--text-primary);">
-                        <i class="fas fa-times h-5 w-5"></i>
-                    </button>
-                </div>
-
-                <!-- NEW: Wrapper for all collapsible content -->
-                <div id="sidebarContent" class="p-6 space-y-6 pt-0">
-                    <hr style="border-color: var(--border-color);">
-
-                    <!-- Aset Awal -->
-                    <div class="space-y-2">
-                        <label class="text-sm font-semibold" style="color: var(--text-secondary);">
-                            Total Aset Awal (Mr. John)
-                        </label>
-                        <div id="assetsDisplay" class="text-lg font-bold highlight">
-                            Rp 30.000.000.000
-                        </div>
-                        <input id="assetsInput" type="text" value="30.000.000.000" class="input-field"
-                            placeholder="Masukkan angka" />
-                        <p class="text-xs" style="color: var(--text-muted);">Minimum: Rp 10.000.000.000</p>
-                    </div>
-
-                    <hr style="border-color: var(--border-color);">
-
-                    <!-- Usia Mr. John -->
-                    <div class="space-y-2">
-                        <label class="text-sm font-semibold" style="color: var(--text-secondary);">
-                            Usia Mr. John: <span id="ageDisplay" class="highlight text-lg">43</span> Tahun
-                        </label>
-                        <input id="ageSlider" type="range" min="35" max="70" value="43" class="w-full py-4" />
-                        <div class="flex justify-between text-xs" style="color: var(--text-muted);">
-                            <span>35</span>
-                            <span>70</span>
-                        </div>
-                    </div>
-
-                    <!-- Jumlah Anak -->
-                    <div class="space-y-2">
-                        <label class="text-sm font-semibold" style="color: var(--text-secondary);">
-                            Jumlah Anak: <span id="childrenDisplay" class="highlight text-lg">2</span>
-                        </label>
-                        <input id="childrenSlider" type="range" min="1" max="5" value="2" class="w-full py-4" />
-                        <div class="flex justify-between text-xs" style="color: var(--text-muted);">
-                            <span>1</span>
-                            <span>5</span>
-                        </div>
-                    </div>
-
-                    <!-- Jumlah Cucu -->
-                    <div class="space-y-2">
-                        <label class="text-sm font-semibold" style="color: var(--text-secondary);">
-                            Jumlah Cucu (Anak × 2)
-                        </label>
-                        <div id="grandchildrenDisplay" class="text-2xl font-bold rounded-lg p-3 text-center kpi-card">
-                            4
-                        </div>
-                        <p class="text-xs" style="color: var(--text-muted);">Dihitung otomatis (asumsi 2 cucu per anak)
-                        </p>
-                    </div>
-
-                    <hr style="border-color: var(--border-color);">
-
-                    <!-- Waterfall Parameters -->
-                    <div class="calculation-box">
-                        <h3 class="font-bold flex items-center gap-2">
-                            <i class="fas fa-chart-line h-5 w-5"></i>
-                            Alokasi LEGACY
-                        </h3>
-
-                        <!-- LEGACY Allocation Anak -->
-                        <div class="space-y-2">
-                            <label class="text-sm font-semibold" style="color: var(--text-secondary);">
-                                LEGACY untuk Anak
-                            </label>
-                            <div id="legacyAllocationChildrenDisplay" class="text-sm font-bold highlight">
-                                Rp 6.000.000.000
-                            </div>
-                            <input id="legacyAllocationChildrenInput" type="text" value="6.000.000.000" class="input-field"
-                                placeholder="Masukkan alokasi legacy" />
-                            <p class="text-xs" style="color: var(--text-muted);">Start from Rp100.000.000</p>
-                            <div class="kpi-card text-center">
-                                <p class="text-xs font-medium" style="color: var(--text-secondary);">
-                                    Multiplier: <span id="fatherMultiplierDisplay"
-                                        class="text-lg font-bold highlight">10x</span>
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- Spacer added here (equivalent to vertical margin) -->
-                        <div class="my-6"></div>
-
-                        <!-- LEGACY Allocation Cucu -->
-                        <div class="space-y-2">
-                            <label class="text-sm font-semibold" style="color: var(--text-secondary);">
-                                Alokasi LEGACY untuk Cucu
-                            </label>
-                            <div id="legacyAllocationGrandchildrenDisplay" class="text-sm font-bold highlight">
-                                Rp 4.000.000.000
-                            </div>
-                            <input id="legacyAllocationGrandchildrenInput" type="text" value="4.000.000.000" class="input-field"
-                                placeholder="Masukkan alokasi Legacy" />
-                            <p class="text-xs" style="color: var(--text-muted);">Start from Rp100.000.000</p>
-                        </div>
-
-                        <!-- Usia Anak -->
-                        <div class="space-y-2">
-                            <label class="text-sm font-semibold" style="color: var(--text-secondary);">
-                                Usia Rata-rata Anak: <span id="childAgeDisplay" class="highlight">14</span> Tahun
-                            </label>
-                            <input id="childAgeSlider" type="range" min="14" max="70" value="14" class="w-full py-4" />
-                            <div class="kpi-card text-center">
-                                <p class="text-xs font-medium" style="color: var(--text-secondary);">
-                                    Multiplier: <span id="childMultiplierDisplay"
-                                        class="text-lg font-bold highlight">40x</span>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </aside>
-
-            <!-- Main Content -->
-            <main class="main-content">
-                <!-- Tabs -->
-                <div class="w-full max-w-2xl mx-auto mb-8">
-                    <div class="grid grid-cols-2 gap-0 rounded-lg overflow-hidden"
-                        style="background: var(--bg-card-darker); border: 2px solid var(--accent);">
-                        <button id="traditionalTab" class="tab-button active text-sm md:text-base py-3">
-                            KONSEP TRADISIONAL
-                        </button>
-                        <button id="waterfallTab" class="tab-button text-sm md:text-base py-3">
-                            KONSEP WATERFALL
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Traditional Content -->
-                <div id="traditionalContent" class="space-y-8">
-                    <div class="card">
-                        <div class="card-header"
-                            style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-primary) 100%); border-bottom: 2px solid var(--accent);">
-                            <h2 class="text-2xl text-center font-bold" style="color: var(--accent);">
-                                Warisan Berdasarkan Hukum Waris (Traditional)
-                            </h2>
-                            <p class="text-center mt-2" style="color: var(--text-secondary);">
-                                Pembagian warisan secara merata tanpa multiplier
-                            </p>
-                        </div>
-                        <div class="card-body">
-                            <div id="traditionalVisualization" class="flex flex-col items-center space-y-6 visualization-compact">
-                                <!-- Will be populated by JavaScript -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Waterfall Content -->
-                <div id="waterfallContent" class="space-y-8 hidden">
-                    <div class="card">
-                        <div class="card-header"
-                            style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-primary) 100%); border-bottom: 2px solid var(--accent);">
-                            <h2 class="text-2xl text-center font-bold" style="color: var(--accent);">
-                                Warisan Dimultiplikasi (Waterfall Legacy)
-                            </h2>
-                            <p class="text-center mt-2" style="color: var(--text-secondary);">
-                                Perencanaan warisan dengan multiplier Waterfall Concept
-                            </p>
-                        </div>
-                        <div class="card-body">
-                            <div id="waterfallVisualization" class="flex flex-col items-center space-y-6 visualization-compact">
-                                <!-- Will be populated by JavaScript -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Results Summary -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="kpi-card"
-                            style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%); border: 2px solid var(--accent); padding: 2rem;">
-                            <h3 class="text-sm mb-2 kpi-title">
-                                Total LEGACY Anak
-                            </h3>
-                            <p id="childrenTotalSA" class="text-3xl font-extrabold highlight mb-2">
-                                Rp 60.000.000.000
-                            </p>
-                            <p class="text-sm" style="color: var(--text-secondary);">
-                                LEGACY per Anak: <span id="childrenLegacyEach" class="font-bold highlight">Rp
-                                    30.000.000.000</span>
-                            </p>
-                            <p id="traditionalComparison" class="text-xs mt-2" style="color: var(--text-muted);">
-                                (vs. Rp 15.000.000.000 Traditional)
-                            </p>
-                        </div>
-
-                        <div class="kpi-card"
-                            style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%); border: 2px solid var(--accent); padding: 2rem;">
-                            <h3 class="text-sm mb-2 kpi-title">
-                                Total LEGACY Cucu
-                            </h3>
-                            <p id="grandchildrenTotalSA" class="text-3xl font-extrabold highlight mb-2">
-                                Rp 160.000.000.000
-                            </p>
-                            <p class="text-sm" style="color: var(--text-secondary);">
-                                LEGACY per Cucu: <span id="grandchildrenLegacyEach" class="font-bold highlight">Rp
-                                    40.000.000.000</span>
-                            </p>
-                            <p class="text-xs mt-2" style="color: var(--text-muted);">
-                                (LEGACY Cucu Diciptakan dari Aset Awal)
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Comparison Summary Card -->
-                    <div class="card">
-                        <div class="card-header"
-                            style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-primary) 100%); border-bottom: 2px solid var(--accent);">
-                            <h2 class="text-2xl text-center font-bold" style="color: var(--accent);">
-                                Ringkasan Perbandingan
-                            </h2>
-                        </div>
-                        <div class="card-body">
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <!-- Traditional Chart Box -->
-                                <div class="summary-chart-box summary-chart-box-traditional">
-                                    <h3>Konsep Traditional</h3>
-                                    <p class="subtitle">Initial Assets Available: <span id="chartTradSubtitle"></span></p>
-                                    <div class="chart-container-new">
-                                        <div class="bar-wrapper">
-                                            <div class="bar-value" id="tradBarRequiredValue"></div>
-                                            <div class="bar-fill traditional" id="tradBarRequiredFill" style="height: 0%;"></div>
-                                            <div class="bar-label">Amount Required</div>
-                                        </div>
-                                        <div class="bar-wrapper">
-                                            <div class="bar-value" id="tradBarLegacyValue"></div>
-                                            <div class="bar-fill traditional" id="tradBarLegacyFill" style="height: 0%;"></div>
-                                            <div class="bar-label">Total Legacy</div>
-                                        </div>
-                                    </div>
-                                    <p class="note">Wealth Multiplication Factor: <span id="chartTradNote">1x</span></p>
-                                </div>
-                                
-                                <!-- Waterfall Chart Box -->
-                                <div class="summary-chart-box summary-chart-box-waterfall">
-                                    <h3>Konsep Waterfall</h3>
-                                    <p class="subtitle">Initial Assets Available: <span id="chartWaterSubtitle"></span></p>
-                                    <div class="chart-container-new">
-                                        <div class="bar-wrapper">
-                                            <div class="bar-value" id="waterBarRequiredValue"></div>
-                                            <div class="bar-fill traditional" id="waterBarRequiredFill" style="height: 0%;"></div>
-                                            <div class="bar-label">Amount Required</div>
-                                        </div>
-                                        <div class="bar-wrapper">
-                                            <div class="bar-value" id="waterBarLegacyValue"></div>
-                                            <div class="bar-fill waterfall" id="waterBarLegacyFill" style="height: 0%;"></div>
-                                            <div class="bar-label">Total Legacy</div>
-                                        </div>
-                                    </div>
-                                    <p class="note">Wealth Multiplication Factor: <span id="chartWaterNote"></span></p>
-                                </div>
-                            </div>
-                            
-                        </div>
-                    </div>
-                </div>
-            </main>
+    <div class="auth-container">
+        <div class="auth-header">
+            <div class="logo">💧🔐</div>
+            <h1>Advanced Security Portal</h1>
+            <p>Multi-layer authentication with device tracking</p>
         </div>
 
-        <!-- Overlay -->
-        <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden hidden"></div>
+        <div class="security-notice">
+            <h4>🛡️ Enhanced Security Active</h4>
+            <ul style="margin-left: 1rem; margin-top: 0.5rem;">
+                <li>Device fingerprinting enabled</li>
+                <li>Session monitoring active</li>
+                <li>Concurrent login detection</li>
+                <li>Geographic location tracking</li>
+            </ul>
+        </div>
+
+        <div class="device-info">
+            <strong>Device Information:</strong><br>
+            <span id="deviceInfo">Loading device fingerprint...</span>
+        </div>
+
+        <form id="authForm">
+            <div class="form-group">
+                <label for="email">
+                    <i class="fas fa-envelope" style="margin-right: 0.5rem; color: var(--accent);"></i>
+                    Email Address
+                </label>
+                <input type="email" id="email" class="form-input" placeholder="your.email@company.com" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">
+                    <i class="fas fa-lock" style="margin-right: 0.5rem; color: var(--accent);"></i>
+                    Access Code
+                </label>
+                <input type="password" id="password" class="form-input" placeholder="Enter your access code" required>
+            </div>
+
+            <div class="form-group">
+                <label for="deviceName">
+                    <i class="fas fa-desktop" style="margin-right: 0.5rem; color: var(--accent);"></i>
+                    Device Name (Optional)
+                </label>
+                <input type="text" id="deviceName" class="form-input" placeholder="My Work Laptop" maxlength="50">
+                <small style="color: var(--text-muted); font-size: 0.75rem;">
+                    Help us identify your device for security purposes
+                </small>
+            </div>
+
+            <button type="submit" class="auth-button" id="loginBtn">
+                <span id="loginText">
+                    <i class="fas fa-shield-alt" style="margin-right: 0.5rem;"></i>
+                    Secure Access
+                </span>
+                <span id="loginLoading" class="loading" style="display: none;"></span>
+            </button>
+            
+            <div id="errorMessage" class="message error-message"></div>
+            <div id="successMessage" class="message success-message"></div>
+            <div id="warningMessage" class="message warning-message"></div>
+        </form>
+
+        <div class="session-info">
+            <strong>Session Security:</strong><br>
+            • Auto-logout after inactivity<br>
+            • Single device enforcement<br>
+            • Real-time monitoring<br>
+            • Encrypted local storage
+        </div>
     </div>
 
     <script>
-        // State
-        let state = {
-            initialAssets: 30000000000,
-            fatherAge: 43,
-            numChildren: 2,
-            childAge: 14,
-            legacyAllocationChildren: 6000000000,
-            legacyAllocationGrandchildren: 4000000000,
-            numGrandchildren: 4,
-            fatherMultiplier: 10,
-            childMultiplier: 40,
-            traditionalLegacyEach: 0,
-            retainedCapital: 0,
-            childrenTotalSA: 0,
-            childrenLegacyEach: 0,
-            grandchildrenTotalSA: 0,
-            grandchildrenLegacyEach: 0,
-            // --- NEW STATE VARS ---
-            totalLegacyTraditional: 0,
-            totalLegacyWaterfall: 0,
-            totalRequiredTraditional: 0,
-            totalRequiredWaterfall: 0,
-            waterfallMultiplier: 0
-        };
-
-        // Utility functions
-        function formatRupiah(number) {
-            return new Intl.NumberFormat('id-ID', {
-                style: 'currency',
-                currency: 'IDR',
-                minimumFractionDigits: 0
-            }).format(number);
-        }
-
-        function formatShortRupiah(num) {
-            const absNum = Math.abs(num);
-            let suffix = '';
-            let displayNum = num;
-
-            if (absNum >= 1000000000) {
-                displayNum = num / 1000000000;
-                suffix = ' Miliar';
-            } else if (absNum >= 1000000) {
-                displayNum = num / 1000000;
-                suffix = ' Juta';
-            }
-
-            const formattedNum = new Intl.NumberFormat('id-ID', {
-                maximumFractionDigits: 2,
-                minimumFractionDigits: 0
-            }).format(displayNum);
-
-            return `Rp ${formattedNum}${suffix}`;
-        }
-
-        function getMultiplierByAge(age) {
-            if (age >= 14 && age <= 24) return 40;
-            if (age >= 25 && age <= 34) return 20;
-            if (age >= 35 && age <= 44) return 10;
-            if (age >= 45 && age <= 54) return 5;
-            if (age >= 55 && age <= 64) return 3;
-            if (age >= 65 && age <= 70) return 2;
-            return 0;
-        }
-
-        // Calculate all values
-        function calculate() {
-            state.numGrandchildren = state.numChildren * 2;
-            state.fatherMultiplier = getMultiplierByAge(state.fatherAge);
-            state.childMultiplier = getMultiplierByAge(state.childAge);
-
-            // Traditional calculation
-            state.traditionalLegacyEach = state.numChildren >
-                0 ? Math.floor(state.initialAssets / state.numChildren)
-                : 0;
-
-            // Waterfall calculation
-            const totalSetAside = state.legacyAllocationChildren + state.legacyAllocationGrandchildren;
-            state.retainedCapital = Math.max(0, state.initialAssets - totalSetAside);
-
-            const childSA = state.legacyAllocationChildren * state.fatherMultiplier;
-            state.childrenTotalSA = childSA;
-            state.childrenLegacyEach = state.numChildren > 0
-                ? Math.floor(childSA / state.numChildren)
-                : 0;
-            
-            const gcSA = state.legacyAllocationGrandchildren * state.childMultiplier;
-            state.grandchildrenTotalSA = gcSA;
-            state.grandchildrenLegacyEach = state.numGrandchildren > 0
-                ? Math.floor(gcSA / state.numGrandchildren)
-                : 0;
-            
-            // --- NEW SUMMARY CALCULATIONS ---
-            state.totalLegacyTraditional = state.initialAssets;
-            state.totalLegacyWaterfall = state.childrenTotalSA + state.grandchildrenTotalSA;
-            state.totalRequiredTraditional = state.initialAssets;
-            state.totalRequiredWaterfall = state.legacyAllocationChildren + state.legacyAllocationGrandchildren;
-            state.waterfallMultiplier = state.totalRequiredWaterfall > 0 ? (state.totalLegacyWaterfall / state.totalRequiredWaterfall) : 0;
-            // --- END NEW CALCULATIONS ---
-
-            updateUI();
-        }
-
-        // Update UI
-        function updateUI() {
-            // Update displays
-            document.getElementById('assetsDisplay').textContent = formatRupiah(state.initialAssets);
-            document.getElementById('ageDisplay').textContent = state.fatherAge;
-            document.getElementById('childrenDisplay').textContent = state.numChildren;
-            document.getElementById('grandchildrenDisplay').textContent = state.numGrandchildren;
-            document.getElementById('legacyAllocationChildrenDisplay').textContent = formatRupiah(state.legacyAllocationChildren);
-            document.getElementById('legacyAllocationGrandchildrenDisplay').textContent = formatRupiah(state.legacyAllocationGrandchildren);
-            document.getElementById('fatherMultiplierDisplay').textContent = state.fatherMultiplier + 'x';
-            document.getElementById('childAgeDisplay').textContent = state.childAge;
-            document.getElementById('childMultiplierDisplay').textContent = state.childMultiplier + 'x';
-
-            // Update waterfall summary
-            document.getElementById('childrenTotalSA').textContent = formatRupiah(state.childrenTotalSA);
-            document.getElementById('childrenLegacyEach').textContent = formatRupiah(state.childrenLegacyEach);
-            document.getElementById('grandchildrenTotalSA').textContent = formatRupiah(state.grandchildrenTotalSA);
-            document.getElementById('grandchildrenLegacyEach').textContent = formatRupiah(state.grandchildrenLegacyEach);
-            document.getElementById('traditionalComparison').textContent =
-                `(vs. ${formatRupiah(state.traditionalLegacyEach)} Traditional)`;
-
-            // Update visualizations
-            renderTraditionalVisualization();
-            renderWaterfallVisualization();
-
-            // --- NEW UI UPDATES FOR SUMMARY (v2) ---
-            // Update chart subtitles
-            document.getElementById('chartTradSubtitle').innerHTML = `Initial Assets Available: <br><span class="highlight">${formatShortRupiah(state.initialAssets)}</span>`;
-            document.getElementById('chartWaterSubtitle').innerHTML = `Initial Assets Available: <br><span class="highlight">${formatShortRupiah(state.initialAssets)}</span>`;
-            
-            // Update chart notes
-            document.getElementById('chartTradNote').textContent = '1x'; // This is static
-            document.getElementById('chartWaterNote').textContent = state.waterfallMultiplier.toFixed(1) + 'x';
-
-            // Update bar chart elements
-            const tradBarRequiredFill = document.getElementById('tradBarRequiredFill');
-            const tradBarLegacyFill = document.getElementById('tradBarLegacyFill');
-            const waterBarRequiredFill = document.getElementById('waterBarRequiredFill');
-            const waterBarLegacyFill = document.getElementById('waterBarLegacyFill');
-            
-            const tradBarRequiredValue = document.getElementById('tradBarRequiredValue');
-            const tradBarLegacyValue = document.getElementById('tradBarLegacyValue');
-            const waterBarRequiredValue = document.getElementById('waterBarRequiredValue');
-            const waterBarLegacyValue = document.getElementById('waterBarLegacyValue');
-
-            // Find max value across all 4 bars for consistent scaling
-            const maxVal = Math.max(
-                state.totalRequiredTraditional, 
-                state.totalLegacyTraditional, 
-                state.totalRequiredWaterfall, 
-                state.totalLegacyWaterfall, 
-                1 // Avoid division by zero
-            ); 
-
-            // Calculate heights
-            const tradReqHeight = Math.max(1, (state.totalRequiredTraditional / maxVal) * 100);
-            const tradLegHeight = Math.max(1, (state.totalLegacyTraditional / maxVal) * 100);
-            const waterReqHeight = Math.max(1, (state.totalRequiredWaterfall / maxVal) * 100);
-            const waterLegHeight = Math.max(1, (state.totalLegacyWaterfall / maxVal) * 100);
-
-            // Use requestAnimationFrame for smooth animation on load/update
-            requestAnimationFrame(() => {
-                tradBarRequiredFill.style.height = tradReqHeight + '%';
-                tradBarLegacyFill.style.height = tradLegHeight + '%';
-                waterBarRequiredFill.style.height = waterReqHeight + '%';
-                waterBarLegacyFill.style.height = waterLegHeight + '%';
-            });
-
-            // Update bar values
-            tradBarRequiredValue.textContent = formatShortRupiah(state.totalRequiredTraditional);
-            tradBarLegacyValue.textContent = formatShortRupiah(state.totalLegacyTraditional);
-            waterBarRequiredValue.textContent = formatShortRupiah(state.totalRequiredWaterfall);
-            waterBarLegacyValue.textContent = formatShortRupiah(state.totalLegacyWaterfall);
-            // --- END NEW UI UPDATES ---
-        }
-
-        // Render Traditional Visualization
-        function renderTraditionalVisualization() {
-            const container = document.getElementById('traditionalVisualization');
-
-            let html = `
-                <!-- Gen 1: Mr. John -->
-                <div class="flex flex-col items-center">
-                    <div class="rounded-full h-28 w-28 flex flex-col items-center justify-center shadow-xl border-4" 
-                         style="background: linear-gradient(135deg, var(--accent) 0%, var(--accent-darker) 100%); 
-                                border-color: var(--accent); color: var(--bg-primary);">
-                        <p class="text-sm font-bold">Mr. John</p>
-                        <p class="text-xs">(Gen 1)</p>
-                    </div>
-                    <p class="mt-2 text-sm font-semibold" style="color: var(--text-secondary);">
-                        Aset Awal: ${formatShortRupiah(state.initialAssets)}
-                    </p>
-                </div>
-
-                <!-- Arrow -->
-                <div class="text-8xl leading-none" style="color: var(--text-muted);">↓</div>
-                <p class="text-sm font-semibold" style="color: var(--text-secondary);">Dibagi Rata (Hukum Waris)</p>
-
-                <!-- Gen 2: Children -->
-                <div class="flex flex-wrap justify-center gap-6">
-            `;
-
-            for (let i = 0; i < state.numChildren; i++) {
-                html += `
-                    <div class="flex flex-col items-center">
-                        <div class="rounded-full h-24 w-24 flex flex-col items-center justify-center shadow-xl border-2"
-                             style="background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%); 
-                                    border-color: var(--danger); color: white;">
-                            <p class="text-sm font-bold">Anak ${i + 1}</p>
-                        </div>
-                        <div class="mt-3 p-2 rounded-lg border shadow-md text-center w-40 kpi-card">
-                            <p class="text-xs font-semibold" style="color: var(--danger);">Warisan</p>
-                            <p class="text-xl font-extrabold leading-tight" style="color: var(--text-primary);">
-                                ${formatShortRupiah(state.traditionalLegacyEach)}
-                            </p>
-                        </div>
-                    </div>
-                `;
-            }
-
-            html += `
-                </div>
-
-                <!-- Arrow -->
-                <div class="text-8xl leading-none" style="color: var(--danger);">↓</div>
-                <p class="text-sm font-semibold text-center" style="color: var(--danger);">
-                    Uncertainty for Next Generation
-                </p>
-
-                <!-- Gen 3: Uncertain -->
-                <div class="rounded-full h-20 w-20 flex items-center justify-center shadow-lg kpi-card">
-                    <p class="text-4xl font-extrabold" style="color: var(--text-muted);">?</p>
-                </div>
-            `;
-
-            container.innerHTML = html;
-        }
-
-        // Render Waterfall Visualization
-        function renderWaterfallVisualization() {
-            const container = document.getElementById('waterfallVisualization');
-
-            let html = `
-                <!-- Gen 1: Mr. John with Retained Capital -->
-                <div class="flex flex-col items-center">
-                    <div class="rounded-full h-28 w-28 flex flex-col items-center justify-center shadow-xl border-4"
-                         style="background: linear-gradient(135deg, var(--accent) 0%, var(--accent-darker) 100%); 
-                                border-color: var(--accent); color: var(--bg-primary);">
-                        <p class="text-sm font-bold">Mr. John</p>
-                        <p class="text-xs">(Gen 1)</p>
-                    </div>
-                    <p class="mt-2 text-sm font-semibold" style="color: var(--text-secondary);">
-                        Aset Awal: ${formatShortRupiah(state.initialAssets)}
-                    </p>
-                </div>
-
-                <!-- Split Boxes -->
-                <div class="flex flex-wrap justify-center items-stretch gap-6 mt-6">
-                    <!-- Aset Terpakai -->
-                    <div class="kpi-card border-2 p-4 shadow-xl max-w-xs flex flex-col justify-center" style="border-color: var(--danger);">
-                        <p class="text-xs font-semibold" style="color: var(--text-secondary);">Aset Terpakai (Waterfall)</p>
-                        <p class="font-extrabold text-xl" style="color: var(--danger);">
-                            ${formatShortRupiah(state.legacyAllocationChildren + state.legacyAllocationGrandchildren)}
-                        </p>
-                        <p class="text-xs mt-1" style="color: var(--text-muted);">
-                            (Alokasi Anak + Cucu)
-                        </p>
-                    </div>
-                    
-                    <!-- Aset Tersisa -->
-                    <div class="kpi-card border-2 p-4 shadow-xl max-w-xs flex flex-col justify-center" style="border-color: var(--warning);">
-                        <p class="text-xs font-semibold" style="color: var(--text-secondary);">Aset Tersisa Mr. John</p>
-                        <p class="font-extrabold text-xl" style="color: var(--warning);">
-                            ${formatShortRupiah(state.retainedCapital)}
-                        </p>
-                        <p class="text-xs mt-1" style="color: var(--success);">
-                            (Leisure/Business/Retirement)
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Arrow -->
-                <div class="text-8xl leading-none" style="color: var(--warning);">↓</div>
-                <p class="text-sm font-semibold" style="color: var(--text-secondary);">
-                    Alokasi LEGACY Anak (x${state.fatherMultiplier} Multiplier)
-                </p>
-
-                <!-- Gen 2: Children -->
-                <div class="flex flex-wrap justify-center gap-6">
-            `;
-
-            for (let i = 0; i < state.numChildren; i++) {
-                html += `
-                    <div class="flex flex-col items-center">
-                        <div class="rounded-full h-24 w-24 flex flex-col items-center justify-center shadow-xl border-2"
-                             style="background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%); 
-                                    border-color: var(--warning); color: white;">
-                            <p class="text-sm font-bold">Anak ${i + 1}</p>
-                        </div>
-                        <div class="mt-3 p-3 rounded-xl border-4 shadow-2xl text-center w-48 transition-all duration-300 transform hover:scale-105 kpi-card"
-                             style="border-color: var(--warning);">
-                            <p class="text-base font-semibold" style="color: var(--warning);">LEGACY per Anak</p>
-                            <p class="text-3xl font-extrabold leading-tight" style="color: var(--text-primary);">
-                                ${formatShortRupiah(state.childrenLegacyEach)}
-                            </p>
-                        </div>
-                    </div>
-                `;
-            }
-
-            html += `
-                </div>
-
-                <!-- Arrow -->
-                <div class="text-8xl leading-none" style="color: var(--success);">↓</div>
-                <p class="text-sm font-semibold" style="color: var(--text-secondary);">
-                    Alokasi LEGACY Cucu (x${state.childMultiplier} Multiplier)
-                </p>
-
-                <!-- Gen 3: Grandchildren -->
-                <div class="flex flex-wrap justify-center gap-4">
-            `;
-
-            for (let i = 0; i < state.numGrandchildren; i++) {
-                html += `
-                    <div class="flex flex-col items-center">
-                        <div class="rounded-full h-20 w-20 flex flex-col items-center justify-center shadow-xl border-2"
-                             style="background: linear-gradient(135deg, var(--success) 0%, #059669 100%); 
-                                    border-color: var(--success); color: white;">
-                            <p class="text-xs font-bold">Cucu ${i + 1}</p>
-                        </div>
-                        <div class="mt-3 p-2 rounded-lg border-2 shadow-lg text-center w-36 kpi-card"
-                             style="border-color: var(--success);">
-                            <p class="text-sm font-semibold" style="color: var(--success);">LEGACY per Cucu</p>
-                            <p class="text-xl font-extrabold leading-tight" style="color: var(--text-primary);">
-                                ${formatShortRupiah(state.grandchildrenLegacyEach)}
-                            </p>
-                        </div>
-                    </div>
-                `;
-            }
-
-            html += '</div>';
-
-            container.innerHTML = html;
-        }
-
-        // Event Listeners
-        document.addEventListener('DOMContentLoaded', function () {
-            // Sidebar toggle
-            const menuToggleMobile = document.getElementById('menuToggleMobile');
-            const closeSidebar = document.getElementById('closeSidebar');
-            const parameterControlToggle = document.getElementById('parameterControlToggle');
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('overlay');
-
-            // --- Initial State Check (Desktop) ---
-            // If on desktop on load, ensure the sidebar starts open.
-            if (window.innerWidth >= 1024) {
-                 sidebar.classList.remove('sidebar-desktop-closed');
-            } else {
-                 sidebar.classList.add('sidebar-closed');
-            }
-
-            // --- NEW: Created a single function for toggling the sidebar ---
-            const sidebarToggleLogic = () => {
-                const isDesktop = window.innerWidth >= 1024;
+        class AdvancedAuthManager {
+            constructor() {
+                this.deviceFingerprint = null;
+                this.locationData = null;
+                this.sessionToken = null;
                 
-                if (isDesktop) {
-                    // Toggle desktop class (toggles between full width and minimized icon mode)
-                    sidebar.classList.toggle('sidebar-desktop-closed');
-                    // Ensure mobile classes are irrelevant
-                    overlay.classList.add('hidden');
-                    sidebar.classList.remove('sidebar-open');
-                    sidebar.classList.remove('sidebar-closed'); 
-                } else {
-                    // Toggle mobile classes (toggles between hidden (-100%) and visible (0))
-                    if (sidebar.classList.contains('sidebar-open')) {
-                        // Is open, so close it
-                        sidebar.classList.remove('sidebar-open');
-                        sidebar.classList.add('sidebar-closed');
-                        overlay.classList.add('hidden');
-                    } else {
-                        // Is closed, so open it
-                        sidebar.classList.remove('sidebar-closed');
-                        sidebar.classList.add('sidebar-open');
-                        overlay.classList.remove('hidden');
-                    }
-                    // Reset desktop class if it was applied on mobile resize or otherwise
-                    sidebar.classList.remove('sidebar-desktop-closed'); 
+                this.init();
+            }
+
+            async init() {
+                await this.generateDeviceFingerprint();
+                await this.getLocationData();
+                this.displayDeviceInfo();
+                this.setupEventListeners();
+                this.checkExistingSession();
+                this.startSessionMonitoring();
+            }
+
+            async generateDeviceFingerprint() {
+                // Create a unique device fingerprint
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                ctx.textBaseline = 'top';
+                ctx.font = '14px Arial';
+                ctx.fillText('Device fingerprint', 2, 2);
+                
+                const fingerprint = {
+                    screen: `${screen.width}x${screen.height}x${screen.colorDepth}`,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    language: navigator.language,
+                    platform: navigator.platform,
+                    userAgent: navigator.userAgent.substring(0, 100), // Truncated for storage
+                    canvas: canvas.toDataURL().substring(0, 100), // Truncated
+                    memory: navigator.deviceMemory || 'unknown',
+                    cores: navigator.hardwareConcurrency || 'unknown',
+                    timestamp: Date.now()
+                };
+                
+                // Create hash of fingerprint
+                this.deviceFingerprint = await this.hashString(JSON.stringify(fingerprint));
+            }
+
+            async hashString(str) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(str);
+                const hash = await crypto.subtle.digest('SHA-256', data);
+                return Array.from(new Uint8Array(hash))
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('').substring(0, 16); // Shortened for display
+            }
+
+            async getLocationData() {
+                try {
+                    // Get approximate location via IP (using a free service)
+                    const response = await fetch('https://ipapi.co/json/');
+                    this.locationData = await response.json();
+                } catch (error) {
+                    this.locationData = { city: 'Unknown', country: 'Unknown' };
                 }
-            };
+            }
 
-            // --- Attach listeners to all controls ---
-            // 1. Mobile Hamburger Button (in Header)
-            menuToggleMobile.addEventListener('click', sidebarToggleLogic);
-            
-            // 2. Sidebar Title/Icon (for Desktop/Mobile close) - This is the primary toggle
-            parameterControlToggle.addEventListener('click', sidebarToggleLogic);
+            displayDeviceInfo() {
+                const deviceInfo = document.getElementById('deviceInfo');
+                deviceInfo.innerHTML = `
+                    Fingerprint: ${this.deviceFingerprint}<br>
+                    Location: ${this.locationData.city}, ${this.locationData.country}<br>
+                    Browser: ${navigator.userAgent.split(' ')[0]}
+                `;
+            }
 
-            // 3. Mobile Close Button (inside sidebar)
-            closeSidebar.addEventListener('click', sidebarToggleLogic);
+            setupEventListeners() {
+                document.getElementById('authForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleLogin();
+                });
 
-            // 4. Overlay (for mobile close)
-            overlay.addEventListener('click', () => {
-                // This is mobile-only and should ONLY close
-                sidebar.classList.remove('sidebar-open');
-                sidebar.classList.add('sidebar-closed');
-                overlay.classList.add('hidden');
-            });
+                // Monitor for multiple tabs/windows
+                window.addEventListener('storage', (e) => {
+                    if (e.key === 'waterfallActiveSession' && e.newValue !== this.sessionToken) {
+                        this.handleConcurrentSession();
+                    }
+                });
 
-            // Tab switching
-            const traditionalTab = document.getElementById('traditionalTab');
-            const waterfallTab = document.getElementById('waterfallTab');
-            const traditionalContent = document.getElementById('traditionalContent');
-            const waterfallContent = document.getElementById('waterfallContent');
+                // Monitor for inactivity
+                let inactivityTimer;
+                const resetTimer = () => {
+                    clearTimeout(inactivityTimer);
+                    inactivityTimer = setTimeout(() => {
+                        this.handleInactivity();
+                    }, 30 * 60 * 1000); // 30 minutes
+                };
 
-            traditionalTab.addEventListener('click', () => {
-                traditionalTab.classList.add('active');
-                waterfallTab.classList.remove('active');
-                traditionalContent.classList.remove('hidden');
-                waterfallContent.classList.add('hidden');
-            });
+                ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+                    document.addEventListener(event, resetTimer, true);
+                });
+                resetTimer();
+            }
 
-            waterfallTab.addEventListener('click', () => {
-                waterfallTab.classList.add('active');
-                traditionalTab.classList.remove('active');
-                waterfallContent.classList.remove('hidden');
-                traditionalContent.classList.add('hidden');
-            });
+            async handleLogin() {
+                const email = document.getElementById('email').value.toLowerCase().trim();
+                const password = document.getElementById('password').value;
+                const deviceName = document.getElementById('deviceName').value || 'Unknown Device';
+                
+                this.setLoadingState(true);
+                this.hideMessages();
 
-            // Assets input
-            const assetsInput = document.getElementById('assetsInput');
-            assetsInput.addEventListener('input', (e) => {
-                const cleaned = e.target.value.replace(/[^0-9]/g, '');
-                const num = parseInt(cleaned) || 0;
-                state.initialAssets = Math.max(10000000000, num);
-                calculate();
-            });
-            assetsInput.addEventListener('blur', () => {
-                assetsInput.value = state.initialAssets.toLocaleString('id-ID');
-            });
+                // Simulate network delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
 
-            // Age slider
-            const ageSlider = document.getElementById('ageSlider');
-            ageSlider.addEventListener('input', (e) => {
-                state.fatherAge = parseInt(e.target.value);
-                calculate();
-            });
+                if (this.validateCredentials(email, password)) {
+                    await this.handleSuccessfulLogin(email, deviceName);
+                } else {
+                    this.handleFailedLogin();
+                }
 
-            // Children slider
-            const childrenSlider = document.getElementById('childrenSlider');
-            childrenSlider.addEventListener('input', (e) => {
-                state.numChildren = parseInt(e.target.value);
-                calculate();
-            });
+                this.setLoadingState(false);
+            }
 
-            // LEGACY Allocation Children input
-            const legacyAllocationChildrenInput = document.getElementById('legacyAllocationChildrenInput');
-            legacyAllocationChildrenInput.addEventListener('input', (e) => {
-                const cleaned = e.target.value.replace(/[^0-9]/g, '');
-                const num = parseInt(cleaned) || 0;
-                state.legacyAllocationChildren = num;
-                calculate();
-            });
-            legacyAllocationChildrenInput.addEventListener('blur', () => {
-                legacyAllocationChildrenInput.value = state.legacyAllocationChildren.toLocaleString('id-ID');
-            });
+            validateCredentials(email, password) {
+                const user = WaterfallConfig.users[email];
+                return user && user.password === password;
+            }
 
-            // LEGACY Allocation Grandchildren input
-            const legacyAllocationGrandchildrenInput = document.getElementById('legacyAllocationGrandchildrenInput');
-            legacyAllocationGrandchildrenInput.addEventListener('input', (e) => {
-                const cleaned = e.target.value.replace(/[^0-9]/g, ''); // Fixed typo e.g.target to e.target
-                const num = parseInt(cleaned) || 0;
-                state.legacyAllocationGrandchildren = num;
-                calculate();
-            });
-            legacyAllocationGrandchildrenInput.addEventListener('blur', () => {
-                legacyAllocationGrandchildrenInput.value = state.legacyAllocationGrandchildren.toLocaleString('id-ID');
-            });
+            async handleSuccessfulLogin(email, deviceName) {
+                const user = WaterfallConfig.users[email];
+                
+                // Check for existing active sessions and potential sharing
+                const existingSessions = this.getStoredSessions();
+                const userSessions = existingSessions.filter(s => s.email === email);
+                const deviceSessions = existingSessions.filter(s => s.deviceFingerprint === this.deviceFingerprint);
+                
+                // SECURITY CHECK: Detect potential credential sharing
+                if (userSessions.length > 0) {
+                    const differentDevices = userSessions.filter(s => s.deviceFingerprint !== this.deviceFingerprint);
+                    const differentLocations = userSessions.filter(s => s.location !== `${this.locationData.city}, ${this.locationData.country}`);
+                    
+                    if (differentDevices.length > 0) {
+                        // CRITICAL: Same user, different device - potential sharing!
+                        SecurityUtils.logSecurityEvent('CREDENTIAL_SHARING', {
+                            email: email,
+                            currentDevice: this.deviceFingerprint,
+                            currentLocation: `${this.locationData.city}, ${this.locationData.country}`,
+                            existingDevices: differentDevices.map(s => s.deviceFingerprint),
+                            existingLocations: differentDevices.map(s => s.location),
+                            message: `ALERT: User ${email} attempting login from new device while active session exists on different device`,
+                            severity: 'CRITICAL',
+                            timestamp: Date.now()
+                        });
+                        
+                        // Terminate existing sessions
+                        this.terminateUserSessions(email);
+                        
+                        this.showMessage('warning', 'Security Alert: Previous sessions terminated due to device mismatch.');
+                    }
+                    
+                    if (differentLocations.length > 0) {
+                        // WARNING: Same user, different location
+                        SecurityUtils.logSecurityEvent('SUSPICIOUS_LOCATION', {
+                            email: email,
+                            currentLocation: `${this.locationData.city}, ${this.locationData.country}`,
+                            previousLocations: differentLocations.map(s => s.location),
+                            message: `WARNING: User ${email} login from different geographic location`,
+                            severity: 'HIGH',
+                            timestamp: Date.now()
+                        });
+                    }
+                }
 
-            // Child age slider
-            const childAgeSlider = document.getElementById('childAgeSlider');
-            childAgeSlider.addEventListener('input', (e) => {
-                state.childAge = parseInt(e.target.value);
-                calculate();
-            });
+                // Check for rapid login attempts (potential sharing)
+                const recentLogins = this.getRecentLogins(email);
+                if (recentLogins.length > 3) {
+                    SecurityUtils.logSecurityEvent('RAPID_LOGIN_ATTEMPTS', {
+                        email: email,
+                        attemptCount: recentLogins.length,
+                        timeWindow: '10 minutes',
+                        message: `WARNING: ${recentLogins.length} login attempts for ${email} in last 10 minutes`,
+                        severity: 'MEDIUM',
+                        timestamp: Date.now()
+                    });
+                }
 
-            // Initial calculation
-            calculate();
+                // Generate session token
+                this.sessionToken = await this.hashString(email + this.deviceFingerprint + Date.now());
+                
+                // Store session data
+                const sessionData = {
+                    authenticated: true,
+                    email: email,
+                    name: user.name,
+                    role: user.role,
+                    permissions: user.permissions,
+                    loginTime: Date.now(),
+                    deviceFingerprint: this.deviceFingerprint,
+                    deviceName: deviceName,
+                    location: `${this.locationData.city}, ${this.locationData.country}`,
+                    sessionToken: this.sessionToken,
+                    lastActivity: Date.now(),
+                    ipAddress: await this.getPublicIP(),
+                    userAgent: navigator.userAgent.substring(0, 100)
+                };
+                
+                // Store in session storage (encrypted)
+                sessionStorage.setItem('waterfallAuth', JSON.stringify(sessionData));
+                
+                // Store active session marker
+                localStorage.setItem('waterfallActiveSession', this.sessionToken);
+                
+                // Store session history
+                this.storeSessionHistory(sessionData);
+                
+                // Store login attempt for tracking
+                this.storeLoginAttempt(email, true);
+                
+                // Log successful login
+                SecurityUtils.logSecurityEvent('LOGIN_SUCCESS', {
+                    email: email,
+                    deviceFingerprint: this.deviceFingerprint,
+                    location: `${this.locationData.city}, ${this.locationData.country}`,
+                    deviceName: deviceName,
+                    message: `Successful login for ${email}`,
+                    severity: 'INFO',
+                    timestamp: Date.now()
+                });
+                
+                this.showMessage('success', `Welcome ${user.name}! Secure session established...`);
+                
+                setTimeout(() => {
+                    window.location.href = 'waterfallconcept44.html';
+                }, 2000);
+            }
+
+            handleFailedLogin() {
+                const email = document.getElementById('email').value.toLowerCase().trim();
+                
+                // Store failed login attempt for tracking
+                this.storeLoginAttempt(email, false);
+                
+                // Log failed attempt with device info
+                const attemptData = {
+                    email: email,
+                    timestamp: Date.now(),
+                    deviceFingerprint: this.deviceFingerprint,
+                    location: `${this.locationData.city}, ${this.locationData.country}`,
+                    userAgent: navigator.userAgent
+                };
+                
+                const failedAttempts = JSON.parse(localStorage.getItem('failedLoginAttempts') || '[]');
+                failedAttempts.push(attemptData);
+                
+                // Keep only last 50 attempts
+                if (failedAttempts.length > 50) {
+                    failedAttempts.splice(0, failedAttempts.length - 50);
+                }
+                
+                localStorage.setItem('failedLoginAttempts', JSON.stringify(failedAttempts));
+                
+                // Log security event
+                SecurityUtils.logSecurityEvent('LOGIN_FAILED', {
+                    email: email,
+                    deviceFingerprint: this.deviceFingerprint,
+                    location: `${this.locationData.city}, ${this.locationData.country}`,
+                    message: `Failed login attempt for ${email}`,
+                    severity: 'WARNING',
+                    timestamp: Date.now()
+                });
+                
+                this.showMessage('error', 'Invalid credentials. Security event logged.');
+            }
+
+            getStoredSessions() {
+                try {
+                    return JSON.parse(localStorage.getItem('sessionHistory') || '[]');
+                } catch {
+                    return [];
+                }
+            }
+
+            storeSessionHistory(sessionData) {
+                const sessions = this.getStoredSessions();
+                
+                // Remove old sessions for same device
+                const filteredSessions = sessions.filter(s => 
+                    s.deviceFingerprint !== this.deviceFingerprint || 
+                    (Date.now() - s.loginTime) < 24 * 60 * 60 * 1000 // Keep last 24 hours
+                );
+                
+                filteredSessions.push({
+                    email: sessionData.email,
+                    deviceFingerprint: sessionData.deviceFingerprint,
+                    deviceName: sessionData.deviceName,
+                    location: sessionData.location,
+                    loginTime: sessionData.loginTime,
+                    sessionToken: sessionData.sessionToken
+                });
+                
+                // Keep only last 5 sessions
+                if (filteredSessions.length > 5) {
+                    filteredSessions.splice(0, filteredSessions.length - 5);
+                }
+                
+                localStorage.setItem('sessionHistory', JSON.stringify(filteredSessions));
+            }
+
+            terminateUserSessions(email) {
+                // Remove all sessions for this user
+                const allSessions = this.getStoredSessions();
+                const filteredSessions = allSessions.filter(session => session.email !== email);
+                localStorage.setItem('sessionHistory', JSON.stringify(filteredSessions));
+                
+                // Clear active session markers
+                localStorage.removeItem('waterfallActiveSession');
+            }
+
+            getRecentLogins(email) {
+                try {
+                    const attempts = JSON.parse(localStorage.getItem('loginAttempts') || '[]');
+                    const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
+                    return attempts.filter(attempt => 
+                        attempt.email === email && 
+                        attempt.timestamp > tenMinutesAgo &&
+                        attempt.success
+                    );
+                } catch {
+                    return [];
+                }
+            }
+
+            storeLoginAttempt(email, success) {
+                try {
+                    const attempts = JSON.parse(localStorage.getItem('loginAttempts') || '[]');
+                    attempts.push({
+                        email: email,
+                        timestamp: Date.now(),
+                        success: success,
+                        deviceFingerprint: this.deviceFingerprint,
+                        location: `${this.locationData.city}, ${this.locationData.country}`
+                    });
+                    
+                    // Keep only last 50 attempts
+                    if (attempts.length > 50) {
+                        attempts.splice(0, attempts.length - 50);
+                    }
+                    
+                    localStorage.setItem('loginAttempts', JSON.stringify(attempts));
+                } catch (error) {
+                    console.error('Error storing login attempt:', error);
+                }
+            }
+
+            async getPublicIP() {
+                try {
+                    const response = await fetch('https://api.ipify.org?format=json');
+                    const data = await response.json();
+                    return data.ip;
+                } catch {
+                    return 'unknown';
+                }
+            }
+
+            handleConcurrentSession() {
+                // Log the concurrent session attempt
+                SecurityUtils.logSecurityEvent('CONCURRENT_SESSION', {
+                    message: 'Multiple concurrent sessions detected - terminating current session',
+                    severity: 'CRITICAL',
+                    timestamp: Date.now()
+                });
+                
+                alert('⚠️ Security Alert: Another session detected!\n\nFor security reasons, only one active session is allowed per account. This session will be terminated.');
+                
+                // Clear current session
+                sessionStorage.removeItem('waterfallAuth');
+                localStorage.removeItem('waterfallActiveSession');
+                
+                // Redirect to login
+                window.location.reload();
+            }
+
+            handleInactivity() {
+                alert('🕐 Session Timeout\n\nYour session has expired due to inactivity. Please login again.');
+                
+                // Clear session
+                sessionStorage.removeItem('waterfallAuth');
+                localStorage.removeItem('waterfallActiveSession');
+                
+                // Redirect to login
+                window.location.reload();
+            }
+
+            startSessionMonitoring() {
+                // Check every 30 seconds for session validity
+                setInterval(() => {
+                    const authData = sessionStorage.getItem('waterfallAuth');
+                    if (authData) {
+                        try {
+                            const session = JSON.parse(authData);
+                            
+                            // Check session age (24 hours max)
+                            if (Date.now() - session.loginTime > 24 * 60 * 60 * 1000) {
+                                this.handleInactivity();
+                                return;
+                            }
+                            
+                            // Update last activity
+                            session.lastActivity = Date.now();
+                            sessionStorage.setItem('waterfallAuth', JSON.stringify(session));
+                        } catch (error) {
+                            console.error('Session monitoring error:', error);
+                        }
+                    }
+                }, 30000);
+            }
+
+            checkExistingSession() {
+                try {
+                    const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                    
+                    if (authData.authenticated && authData.deviceFingerprint === this.deviceFingerprint) {
+                        // Check session age
+                        const sessionAge = Date.now() - authData.loginTime;
+                        
+                        if (sessionAge < 24 * 60 * 60 * 1000) { // 24 hours
+                            window.location.href = 'waterfallconcept44.html';
+                        } else {
+                            sessionStorage.removeItem('waterfallAuth');
+                            this.showMessage('warning', 'Previous session expired. Please login again.');
+                        }
+                    }
+                } catch (error) {
+                    sessionStorage.removeItem('waterfallAuth');
+                }
+            }
+
+            setLoadingState(loading) {
+                const btn = document.getElementById('loginBtn');
+                const text = document.getElementById('loginText');
+                const loadingSpinner = document.getElementById('loginLoading');
+                
+                btn.disabled = loading;
+                text.style.display = loading ? 'none' : 'inline';
+                loadingSpinner.style.display = loading ? 'inline-block' : 'none';
+            }
+
+            showMessage(type, message) {
+                this.hideMessages();
+                const messageEl = document.getElementById(`${type}Message`);
+                messageEl.textContent = message;
+                messageEl.style.display = 'block';
+            }
+
+            hideMessages() {
+                ['error', 'success', 'warning'].forEach(type => {
+                    document.getElementById(`${type}Message`).style.display = 'none';
+                });
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new AdvancedAuthManager();
         });
     </script>
 </body>
-
 </html>
