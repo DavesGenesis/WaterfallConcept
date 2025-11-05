@@ -1347,6 +1347,9 @@
                 if (authData.authenticated) {
                     document.getElementById('userEmail').textContent = authData.email;
                     
+                    // Update activity in global session registry
+                    updateGlobalSessionActivity(authData);
+                    
                     // Show admin dashboard button for admin/manager roles
                     if (['admin', 'manager'].includes(authData.role)) {
                         const adminBtn = document.getElementById('adminDashboardBtn');
@@ -1359,6 +1362,66 @@
             } catch (error) {
                 console.error('Error loading user data:', error);
             }
+
+            // Function to update global session activity
+            function updateGlobalSessionActivity(authData) {
+                try {
+                    const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
+                    
+                    // Find and update current user's session
+                    const updatedSessions = globalSessions.map(session => {
+                        if (session.email === authData.email && session.deviceFingerprint === authData.deviceFingerprint) {
+                            return {
+                                ...session,
+                                lastActivity: Date.now(),
+                                registryTimestamp: Date.now()
+                            };
+                        }
+                        return session;
+                    });
+                    
+                    // If session not found, add it
+                    const sessionExists = updatedSessions.some(s => 
+                        s.email === authData.email && s.deviceFingerprint === authData.deviceFingerprint
+                    );
+                    
+                    if (!sessionExists) {
+                        updatedSessions.push({
+                            email: authData.email,
+                            deviceFingerprint: authData.deviceFingerprint,
+                            deviceName: authData.deviceName || 'Unknown Device',
+                            location: authData.location || 'Unknown Location',
+                            loginTime: authData.loginTime,
+                            sessionToken: authData.sessionToken,
+                            role: authData.role,
+                            name: authData.name,
+                            lastActivity: Date.now(),
+                            registryTimestamp: Date.now()
+                        });
+                    }
+                    
+                    // Keep only active sessions (last 8 hours)
+                    const eightHoursAgo = Date.now() - (8 * 60 * 60 * 1000);
+                    const activeSessions = updatedSessions.filter(s => s.lastActivity > eightHoursAgo);
+                    
+                    localStorage.setItem('globalSessionRegistry', JSON.stringify(activeSessions));
+                    localStorage.setItem('sessionUpdate', Date.now().toString());
+                } catch (error) {
+                    console.error('Error updating session activity:', error);
+                }
+            }
+
+            // Update activity every 30 seconds
+            setInterval(() => {
+                try {
+                    const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                    if (authData.authenticated) {
+                        updateGlobalSessionActivity(authData);
+                    }
+                } catch (error) {
+                    console.error('Error in activity update:', error);
+                }
+            }, 30000);
 
             // Logout functionality
             document.getElementById('logoutBtn').addEventListener('click', function() {

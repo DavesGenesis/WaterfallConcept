@@ -592,14 +592,19 @@
                     (Date.now() - s.loginTime) < 24 * 60 * 60 * 1000 // Keep last 24 hours
                 );
                 
-                filteredSessions.push({
+                const newSession = {
                     email: sessionData.email,
                     deviceFingerprint: sessionData.deviceFingerprint,
                     deviceName: sessionData.deviceName,
                     location: sessionData.location,
                     loginTime: sessionData.loginTime,
-                    sessionToken: sessionData.sessionToken
-                });
+                    sessionToken: sessionData.sessionToken,
+                    role: sessionData.role,
+                    name: sessionData.name,
+                    lastActivity: sessionData.lastActivity
+                };
+                
+                filteredSessions.push(newSession);
                 
                 // Keep only last 5 sessions
                 if (filteredSessions.length > 5) {
@@ -607,6 +612,39 @@
                 }
                 
                 localStorage.setItem('sessionHistory', JSON.stringify(filteredSessions));
+                
+                // SOLUTION: Store in a global session registry with timestamp
+                this.updateGlobalSessionRegistry(newSession);
+            }
+
+            updateGlobalSessionRegistry(sessionData) {
+                try {
+                    // Get existing global sessions
+                    const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
+                    
+                    // Remove old sessions for same user/device
+                    const filteredGlobal = globalSessions.filter(s => 
+                        !(s.email === sessionData.email && s.deviceFingerprint === sessionData.deviceFingerprint)
+                    );
+                    
+                    // Add current session
+                    filteredGlobal.push({
+                        ...sessionData,
+                        registryTimestamp: Date.now()
+                    });
+                    
+                    // Keep only sessions from last 8 hours
+                    const eightHoursAgo = Date.now() - (8 * 60 * 60 * 1000);
+                    const activeSessions = filteredGlobal.filter(s => s.loginTime > eightHoursAgo);
+                    
+                    // Store updated registry
+                    localStorage.setItem('globalSessionRegistry', JSON.stringify(activeSessions));
+                    
+                    // Trigger storage event for other tabs/windows
+                    localStorage.setItem('sessionUpdate', Date.now().toString());
+                } catch (error) {
+                    console.error('Error updating global session registry:', error);
+                }
             }
 
             terminateUserSessions(email) {

@@ -498,6 +498,19 @@
                 this.checkAdminAccess();
                 this.loadDashboardData();
                 this.startAutoRefresh();
+                this.setupSessionListener();
+            }
+
+            setupSessionListener() {
+                // Listen for session updates from other tabs/users
+                window.addEventListener('storage', (e) => {
+                    if (e.key === 'sessionUpdate' || e.key === 'globalSessionRegistry') {
+                        // Refresh dashboard when sessions change
+                        setTimeout(() => {
+                            this.loadDashboardData();
+                        }, 1000);
+                    }
+                });
             }
 
             checkAdminAccess() {
@@ -515,10 +528,32 @@
             }
 
             loadDashboardData() {
+                this.syncGlobalSessions();
                 this.updateStatistics();
                 this.loadSecurityLogs();
                 this.loadUserActivity();
                 this.loadRecentActivity();
+            }
+
+            syncGlobalSessions() {
+                // Force sync with global session registry
+                try {
+                    const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
+                    console.log('Global sessions found:', globalSessions.length);
+                    
+                    // Clean up old sessions (older than 8 hours)
+                    const eightHoursAgo = Date.now() - (8 * 60 * 60 * 1000);
+                    const activeSessions = globalSessions.filter(session => {
+                        const lastActivity = session.lastActivity || session.loginTime;
+                        return lastActivity > eightHoursAgo;
+                    });
+                    
+                    if (activeSessions.length !== globalSessions.length) {
+                        localStorage.setItem('globalSessionRegistry', JSON.stringify(activeSessions));
+                    }
+                } catch (error) {
+                    console.error('Error syncing global sessions:', error);
+                }
             }
 
             updateStatistics() {
@@ -597,27 +632,35 @@
                 const logs = this.getSecurityLogs();
                 const container = document.getElementById('userActivity');
 
+                // Debug information
+                console.log('Active sessions detected:', sessions);
+                console.log('Total sessions:', sessions.length);
+
                 // Group activities by user
                 const userActivities = {};
                 
                 // Add active sessions
                 sessions.forEach(session => {
-                    if (!userActivities[session.email]) {
-                        userActivities[session.email] = {
-                            email: session.email,
-                            name: session.name,
-                            role: session.role,
+                    const email = session.email || 'unknown@unknown.com';
+                    const name = session.name || 'Unknown User';
+                    const role = session.role || 'unknown';
+                    
+                    if (!userActivities[email]) {
+                        userActivities[email] = {
+                            email: email,
+                            name: name,
+                            role: role,
                             activeSessions: 0,
                             suspiciousEvents: 0,
-                            lastActivity: session.lastActivity,
+                            lastActivity: session.lastActivity || session.loginTime,
                             devices: new Set(),
                             locations: new Set()
                         };
                     }
                     
-                    userActivities[session.email].activeSessions++;
-                    userActivities[session.email].devices.add(session.deviceFingerprint);
-                    userActivities[session.email].locations.add(session.location);
+                    userActivities[email].activeSessions++;
+                    userActivities[email].devices.add(session.deviceFingerprint || 'unknown');
+                    userActivities[email].locations.add(session.location || 'unknown');
                 });
 
                 // Add suspicious events
@@ -698,12 +741,24 @@
 
             getActiveSessions() {
                 try {
-                    return JSON.parse(localStorage.getItem('sessionHistory') || '[]')
-                        .filter(session => {
-                            // Consider session active if within last 4 hours
-                            return (Date.now() - session.loginTime) < (4 * 60 * 60 * 1000);
-                        });
-                } catch {
+                    // Get sessions from global registry (shared across all users)
+                    const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
+                    const localSessions = JSON.parse(localStorage.getItem('sessionHistory') || '[]');
+                    
+                    // Combine and deduplicate sessions
+                    const allSessions = [...globalSessions, ...localSessions];
+                    const uniqueSessions = allSessions.filter((session, index, self) => 
+                        index === self.findIndex(s => s.sessionToken === session.sessionToken)
+                    );
+                    
+                    // Consider session active if last activity within 2 hours
+                    const twoHoursAgo = Date.now() - (2 * 60 * 60 * 1000);
+                    return uniqueSessions.filter(session => {
+                        const lastActivity = session.lastActivity || session.loginTime;
+                        return lastActivity > twoHoursAgo;
+                    });
+                } catch (error) {
+                    console.error('Error getting active sessions:', error);
                     return [];
                 }
             }
@@ -945,9 +1000,24 @@
             const indicator = document.getElementById('refreshIndicator');
             indicator.style.display = 'inline-block';
             
+            // Force refresh global session registry
+            localStorage.setItem('sessionUpdate', Date.now().toString());
+            
             setTimeout(() => {
                 dashboard.loadDashboardData();
                 indicator.style.display = 'none';
+                
+                // Show debug info
+                const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
+                const localSessions = JSON.parse(localStorage.getItem('sessionHistory') || '[]');
+                console.log('=== SESSION DEBUG INFO ===');
+                console.log('Global sessions:', globalSessions);
+                console.log('Local sessions:', localSessions);
+                console.log('Total global:', globalSessions.length);
+                console.log('Total local:', localSessions.length);
+                
+                // Show alert with session count for debugging
+                alert(`Debug Info:\nGlobal Sessions: ${globalSessions.length}\nLocal Sessions: ${localSessions.length}\nCheck browser console for details.`);
             }, 1000);
         }
 
