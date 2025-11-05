@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Security Monitoring</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="config-advanced.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a192f;
+            --bg-card: #172a46;
+            --bg-card-darker: #111e35;
+            --bg-card-lighter: #1d3555;
+            --accent: #64ffda;
+            --text-primary: #e2e8f0;
+            --text-secondary: #a8b2c1;
+            --text-muted: #718096;
+            --border-color: #2d3748;
+            --danger: #ff6496;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            color: var(--accent);
+            font-size: 2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            margin-left: auto;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: var(--bg-primary);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .stat-card.alert {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(255, 100, 150, 0.1) 100%);
+        }
+
+        .stat-card.warning {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(245, 158, 11, 0.1) 100%);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .panel {
+            background: var(--bg-card);
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-card-darker);
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-body {
+            padding: 1.5rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--border-color);
+        }
+
+        .log-entry.critical {
+            background: rgba(255, 100, 150, 0.1);
+            border-left-color: var(--danger);
+        }
+
+        .log-entry.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-left-color: var(--warning);
+        }
+
+        .log-entry.info {
+            background: rgba(100, 255, 218, 0.1);
+            border-left-color: var(--accent);
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .log-type {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .log-time {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .log-details {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .user-row {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+            background: var(--bg-card-darker);
+            border: 1px solid var(--border-color);
+        }
+
+        .user-row.suspicious {
+            border-color: var(--danger);
+            background: rgba(255, 100, 150, 0.1);
+        }
+
+        .user-info {
+            flex-grow: 1;
+        }
+
+        .user-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .user-details {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+        }
+
+        .alert-badge {
+            background: var(--danger);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .warning-badge {
+            background: var(--warning);
+            color: var(--bg-primary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .refresh-indicator {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+            
+            .dashboard-container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <i class="fas fa-shield-alt"></i>
+                Security Dashboard
+            </h1>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="refreshData()">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh
+                    <span id="refreshIndicator" class="refresh-indicator" style="display: none;"></span>
+                </button>
+                <button class="btn btn-warning" onclick="exportLogs()">
+                    <i class="fas fa-download"></i>
+                    Export Logs
+                </button>
+                <a href="waterfallconcept44.html" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Tool
+                </a>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card alert" id="criticalAlertsCard">
+                <div class="stat-value" id="criticalAlerts">0</div>
+                <div class="stat-label">Critical Security Alerts</div>
+            </div>
+            <div class="stat-card warning" id="suspiciousActivityCard">
+                <div class="stat-value" id="suspiciousActivity">0</div>
+                <div class="stat-label">Suspicious Activities</div>
+            </div>
+            <div class="stat-card" id="activeSessionsCard">
+                <div class="stat-value" id="activeSessions">0</div>
+                <div class="stat-label">Active Sessions</div>
+            </div>
+            <div class="stat-card" id="blockedAttemptsCard">
+                <div class="stat-value" id="blockedAttempts">0</div>
+                <div class="stat-label">Blocked Login Attempts</div>
+            </div>
+        </div>
+
+        <!-- Content Grid -->
+        <div class="content-grid">
+            <!-- Security Logs -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Security Alerts
+                    </h3>
+                    <button class="btn btn-danger btn-small" onclick="clearCriticalLogs()">
+                        <i class="fas fa-trash"></i>
+                        Clear
+                    </button>
+                </div>
+                <div class="panel-body" id="securityLogs">
+                    <!-- Logs will be populated here -->
+                </div>
+            </div>
+
+            <!-- User Management -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">
+                        <i class="fas fa-users"></i>
+                        User Activity Monitor
+                    </h3>
+                    <button class="btn btn-warning btn-small" onclick="showUserDetails()">
+                        <i class="fas fa-eye"></i>
+                        View All
+                    </button>
+                </div>
+                <div class="panel-body" id="userActivity">
+                    <!-- User activity will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="panel" style="margin-top: 2rem;">
+            <div class="panel-header">
+                <h3 class="panel-title">
+                    <i class="fas fa-history"></i>
+                    Recent Activity Log
+                </h3>
+                <div>
+                    <button class="btn btn-warning btn-small" onclick="showDetailedLogs()">
+                        <i class="fas fa-list"></i>
+                        Detailed View
+                    </button>
+                    <button class="btn btn-danger btn-small" onclick="clearAllLogs()">
+                        <i class="fas fa-trash-alt"></i>
+                        Clear All
+                    </button>
+                </div>
+            </div>
+            <div class="panel-body" id="recentActivity">
+                <!-- Recent activity will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- User Details Modal -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">User Security Details</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="userModalContent">
+                <!-- User details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Logs Modal -->
+    <div id="logsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Detailed Security Logs</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="logsModalContent">
+                <!-- Detailed logs will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SecurityDashboard {
+            constructor() {
+                this.refreshInterval = null;
+                this.init();
+            }
+
+            init() {
+                this.checkAdminAccess();
+                this.loadDashboardData();
+                this.startAutoRefresh();
+            }
+
+            checkAdminAccess() {
+                try {
+                    const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                    
+                    if (!authData.authenticated || !['admin', 'manager'].includes(authData.role)) {
+                        alert('Access Denied: Admin or Manager privileges required');
+                        window.location.href = 'auth-advanced-security.html';
+                        return;
+                    }
+                } catch (error) {
+                    window.location.href = 'auth-advanced-security.html';
+                }
+            }
+
+            loadDashboardData() {
+                this.updateStatistics();
+                this.loadSecurityLogs();
+                this.loadUserActivity();
+                this.loadRecentActivity();
+            }
+
+            updateStatistics() {
+                const logs = this.getSecurityLogs();
+                const sessions = this.getActiveSessions();
+                const failedAttempts = this.getFailedAttempts();
+
+                // Count critical alerts (last 24 hours)
+                const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+                const criticalAlerts = logs.filter(log => 
+                    log.timestamp > oneDayAgo && 
+                    ['CREDENTIAL_SHARING', 'CONCURRENT_SESSION', 'SUSPICIOUS_LOCATION'].includes(log.event)
+                ).length;
+
+                // Count suspicious activities
+                const suspiciousActivities = logs.filter(log => 
+                    log.timestamp > oneDayAgo && 
+                    ['RAPID_LOGIN_ATTEMPTS', 'DEVICE_MISMATCH', 'UNUSUAL_PATTERN'].includes(log.event)
+                ).length;
+
+                // Update UI
+                document.getElementById('criticalAlerts').textContent = criticalAlerts;
+                document.getElementById('suspiciousActivity').textContent = suspiciousActivities;
+                document.getElementById('activeSessions').textContent = sessions.length;
+                document.getElementById('blockedAttempts').textContent = failedAttempts.length;
+
+                // Update card styles based on alerts
+                const criticalCard = document.getElementById('criticalAlertsCard');
+                const suspiciousCard = document.getElementById('suspiciousActivityCard');
+                
+                if (criticalAlerts > 0) {
+                    criticalCard.classList.add('alert');
+                } else {
+                    criticalCard.classList.remove('alert');
+                }
+
+                if (suspiciousActivities > 0) {
+                    suspiciousCard.classList.add('warning');
+                } else {
+                    suspiciousCard.classList.remove('warning');
+                }
+            }
+
+            loadSecurityLogs() {
+                const logs = this.getSecurityLogs();
+                const container = document.getElementById('securityLogs');
+                
+                // Filter for critical security events
+                const criticalLogs = logs.filter(log => 
+                    ['CREDENTIAL_SHARING', 'CONCURRENT_SESSION', 'SUSPICIOUS_LOCATION', 'DEVICE_MISMATCH'].includes(log.event)
+                ).slice(0, 10);
+
+                if (criticalLogs.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 2rem;">No critical security alerts</p>';
+                    return;
+                }
+
+                container.innerHTML = criticalLogs.map(log => `
+                    <div class="log-entry critical">
+                        <div class="log-header">
+                            <span class="log-type">${this.formatEventType(log.event)}</span>
+                            <span class="log-time">${this.formatTime(log.timestamp)}</span>
+                        </div>
+                        <div class="log-details">
+                            <strong>User:</strong> ${log.details.email || 'Unknown'}<br>
+                            <strong>Location:</strong> ${log.details.location || 'Unknown'}<br>
+                            <strong>Device:</strong> ${log.details.deviceFingerprint?.substring(0, 8) || 'Unknown'}...<br>
+                            <strong>Details:</strong> ${log.details.message || log.event}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            loadUserActivity() {
+                const sessions = this.getActiveSessions();
+                const logs = this.getSecurityLogs();
+                const container = document.getElementById('userActivity');
+
+                // Group activities by user
+                const userActivities = {};
+                
+                // Add active sessions
+                sessions.forEach(session => {
+                    if (!userActivities[session.email]) {
+                        userActivities[session.email] = {
+                            email: session.email,
+                            name: session.name,
+                            role: session.role,
+                            activeSessions: 0,
+                            suspiciousEvents: 0,
+                            lastActivity: session.lastActivity,
+                            devices: new Set(),
+                            locations: new Set()
+                        };
+                    }
+                    
+                    userActivities[session.email].activeSessions++;
+                    userActivities[session.email].devices.add(session.deviceFingerprint);
+                    userActivities[session.email].locations.add(session.location);
+                });
+
+                // Add suspicious events
+                logs.forEach(log => {
+                    if (log.details.email && userActivities[log.details.email]) {
+                        if (['CREDENTIAL_SHARING', 'CONCURRENT_SESSION', 'SUSPICIOUS_LOCATION'].includes(log.event)) {
+                            userActivities[log.details.email].suspiciousEvents++;
+                        }
+                    }
+                });
+
+                const users = Object.values(userActivities);
+                
+                if (users.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 2rem;">No active users</p>';
+                    return;
+                }
+
+                container.innerHTML = users.map(user => `
+                    <div class="user-row ${user.suspiciousEvents > 0 ? 'suspicious' : ''}">
+                        <div class="user-info">
+                            <div class="user-name">
+                                ${user.name} (${user.email})
+                                ${user.suspiciousEvents > 0 ? `<span class="alert-badge">${user.suspiciousEvents} alerts</span>` : ''}
+                            </div>
+                            <div class="user-details">
+                                Active Sessions: ${user.activeSessions} | 
+                                Devices: ${user.devices.size} | 
+                                Last Activity: ${this.formatTime(user.lastActivity)}
+                            </div>
+                        </div>
+                        <div class="user-actions">
+                            <button class="btn btn-warning btn-small" onclick="dashboard.viewUserDetails('${user.email}')">
+                                <i class="fas fa-eye"></i>
+                                View
+                            </button>
+                            ${user.suspiciousEvents > 0 ? `
+                                <button class="btn btn-danger btn-small" onclick="dashboard.blockUser('${user.email}')">
+                                    <i class="fas fa-ban"></i>
+                                    Block
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            loadRecentActivity() {
+                const logs = this.getSecurityLogs().slice(0, 20);
+                const container = document.getElementById('recentActivity');
+
+                if (logs.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 2rem;">No recent activity</p>';
+                    return;
+                }
+
+                container.innerHTML = logs.map(log => `
+                    <div class="log-entry ${this.getLogClass(log.event)}">
+                        <div class="log-header">
+                            <span class="log-type">${this.formatEventType(log.event)}</span>
+                            <span class="log-time">${this.formatTime(log.timestamp)}</span>
+                        </div>
+                        <div class="log-details">
+                            ${this.formatLogDetails(log)}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            getSecurityLogs() {
+                try {
+                    return JSON.parse(localStorage.getItem('securityLogs') || '[]')
+                        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                } catch {
+                    return [];
+                }
+            }
+
+            getActiveSessions() {
+                try {
+                    return JSON.parse(localStorage.getItem('sessionHistory') || '[]')
+                        .filter(session => {
+                            // Consider session active if within last 4 hours
+                            return (Date.now() - session.loginTime) < (4 * 60 * 60 * 1000);
+                        });
+                } catch {
+                    return [];
+                }
+            }
+
+            getFailedAttempts() {
+                try {
+                    return JSON.parse(localStorage.getItem('failedLoginAttempts') || '[]')
+                        .filter(attempt => {
+                            // Show attempts from last 24 hours
+                            return (Date.now() - attempt.timestamp) < (24 * 60 * 60 * 1000);
+                        });
+                } catch {
+                    return [];
+                }
+            }
+
+            formatEventType(event) {
+                const eventTypes = {
+                    'CREDENTIAL_SHARING': '🚨 Credential Sharing Detected',
+                    'CONCURRENT_SESSION': '⚠️ Multiple Sessions',
+                    'SUSPICIOUS_LOCATION': '📍 Suspicious Location',
+                    'DEVICE_MISMATCH': '📱 Device Mismatch',
+                    'RAPID_LOGIN_ATTEMPTS': '🔄 Rapid Login Attempts',
+                    'UNUSUAL_PATTERN': '🔍 Unusual Pattern',
+                    'LOGIN_SUCCESS': '✅ Successful Login',
+                    'LOGIN_FAILED': '❌ Failed Login',
+                    'SESSION_TIMEOUT': '⏰ Session Timeout',
+                    'LOGOUT': '🚪 User Logout'
+                };
+                
+                return eventTypes[event] || event;
+            }
+
+            getLogClass(event) {
+                const criticalEvents = ['CREDENTIAL_SHARING', 'CONCURRENT_SESSION', 'SUSPICIOUS_LOCATION'];
+                const warningEvents = ['DEVICE_MISMATCH', 'RAPID_LOGIN_ATTEMPTS', 'UNUSUAL_PATTERN'];
+                
+                if (criticalEvents.includes(event)) return 'critical';
+                if (warningEvents.includes(event)) return 'warning';
+                return 'info';
+            }
+
+            formatLogDetails(log) {
+                let details = '';
+                if (log.details.email) details += `<strong>User:</strong> ${log.details.email}<br>`;
+                if (log.details.location) details += `<strong>Location:</strong> ${log.details.location}<br>`;
+                if (log.details.deviceFingerprint) details += `<strong>Device:</strong> ${log.details.deviceFingerprint.substring(0, 12)}...<br>`;
+                if (log.details.message) details += `<strong>Message:</strong> ${log.details.message}`;
+                
+                return details || 'No additional details';
+            }
+
+            formatTime(timestamp) {
+                return new Date(timestamp).toLocaleString('id-ID', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+
+            viewUserDetails(email) {
+                const logs = this.getSecurityLogs().filter(log => log.details.email === email);
+                const sessions = this.getActiveSessions().filter(session => session.email === email);
+                
+                const modalContent = document.getElementById('userModalContent');
+                modalContent.innerHTML = `
+                    <h4>Security Profile: ${email}</h4>
+                    
+                    <h5 style="margin-top: 1.5rem; color: var(--accent);">Active Sessions (${sessions.length})</h5>
+                    ${sessions.map(session => `
+                        <div style="background: var(--bg-card-darker); padding: 1rem; border-radius: 0.5rem; margin: 0.5rem 0;">
+                            <strong>Device:</strong> ${session.deviceName || 'Unknown'}<br>
+                            <strong>Location:</strong> ${session.location}<br>
+                            <strong>Login Time:</strong> ${this.formatTime(session.loginTime)}<br>
+                            <strong>Fingerprint:</strong> ${session.deviceFingerprint}
+                        </div>
+                    `).join('') || '<p>No active sessions</p>'}
+                    
+                    <h5 style="margin-top: 1.5rem; color: var(--accent);">Recent Security Events (${logs.length})</h5>
+                    ${logs.slice(0, 10).map(log => `
+                        <div style="background: var(--bg-card-darker); padding: 1rem; border-radius: 0.5rem; margin: 0.5rem 0;">
+                            <strong>${this.formatEventType(log.event)}</strong><br>
+                            <small>${this.formatTime(log.timestamp)}</small><br>
+                            ${this.formatLogDetails(log)}
+                        </div>
+                    `).join('') || '<p>No security events</p>'}
+                    
+                    <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                        <button class="btn btn-danger" onclick="dashboard.blockUser('${email}')">
+                            <i class="fas fa-ban"></i> Block User
+                        </button>
+                        <button class="btn btn-warning" onclick="dashboard.resetUserSessions('${email}')">
+                            <i class="fas fa-sync"></i> Reset Sessions
+                        </button>
+                    </div>
+                `;
+                
+                document.getElementById('userModal').style.display = 'flex';
+            }
+
+            blockUser(email) {
+                if (confirm(`Are you sure you want to block access for ${email}?`)) {
+                    // Add to blocked users list
+                    const blockedUsers = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
+                    if (!blockedUsers.includes(email)) {
+                        blockedUsers.push(email);
+                        localStorage.setItem('blockedUsers', JSON.stringify(blockedUsers));
+                    }
+                    
+                    // Log the action
+                    SecurityUtils.logSecurityEvent('USER_BLOCKED', {
+                        email: email,
+                        blockedBy: 'admin',
+                        timestamp: Date.now(),
+                        message: `User ${email} has been blocked by administrator`
+                    });
+                    
+                    alert(`User ${email} has been blocked successfully.`);
+                    this.loadDashboardData();
+                    this.closeModal();
+                }
+            }
+
+            resetUserSessions(email) {
+                if (confirm(`Reset all active sessions for ${email}?`)) {
+                    // Clear user sessions
+                    const sessions = this.getActiveSessions().filter(session => session.email !== email);
+                    localStorage.setItem('sessionHistory', JSON.stringify(sessions));
+                    
+                    // Log the action
+                    SecurityUtils.logSecurityEvent('SESSIONS_RESET', {
+                        email: email,
+                        resetBy: 'admin',
+                        timestamp: Date.now(),
+                        message: `All sessions for ${email} have been reset by administrator`
+                    });
+                    
+                    alert(`Sessions for ${email} have been reset.`);
+                    this.loadDashboardData();
+                    this.closeModal();
+                }
+            }
+
+            showUserDetails() {
+                // Show all users modal
+                this.viewUserDetails('all');
+            }
+
+            showDetailedLogs() {
+                const logs = this.getSecurityLogs();
+                const modalContent = document.getElementById('logsModalContent');
+                
+                modalContent.innerHTML = `
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        ${logs.map(log => `
+                            <div class="log-entry ${this.getLogClass(log.event)}">
+                                <div class="log-header">
+                                    <span class="log-type">${this.formatEventType(log.event)}</span>
+                                    <span class="log-time">${this.formatTime(log.timestamp)}</span>
+                                </div>
+                                <div class="log-details">
+                                    ${this.formatLogDetails(log)}
+                                    <br><small><strong>Raw Data:</strong> ${JSON.stringify(log.details, null, 2)}</small>
+                                </div>
+                            </div>
+                        `).join('') || '<p>No logs available</p>'}
+                    </div>
+                `;
+                
+                document.getElementById('logsModal').style.display = 'flex';
+            }
+
+            closeModal() {
+                document.getElementById('userModal').style.display = 'none';
+                document.getElementById('logsModal').style.display = 'none';
+            }
+
+            clearCriticalLogs() {
+                if (confirm('Clear all critical security logs? This action cannot be undone.')) {
+                    const logs = this.getSecurityLogs();
+                    const filteredLogs = logs.filter(log => 
+                        !['CREDENTIAL_SHARING', 'CONCURRENT_SESSION', 'SUSPICIOUS_LOCATION', 'DEVICE_MISMATCH'].includes(log.event)
+                    );
+                    localStorage.setItem('securityLogs', JSON.stringify(filteredLogs));
+                    this.loadDashboardData();
+                }
+            }
+
+            clearAllLogs() {
+                if (confirm('Clear ALL security logs? This action cannot be undone.')) {
+                    localStorage.removeItem('securityLogs');
+                    localStorage.removeItem('failedLoginAttempts');
+                    this.loadDashboardData();
+                }
+            }
+
+            exportLogs() {
+                const logs = this.getSecurityLogs();
+                const sessions = this.getActiveSessions();
+                const failedAttempts = this.getFailedAttempts();
+                
+                const exportData = {
+                    exportTime: new Date().toISOString(),
+                    securityLogs: logs,
+                    activeSessions: sessions,
+                    failedAttempts: failedAttempts
+                };
+                
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `security-logs-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            startAutoRefresh() {
+                this.refreshInterval = setInterval(() => {
+                    this.loadDashboardData();
+                }, 30000); // Refresh every 30 seconds
+            }
+
+            stopAutoRefresh() {
+                if (this.refreshInterval) {
+                    clearInterval(this.refreshInterval);
+                }
+            }
+        }
+
+        // Global functions
+        let dashboard;
+
+        function refreshData() {
+            const indicator = document.getElementById('refreshIndicator');
+            indicator.style.display = 'inline-block';
+            
+            setTimeout(() => {
+                dashboard.loadDashboardData();
+                indicator.style.display = 'none';
+            }, 1000);
+        }
+
+        function exportLogs() {
+            dashboard.exportLogs();
+        }
+
+        function showUserDetails() {
+            dashboard.showUserDetails();
+        }
+
+        function showDetailedLogs() {
+            dashboard.showDetailedLogs();
+        }
+
+        function closeModal() {
+            dashboard.closeModal();
+        }
+
+        function clearCriticalLogs() {
+            dashboard.clearCriticalLogs();
+        }
+
+        function clearAllLogs() {
+            dashboard.clearAllLogs();
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            dashboard = new SecurityDashboard();
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
