@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="config-advanced.js"></script>
-    <script src="github-session-manager.js"></script>
+    <script src="broadcast-session-tracker.js"></script>
     <style>
         :root {
             --bg-primary: #0a192f;
@@ -492,7 +492,7 @@
         class SecurityDashboard {
             constructor() {
                 this.refreshInterval = null;
-                this.sessionManager = new GitHubSessionManager();
+                this.sessionTracker = new BroadcastSessionTracker();
                 this.init();
             }
 
@@ -504,25 +504,10 @@
             }
 
             setupSessionListener() {
-                // Setup session manager listener
-                this.sessionManager.setupListener(() => {
-                    console.log('Session update detected by session manager');
-                    setTimeout(() => {
-                        this.loadDashboardData();
-                    }, 1000);
-                });
-                
-                // Also listen for localStorage events (fallback)
-                window.addEventListener('storage', (e) => {
-                    if (e.key === 'sessionUpdate' || 
-                        e.key === 'globalSessionRegistry' ||
-                        e.key === 'shared_sessions' ||
-                        (e.key && e.key.startsWith('sessions_'))) {
-                        console.log('Storage event detected:', e.key);
-                        setTimeout(() => {
-                            this.loadDashboardData();
-                        }, 1000);
-                    }
+                // Setup broadcast session tracker listener
+                this.sessionTracker.setupListener(() => {
+                    console.log('📻 Session broadcast detected - refreshing dashboard');
+                    this.loadDashboardData();
                 });
             }
 
@@ -752,48 +737,23 @@
                 }
             }
 
-            async getActiveSessions() {
+            getActiveSessions() {
                 try {
-                    console.log('=== GETTING ACTIVE SESSIONS ===');
+                    console.log('🔍 === GETTING ACTIVE SESSIONS ===');
                     
-                    // Get sessions from shared session manager
-                    const sharedSessions = await this.sessionManager.getSessions();
-                    console.log('Shared sessions:', sharedSessions);
+                    // Get sessions from broadcast tracker
+                    const broadcastSessions = this.sessionTracker.getAllActiveSessions();
+                    console.log('📡 Broadcast sessions:', broadcastSessions);
                     
-                    // Get sessions from local storage (fallback)
-                    const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
-                    const localSessions = JSON.parse(localStorage.getItem('sessionHistory') || '[]');
+                    // Get debug info
+                    const debugInfo = this.sessionTracker.getDebugInfo();
+                    console.log('🐛 Debug info:', debugInfo);
                     
-                    console.log('Global sessions (localStorage):', globalSessions);
-                    console.log('Local sessions (localStorage):', localSessions);
+                    console.log('✅ === END SESSION ANALYSIS ===');
                     
-                    // Combine all sources
-                    const allSessions = [...sharedSessions, ...globalSessions, ...localSessions];
-                    console.log('Combined sessions:', allSessions);
-                    
-                    // Filter by time (8 hours)
-                    const eightHoursAgo = Date.now() - (8 * 60 * 60 * 1000);
-                    const timeSessions = allSessions.filter(session => {
-                        const lastActivity = session.lastActivity || session.loginTime || session.registryTimestamp;
-                        const isActive = lastActivity && lastActivity > eightHoursAgo;
-                        console.log(`Session ${session.email}: lastActivity=${lastActivity}, isActive=${isActive}`);
-                        return isActive;
-                    });
-                    
-                    console.log('Time-filtered sessions:', timeSessions);
-                    
-                    // Deduplicate by email + device
-                    const uniqueSessions = timeSessions.filter((session, index, self) => {
-                        const key = `${session.email}-${session.deviceFingerprint}`;
-                        return index === self.findIndex(s => `${s.email}-${s.deviceFingerprint}` === key);
-                    });
-                    
-                    console.log('Final unique sessions:', uniqueSessions);
-                    console.log('=== END SESSION ANALYSIS ===');
-                    
-                    return uniqueSessions;
+                    return broadcastSessions;
                 } catch (error) {
-                    console.error('Error getting active sessions:', error);
+                    console.error('❌ Error getting active sessions:', error);
                     return [];
                 }
             }
@@ -1035,44 +995,28 @@
             const indicator = document.getElementById('refreshIndicator');
             indicator.style.display = 'inline-block';
             
-            // Force refresh global session registry
-            localStorage.setItem('sessionUpdate', Date.now().toString());
-            
             setTimeout(() => {
+                // Force refresh session data
+                const sessions = dashboard.sessionTracker.forceRefresh();
                 dashboard.loadDashboardData();
                 indicator.style.display = 'none';
                 
-                // Show debug info
-                const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
-                const localSessions = JSON.parse(localStorage.getItem('sessionHistory') || '[]');
-                const activeSessions = dashboard.getActiveSessions();
+                // Get debug info
+                const debugInfo = dashboard.sessionTracker.getDebugInfo();
                 
-                console.log('=== DETAILED SESSION DEBUG ===');
-                console.log('Raw global sessions:', globalSessions);
-                console.log('Raw local sessions:', localSessions);
-                console.log('Processed active sessions:', activeSessions);
-                console.log('Current time:', Date.now());
+                console.log('🔄 === REFRESH DEBUG INFO ===');
+                console.log('Active sessions:', sessions);
+                console.log('Debug info:', debugInfo);
+                console.log('=== END REFRESH DEBUG ===');
                 
-                // Check each session's validity
-                globalSessions.forEach((session, index) => {
-                    const lastActivity = session.lastActivity || session.loginTime || session.registryTimestamp;
-                    const eightHoursAgo = Date.now() - (8 * 60 * 60 * 1000);
-                    const isActive = lastActivity && lastActivity > eightHoursAgo;
-                    console.log(`Global Session ${index}:`, {
-                        email: session.email,
-                        lastActivity: lastActivity,
-                        isActive: isActive,
-                        ageHours: lastActivity ? (Date.now() - lastActivity) / (60 * 60 * 1000) : 'unknown'
-                    });
-                });
-                
-                // Show comprehensive alert
-                alert(`Detailed Debug Info:
-Global Sessions: ${globalSessions.length}
-Local Sessions: ${localSessions.length}
-Active Sessions (processed): ${activeSessions.length}
+                // Show simple alert with session count
+                alert(`🔄 Refresh Complete!
 
-Check browser console for detailed analysis.`);
+Active Sessions Found: ${sessions.length}
+Broadcasting: ${debugInfo.isBroadcasting ? 'Yes' : 'No'}
+LocalStorage Keys: ${debugInfo.localStorageKeys.length}
+
+Check console for detailed information.`);
             }, 1000);
         }
 

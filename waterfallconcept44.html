@@ -9,7 +9,7 @@
         rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="github-session-manager.js"></script>
+    <script src="broadcast-session-tracker.js"></script>
     
     <!-- Authentication Check -->
     <script>
@@ -1364,14 +1364,13 @@
                 console.error('Error loading user data:', error);
             }
 
-            // Initialize session manager
-            const sessionManager = new GitHubSessionManager();
+            // Initialize session tracker
+            const sessionTracker = new BroadcastSessionTracker();
 
             // Function to update global session activity
             async function updateGlobalSessionActivity(authData) {
                 try {
-                    // Update activity in shared session manager
-                    await sessionManager.updateActivity(authData.email, authData.deviceFingerprint);
+                    // Update activity in session tracker (this happens automatically via broadcasting)
                     
                     // Also update local storage (fallback)
                     const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
@@ -1409,8 +1408,8 @@
                         
                         updatedSessions.push(newSession);
                         
-                        // Also add to shared session manager
-                        await sessionManager.addSession(newSession);
+                        // Start session tracking if not already started
+                        sessionTracker.startSession(newSession);
                     }
                     
                     // Keep only active sessions (last 8 hours)
