@@ -53,14 +53,14 @@ const WaterfallConfig = {
             allowedCountries: ['ID'],
             sessionTimeout: 8 * 60 * 60 * 1000 // 8 hours
         },
-        'user1@company.com': {
-            password: 'User2024!Strong',
+        'FerryUser': {
+            password: 'FerryUser2025',
             role: 'user',
             name: 'User One',
             permissions: ['view'],
             maxDevices: 1, // Only 1 device allowed
             allowedCountries: ['ID'],
-            sessionTimeout: 4 * 60 * 60 * 1000 // 4 hours
+            sessionTimeout: 1 * 60 * 60 * 1000 // 4 hours
         },
         'user2@company.com': {
             password: 'Legacy2024!Secure',
@@ -69,7 +69,7 @@ const WaterfallConfig = {
             permissions: ['view'],
             maxDevices: 1,
             allowedCountries: ['ID'],
-            sessionTimeout: 4 * 60 * 60 * 1000
+            sessionTimeout: 1 * 60 * 60 * 1000
         }
     },
 
@@ -278,4 +278,5 @@ const SecurityUtils = {
 // Export for use in other files
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { WaterfallConfig, SecurityUtils };
+
 }
