@@ -13,8 +13,13 @@
     <!-- Authentication Check -->
     <script>
         // Check authentication before loading the page
-        if (sessionStorage.getItem('waterfallAuth') !== 'true') {
-            window.location.href = 'auth-simple.html';
+        try {
+            const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+            if (!authData.authenticated) {
+                window.location.href = 'index.html';
+            }
+        } catch (error) {
+            window.location.href = 'index.html';
         }
     </script>
     
@@ -1374,7 +1379,7 @@
                     
                     sessionStorage.removeItem('waterfallAuth');
                     localStorage.removeItem('waterfallActiveSession');
-                    window.location.href = 'auth-advanced-security.html';
+                    window.location.href = 'index.html';
                 }
             });
 
