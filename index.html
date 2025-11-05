@@ -6,6 +6,7 @@
     <title>Secure Access - Waterfall Concept</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="config-advanced.js"></script>
+    <script src="github-session-manager.js"></script>
     <style>
         :root {
             --bg-primary: #0a192f;
@@ -311,6 +312,7 @@
                 this.deviceFingerprint = null;
                 this.locationData = null;
                 this.sessionToken = null;
+                this.sessionManager = new GitHubSessionManager();
                 
                 this.init();
             }
@@ -513,8 +515,11 @@
                 // Store active session marker
                 localStorage.setItem('waterfallActiveSession', this.sessionToken);
                 
-                // Store session history
+                // Store session history (local)
                 this.storeSessionHistory(sessionData);
+                
+                // Store in shared session manager (cross-user)
+                await this.sessionManager.addSession(sessionData);
                 
                 // Store login attempt for tracking
                 this.storeLoginAttempt(email, true);

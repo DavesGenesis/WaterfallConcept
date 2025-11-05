@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="config-advanced.js"></script>
+    <script src="github-session-manager.js"></script>
     <style>
         :root {
             --bg-primary: #0a192f;
@@ -491,6 +492,7 @@
         class SecurityDashboard {
             constructor() {
                 this.refreshInterval = null;
+                this.sessionManager = new GitHubSessionManager();
                 this.init();
             }
 
@@ -502,10 +504,21 @@
             }
 
             setupSessionListener() {
-                // Listen for session updates from other tabs/users
+                // Setup session manager listener
+                this.sessionManager.setupListener(() => {
+                    console.log('Session update detected by session manager');
+                    setTimeout(() => {
+                        this.loadDashboardData();
+                    }, 1000);
+                });
+                
+                // Also listen for localStorage events (fallback)
                 window.addEventListener('storage', (e) => {
-                    if (e.key === 'sessionUpdate' || e.key === 'globalSessionRegistry') {
-                        // Refresh dashboard when sessions change
+                    if (e.key === 'sessionUpdate' || 
+                        e.key === 'globalSessionRegistry' ||
+                        e.key === 'shared_sessions' ||
+                        (e.key && e.key.startsWith('sessions_'))) {
+                        console.log('Storage event detected:', e.key);
                         setTimeout(() => {
                             this.loadDashboardData();
                         }, 1000);
@@ -527,11 +540,11 @@
                 }
             }
 
-            loadDashboardData() {
+            async loadDashboardData() {
                 this.syncGlobalSessions();
-                this.updateStatistics();
+                await this.updateStatistics();
                 this.loadSecurityLogs();
-                this.loadUserActivity();
+                await this.loadUserActivity();
                 this.loadRecentActivity();
             }
 
@@ -556,9 +569,9 @@
                 }
             }
 
-            updateStatistics() {
+            async updateStatistics() {
                 const logs = this.getSecurityLogs();
-                const sessions = this.getActiveSessions();
+                const sessions = await this.getActiveSessions();
                 const failedAttempts = this.getFailedAttempts();
 
                 // Count critical alerts (last 24 hours)
@@ -627,8 +640,8 @@
                 `).join('');
             }
 
-            loadUserActivity() {
-                const sessions = this.getActiveSessions();
+            async loadUserActivity() {
+                const sessions = await this.getActiveSessions();
                 const logs = this.getSecurityLogs();
                 const container = document.getElementById('userActivity');
 
@@ -739,21 +752,26 @@
                 }
             }
 
-            getActiveSessions() {
+            async getActiveSessions() {
                 try {
-                    // Get sessions from global registry (shared across all users)
+                    console.log('=== GETTING ACTIVE SESSIONS ===');
+                    
+                    // Get sessions from shared session manager
+                    const sharedSessions = await this.sessionManager.getSessions();
+                    console.log('Shared sessions:', sharedSessions);
+                    
+                    // Get sessions from local storage (fallback)
                     const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
                     const localSessions = JSON.parse(localStorage.getItem('sessionHistory') || '[]');
                     
-                    console.log('=== SESSION ANALYSIS ===');
-                    console.log('Global sessions raw:', globalSessions);
-                    console.log('Local sessions raw:', localSessions);
+                    console.log('Global sessions (localStorage):', globalSessions);
+                    console.log('Local sessions (localStorage):', localSessions);
                     
-                    // Combine sessions (don't deduplicate yet for debugging)
-                    const allSessions = [...globalSessions, ...localSessions];
+                    // Combine all sources
+                    const allSessions = [...sharedSessions, ...globalSessions, ...localSessions];
                     console.log('Combined sessions:', allSessions);
                     
-                    // Filter by time first (more lenient - 8 hours)
+                    // Filter by time (8 hours)
                     const eightHoursAgo = Date.now() - (8 * 60 * 60 * 1000);
                     const timeSessions = allSessions.filter(session => {
                         const lastActivity = session.lastActivity || session.loginTime || session.registryTimestamp;
@@ -764,7 +782,7 @@
                     
                     console.log('Time-filtered sessions:', timeSessions);
                     
-                    // Now deduplicate by email + device (not just session token)
+                    // Deduplicate by email + device
                     const uniqueSessions = timeSessions.filter((session, index, self) => {
                         const key = `${session.email}-${session.deviceFingerprint}`;
                         return index === self.findIndex(s => `${s.email}-${s.deviceFingerprint}` === key);
