@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Security Monitoring</title>
+    
+    <!-- Firebase SDK Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    
+    <script src="config-advanced.js"></script>
+    <script src="broadcast-session-tracker.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #0a192f;
+            color: #64ffda;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #172a46;
+            border-radius: 10px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #172a46;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #64ffda;
+        }
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #64ffda;
+        }
+        .stat-label {
+            font-size: 0.9rem;
+            color: #8892b0;
+            margin-top: 5px;
+        }
+        .panel {
+            background: #172a46;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #64ffda;
+        }
+        .panel-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #64ffda;
+        }
+        .btn {
+            background: #64ffda;
+            color: #0a192f;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: bold;
+        }
+        .btn:hover {
+            background: #4fd1c7;
+        }
+        .session-item {
+            background: #1e3a5f;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #64ffda;
+        }
+        .session-email {
+            font-weight: bold;
+            color: #64ffda;
+        }
+        .session-details {
+            font-size: 0.9rem;
+            color: #8892b0;
+            margin-top: 5px;
+        }
+        .debug-output {
+            background: #1e3a5f;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-shield-alt"></i> Security Dashboard</h1>
+            <div>
+                <button class="btn" onclick="refreshSessions()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <button class="btn" onclick="debugSessions()">
+                    <i class="fas fa-bug"></i> Debug
+                </button>
+                <button class="btn" onclick="goBack()">
+                    <i class="fas fa-arrow-left"></i> Back to Tool
+                </button>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="activeSessionsCount">0</div>
+                <div class="stat-label">ACTIVE SESSIONS</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="localStorageCount">0</div>
+                <div class="stat-label">LOCALSTORAGE SESSIONS</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="firebaseCount">0</div>
+                <div class="stat-label">FIREBASE SESSIONS</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="lastUpdate">--:--</div>
+                <div class="stat-label">LAST UPDATE</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">
+                <i class="fas fa-users"></i> Active Sessions
+            </div>
+            <div id="sessionsList">
+                <p style="text-align: center; color: #8892b0;">Loading sessions...</p>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">
+                <i class="fas fa-terminal"></i> Debug Output
+            </div>
+            <div id="debugOutput" class="debug-output">
+                Dashboard loaded. Click Debug to run diagnostics.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sessionTracker = null;
+        let debugMessages = [];
+
+        function addDebugMessage(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            debugMessages.push(`[${timestamp}] ${message}`);
+            
+            // Keep only last 20 messages
+            if (debugMessages.length > 20) {
+                debugMessages = debugMessages.slice(-20);
+            }
+            
+            document.getElementById('debugOutput').textContent = debugMessages.join('\n');
+        }
+
+        function updateStats(localCount, firebaseCount, totalCount) {
+            document.getElementById('activeSessionsCount').textContent = totalCount;
+            document.getElementById('localStorageCount').textContent = localCount;
+            document.getElementById('firebaseCount').textContent = firebaseCount;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+
+        function displaySessions(sessions) {
+            const container = document.getElementById('sessionsList');
+            
+            if (sessions.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #8892b0;">No active sessions found</p>';
+                return;
+            }
+
+            container.innerHTML = sessions.map(session => `
+                <div class="session-item">
+                    <div class="session-email">${session.email}</div>
+                    <div class="session-details">
+                        Role: ${session.role} | 
+                        Browser: ${session.browser || 'Unknown'} | 
+                        Last seen: ${new Date(session.lastSeen).toLocaleString()}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getLocalStorageSessions() {
+            const sessions = [];
+            const sessionTimeout = 5 * 60 * 1000; // 5 minutes
+            
+            try {
+                // Check global session list
+                const globalList = localStorage.getItem('globalSessionList');
+                if (globalList) {
+                    const data = JSON.parse(globalList);
+                    const validSessions = (data.sessions || []).filter(session => {
+                        return session && session.lastSeen && 
+                               (Date.now() - session.lastSeen < sessionTimeout);
+                    });
+                    sessions.push(...validSessions);
+                }
+                
+                // Check individual session keys
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('session_')) {
+                        try {
+                            const session = JSON.parse(localStorage.getItem(key));
+                            if (session && session.lastSeen && 
+                                (Date.now() - session.lastSeen < sessionTimeout)) {
+                                // Avoid duplicates
+                                if (!sessions.find(s => s.email === session.email)) {
+                                    sessions.push(session);
+                                }
+                            }
+                        } catch (e) {
+                            addDebugMessage(`Error parsing session: ${key}`);
+                        }
+                    }
+                }
+            } catch (error) {
+                addDebugMessage(`LocalStorage error: ${error.message}`);
+            }
+            
+            return sessions;
+        }
+
+        async function getFirebaseSessions() {
+            try {
+                if (!sessionTracker) {
+                    addDebugMessage('Initializing session tracker...');
+                    sessionTracker = new BroadcastSessionTracker();
+                    
+                    // Wait for initialization
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+                
+                if (sessionTracker.firebaseEnabled) {
+                    const sessions = await sessionTracker.getAllActiveSessions();
+                    addDebugMessage(`Firebase: Retrieved ${sessions.length} sessions`);
+                    return sessions;
+                } else {
+                    addDebugMessage('Firebase not enabled, using localStorage fallback');
+                    return [];
+                }
+            } catch (error) {
+                addDebugMessage(`Firebase error: ${error.message}`);
+                return [];
+            }
+        }
+
+        async function refreshSessions() {
+            addDebugMessage('🔄 Refreshing sessions...');
+            
+            try {
+                // Get sessions from both sources
+                const localSessions = getLocalStorageSessions();
+                const firebaseSessions = await getFirebaseSessions();
+                
+                // Combine and deduplicate
+                const allSessions = [...localSessions];
+                firebaseSessions.forEach(fbSession => {
+                    if (!allSessions.find(s => s.email === fbSession.email)) {
+                        allSessions.push(fbSession);
+                    }
+                });
+                
+                // Update display
+                updateStats(localSessions.length, firebaseSessions.length, allSessions.length);
+                displaySessions(allSessions);
+                
+                addDebugMessage(`✅ Found ${allSessions.length} total sessions (${localSessions.length} local, ${firebaseSessions.length} firebase)`);
+                
+            } catch (error) {
+                addDebugMessage(`❌ Refresh failed: ${error.message}`);
+            }
+        }
+
+        async function debugSessions() {
+            addDebugMessage('🐛 === DEBUG SESSIONS ===');
+            
+            try {
+                // Check script loading
+                addDebugMessage(`Firebase SDK: ${typeof firebase !== 'undefined' ? '✅' : '❌'}`);
+                addDebugMessage(`Firebase Config: ${typeof firebaseConfig !== 'undefined' ? '✅' : '❌'}`);
+                addDebugMessage(`Session Tracker: ${typeof BroadcastSessionTracker !== 'undefined' ? '✅' : '❌'}`);
+                
+                if (typeof firebaseConfig !== 'undefined') {
+                    addDebugMessage(`Firebase Ready: ${firebaseConfig.isReady() ? '✅' : '❌'}`);
+                }
+                
+                // Test localStorage
+                const localSessions = getLocalStorageSessions();
+                addDebugMessage(`LocalStorage sessions: ${localSessions.length}`);
+                
+                // Test Firebase
+                const firebaseSessions = await getFirebaseSessions();
+                addDebugMessage(`Firebase sessions: ${firebaseSessions.length}`);
+                
+                // Show current authentication
+                const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                addDebugMessage(`Current user: ${authData.email || 'Not logged in'} (${authData.role || 'No role'})`);
+                
+                addDebugMessage('=== DEBUG COMPLETE ===');
+                
+                // Also refresh the display
+                await refreshSessions();
+                
+            } catch (error) {
+                addDebugMessage(`❌ Debug failed: ${error.message}`);
+            }
+        }
+
+        function goBack() {
+            window.location.href = 'waterfallconcept44.html';
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            addDebugMessage('🚀 Simple Admin Dashboard loaded');
+            
+            // Auto-refresh every 30 seconds
+            setInterval(refreshSessions, 30000);
+            
+            // Initial load
+            setTimeout(refreshSessions, 1000);
+        });
+    </script>
+</body>
+</html>
