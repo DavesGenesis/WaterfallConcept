@@ -377,7 +377,11 @@
                     Refresh
                     <span id="refreshIndicator" class="refresh-indicator" style="display: none;"></span>
                 </button>
-                <button class="btn btn-warning" onclick="exportLogs()">
+                <button class="btn btn-info" onclick="debugSessions()" title="Debug Sessions">
+                    <i class="fas fa-bug"></i>
+                    Debug
+                </button>
+                <button class="btn btn-warning" onclick="dashboard.exportLogs()">
                     <i class="fas fa-download"></i>
                     Export Logs
                 </button>
@@ -788,7 +792,7 @@
                 }
             }
 
-            getActiveSessions() {
+            async getActiveSessions() {
                 try {
                     console.log('🔍 === GETTING ACTIVE SESSIONS ===');
                     
@@ -890,9 +894,9 @@
                 });
             }
 
-            viewUserDetails(email) {
+            async viewUserDetails(email) {
                 const logs = this.getSecurityLogs().filter(log => log.details.email === email);
-                const sessions = this.getActiveSessions().filter(session => session.email === email);
+                const sessions = (await this.getActiveSessions()).filter(session => session.email === email);
                 
                 const modalContent = document.getElementById('userModalContent');
                 modalContent.innerHTML = `
@@ -956,7 +960,7 @@
             resetUserSessions(email) {
                 if (confirm(`Reset all active sessions for ${email}?`)) {
                     // Clear user sessions
-                    const sessions = this.getActiveSessions().filter(session => session.email !== email);
+                    const sessions = (await this.getActiveSessions()).filter(session => session.email !== email);
                     localStorage.setItem('sessionHistory', JSON.stringify(sessions));
                     
                     // Log the action
@@ -1026,9 +1030,9 @@
                 }
             }
 
-            exportLogs() {
+            async exportLogs() {
                 const logs = this.getSecurityLogs();
-                const sessions = this.getActiveSessions();
+                const sessions = await this.getActiveSessions();
                 const failedAttempts = this.getFailedAttempts();
                 
                 const exportData = {
@@ -1065,23 +1069,33 @@
         // Global functions
         let dashboard;
 
-        function refreshData() {
+        async function refreshData() {
             const indicator = document.getElementById('refreshIndicator');
             indicator.style.display = 'inline-block';
             
-            setTimeout(() => {
+            try {
+                console.log('🔄 === MANUAL REFRESH STARTED ===');
+                
                 // Force refresh session data
-                const sessions = dashboard.sessionTracker.forceRefresh();
-                dashboard.loadDashboardData();
-                indicator.style.display = 'none';
+                const sessions = await dashboard.getActiveSessions();
+                console.log('📊 Retrieved sessions:', sessions);
+                
+                // Reload all dashboard data
+                await dashboard.loadDashboardData();
                 
                 // Get debug info
-                const debugInfo = dashboard.sessionTracker.getDebugInfo();
+                if (dashboard.sessionTracker) {
+                    const debugInfo = dashboard.sessionTracker.getDebugInfo();
+                    console.log('🔍 Session tracker debug:', debugInfo);
+                }
                 
-                console.log('🔄 === REFRESH DEBUG INFO ===');
-                console.log('Active sessions:', sessions);
-                console.log('Debug info:', debugInfo);
-                console.log('=== END REFRESH DEBUG ===');
+                console.log('✅ Refresh completed successfully');
+                
+            } catch (error) {
+                console.error('❌ Refresh failed:', error);
+            } finally {
+                indicator.style.display = 'none';
+            }
                 
                 // Show simple alert with session count
                 alert(`🔄 Refresh Complete!
@@ -1131,4 +1145,33 @@ Check console for detailed information.`);
         });
     </script>
 </body>
-</html>
+</html>     
+   async function debugSessions() {
+            console.log('🐛 === DEBUG SESSIONS ===');
+            
+            try {
+                // Test session retrieval
+                const sessions = await dashboard.getActiveSessions();
+                console.log('📊 Sessions from getActiveSessions():', sessions);
+                
+                // Test localStorage directly
+                const localSessions = dashboard.getLocalStorageSessions();
+                console.log('💾 Sessions from localStorage:', localSessions);
+                
+                // Test Firebase directly
+                if (dashboard.sessionTracker && dashboard.sessionTracker.firebaseEnabled) {
+                    const firebaseSessions = await dashboard.sessionTracker.getAllActiveSessions();
+                    console.log('🔥 Sessions from Firebase:', firebaseSessions);
+                }
+                
+                // Show in alert for easy viewing
+                alert(`Debug Results:
+Sessions found: ${sessions.length}
+LocalStorage sessions: ${localSessions.length}
+Check console for detailed logs`);
+                
+            } catch (error) {
+                console.error('❌ Debug failed:', error);
+                alert('Debug failed - check console for errors');
+            }
+        }
