@@ -64,7 +64,10 @@ class BroadcastSessionTracker {
             ip: 'Hidden for privacy'
         };
 
+        // ✅ DEBUG: Verify session creation
         console.log('🚀 Starting session broadcast for:', this.currentSession.email, 'with ID:', this.currentSession.id);
+        console.log('📋 Session object created:', JSON.stringify(this.currentSession, null, 2));
+        console.log('🔍 Input userData:', JSON.stringify(userData, null, 2));
         
         // Start broadcasting immediately
         this.startBroadcasting();
@@ -187,26 +190,39 @@ class BroadcastSessionTracker {
             return;
         }
 
-        const sessionInfo = `🛑 STOPPING SESSION:\n\nEmail: ${this.currentSession.email}\nID: ${this.currentSession.id}\nFirebase: ${this.firebaseEnabled}`;
+        // ✅ FIX: Validate session properties before using them
+        const sessionId = this.currentSession.id || 'MISSING_ID';
+        const sessionEmail = this.currentSession.email || 'MISSING_EMAIL';
+        const deviceFingerprint = this.currentSession.deviceFingerprint || 'MISSING_DEVICE';
+
+        const sessionInfo = `🛑 STOPPING SESSION:\n\nEmail: ${sessionEmail}\nID: ${sessionId}\nFirebase: ${this.firebaseEnabled}`;
         
-        if (this.firebaseEnabled && this.db) {
+        // ✅ FIX: Only proceed with Firebase cleanup if we have a valid session ID
+        if (this.firebaseEnabled && this.db && sessionId !== 'MISSING_ID') {
             // Firebase mode: Remove from cloud database
             try {
-                const sessionRef = this.db.ref(`sessions/${this.currentSession.id}`);
-                await sessionRef.remove(); // ✅ FIX 1: Added await
+                const sessionRef = this.db.ref(`sessions/${sessionId}`);
+                await sessionRef.remove();
                 
                 alert(sessionInfo + '\n\n✅ SUCCESS: Session removed from Firebase!');
             } catch (error) {
                 alert(sessionInfo + '\n\n❌ ERROR: Firebase removal failed:\n' + error.message);
             }
+        } else if (this.firebaseEnabled && sessionId === 'MISSING_ID') {
+            alert(sessionInfo + '\n\n❌ ERROR: Cannot remove from Firebase - Session ID is missing!');
         } else {
             alert(sessionInfo + '\n\n⚠️ WARNING: Firebase not enabled - using localStorage only');
         }
 
-        // Also remove from localStorage
+        // Also remove from localStorage (with safety checks)
         try {
-            const sessionKey = `session_${this.currentSession.email.replace(/[^a-zA-Z0-9]/g, '_')}_${this.currentSession.deviceFingerprint}`;
-            localStorage.removeItem(sessionKey);
+            if (sessionEmail !== 'MISSING_EMAIL' && deviceFingerprint !== 'MISSING_DEVICE') {
+                const sessionKey = `session_${sessionEmail.replace(/[^a-zA-Z0-9]/g, '_')}_${deviceFingerprint}`;
+                localStorage.removeItem(sessionKey);
+                alert('✅ LocalStorage cleanup completed');
+            } else {
+                alert('⚠️ WARNING: Cannot clean localStorage - missing email or device fingerprint');
+            }
         } catch (error) {
             alert('❌ LocalStorage cleanup failed: ' + error.message);
         }
@@ -310,6 +326,35 @@ class BroadcastSessionTracker {
                 role: this.currentSession.role
             } : null,
             mode: this.firebaseEnabled ? 'Firebase (Cross-Browser)' : 'LocalStorage (Same Browser Only)'
+        };
+    }
+
+    // ✅ NEW: Verify session integrity
+    verifySessionIntegrity() {
+        if (!this.currentSession) {
+            return {
+                valid: false,
+                error: 'No current session exists'
+            };
+        }
+
+        const requiredFields = ['id', 'email', 'role', 'name'];
+        const missingFields = [];
+        const fieldTypes = {};
+
+        requiredFields.forEach(field => {
+            fieldTypes[field] = typeof this.currentSession[field];
+            if (!this.currentSession[field]) {
+                missingFields.push(field);
+            }
+        });
+
+        return {
+            valid: missingFields.length === 0,
+            missingFields: missingFields,
+            fieldTypes: fieldTypes,
+            sessionKeys: Object.keys(this.currentSession),
+            rawSession: JSON.stringify(this.currentSession, null, 2)
         };
     }
 

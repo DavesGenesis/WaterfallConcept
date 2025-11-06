@@ -1563,11 +1563,30 @@
                         debugInfo += '✅ Firebase enabled: ' + sessionTracker.firebaseEnabled + '\n\n';
                         
                         if (sessionTracker.currentSession) {
-                            debugInfo += '📋 Current Session:\n';
-                            debugInfo += '- ID: ' + sessionTracker.currentSession.id + '\n';
-                            debugInfo += '- Email: ' + sessionTracker.currentSession.email + '\n';
-                            debugInfo += '- Role: ' + sessionTracker.currentSession.role + '\n\n';
-                            debugInfo += '🛑 Now calling stopSession()...';
+                            // ✅ FIX: Use new session integrity verification
+                            const integrity = sessionTracker.verifySessionIntegrity();
+                            
+                            debugInfo += '📋 SESSION INTEGRITY CHECK:\n';
+                            debugInfo += '- Valid: ' + integrity.valid + '\n';
+                            
+                            if (!integrity.valid) {
+                                debugInfo += '- Missing Fields: ' + integrity.missingFields.join(', ') + '\n';
+                            }
+                            
+                            debugInfo += '- Field Types: ' + JSON.stringify(integrity.fieldTypes, null, 2) + '\n';
+                            debugInfo += '- Available Keys: ' + integrity.sessionKeys.join(', ') + '\n\n';
+                            
+                            debugInfo += '🔍 RAW SESSION DATA:\n';
+                            debugInfo += integrity.rawSession + '\n\n';
+                            
+                            if (integrity.valid) {
+                                debugInfo += '✅ Session data is VALID - proceeding with stopSession()...\n\n';
+                                debugInfo += '🛑 Now calling stopSession()...';
+                            } else {
+                                debugInfo += '❌ Session data is CORRUPTED!\n';
+                                debugInfo += 'Missing fields: ' + integrity.missingFields.join(', ') + '\n';
+                                debugInfo += 'This will cause stopSession to fail.';
+                            }
                         } else {
                             debugInfo += '⚠️ NO CURRENT SESSION FOUND!\n';
                             debugInfo += 'This is why logout is not working.';
