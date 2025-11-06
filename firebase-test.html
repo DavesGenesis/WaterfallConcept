@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Connection Test</title>
+    
+    <!-- Firebase SDK Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #0a192f;
+            color: #64ffda;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #172a46;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .test-result {
+            background: #1e3a5f;
+            border: 1px solid #64ffda;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .success { border-color: #28a745; background: #1a4d2e; }
+        .error { border-color: #dc3545; background: #4d1a1a; }
+        .warning { border-color: #ffc107; background: #4d3d1a; }
+        button {
+            background: #64ffda;
+            color: #0a192f;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover { background: #4fd1c7; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Firebase Connection Test</h1>
+        <p>Test Firebase read/write permissions and connection from this device.</p>
+        
+        <button onclick="testFirebaseConnection()">Test Connection</button>
+        <button onclick="testWritePermissions()">Test Write</button>
+        <button onclick="testReadPermissions()">Test Read</button>
+        <button onclick="simulateSession()">Simulate Session</button>
+        <button onclick="clearTests()">Clear Tests</button>
+        
+        <div id="test-output"></div>
+    </div>
+
+    <script>
+        let testResults = [];
+        
+        function addTestResult(type, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            testResults.push({
+                type: type,
+                message: `[${timestamp}] ${message}`,
+                timestamp: Date.now()
+            });
+            updateTestDisplay();
+        }
+        
+        function updateTestDisplay() {
+            const output = document.getElementById('test-output');
+            output.innerHTML = testResults.map(result => {
+                let className = '';
+                if (result.type === 'ERROR') className = 'error';
+                else if (result.type === 'WARN') className = 'warning';
+                else if (result.type === 'SUCCESS') className = 'success';
+                
+                return `<div class="test-result ${className}">${result.message}</div>`;
+            }).join('');
+        }
+        
+        function clearTests() {
+            testResults = [];
+            updateTestDisplay();
+        }
+        
+        async function testFirebaseConnection() {
+            addTestResult('INFO', '🔥 Testing Firebase connection...');
+            
+            try {
+                // Check if Firebase is loaded
+                if (typeof firebase === 'undefined') {
+                    addTestResult('ERROR', '❌ Firebase SDK not loaded');
+                    return;
+                }
+                addTestResult('SUCCESS', '✅ Firebase SDK loaded');
+                
+                // Check if config is loaded
+                if (typeof firebaseConfig === 'undefined') {
+                    addTestResult('ERROR', '❌ Firebase config not loaded');
+                    return;
+                }
+                addTestResult('SUCCESS', '✅ Firebase config loaded');
+                
+                // Initialize Firebase
+                await firebaseConfig.initialize();
+                
+                if (firebaseConfig.isReady()) {
+                    addTestResult('SUCCESS', '✅ Firebase initialized and ready');
+                    
+                    // Test basic connection
+                    const db = firebaseConfig.getDatabase();
+                    const testRef = db.ref('_connection_test');
+                    
+                    await testRef.set({
+                        timestamp: Date.now(),
+                        message: 'Connection test from ' + navigator.userAgent.substring(0, 50)
+                    });
+                    
+                    addTestResult('SUCCESS', '✅ Firebase write test successful');
+                    
+                    // Read it back
+                    const snapshot = await testRef.once('value');
+                    const data = snapshot.val();
+                    
+                    if (data && data.timestamp) {
+                        addTestResult('SUCCESS', '✅ Firebase read test successful');
+                        addTestResult('INFO', `Data: ${JSON.stringify(data, null, 2)}`);
+                    } else {
+                        addTestResult('ERROR', '❌ Firebase read test failed - no data');
+                    }
+                    
+                } else {
+                    addTestResult('ERROR', '❌ Firebase not ready');
+                }
+                
+            } catch (error) {
+                addTestResult('ERROR', `❌ Firebase connection failed: ${error.message}`);
+            }
+        }
+        
+        async function testWritePermissions() {
+            addTestResult('INFO', '✍️ Testing Firebase write permissions...');
+            
+            try {
+                if (!firebaseConfig.isReady()) {
+                    addTestResult('ERROR', '❌ Firebase not ready');
+                    return;
+                }
+                
+                const db = firebaseConfig.getDatabase();
+                const testRef = db.ref('sessions/test_session_' + Date.now());
+                
+                const testSession = {
+                    id: 'test_' + Date.now(),
+                    email: 'test@example.com',
+                    role: 'test',
+                    loginTime: Date.now(),
+                    lastSeen: Date.now(),
+                    browser: 'Test Browser',
+                    deviceFingerprint: 'test-device'
+                };
+                
+                await testRef.set(testSession);
+                addTestResult('SUCCESS', '✅ Write permissions working');
+                addTestResult('INFO', `Written test session: ${testSession.id}`);
+                
+                // Clean up test data
+                setTimeout(async () => {
+                    await testRef.remove();
+                    addTestResult('INFO', '🧹 Test session cleaned up');
+                }, 5000);
+                
+            } catch (error) {
+                addTestResult('ERROR', `❌ Write permission failed: ${error.message}`);
+            }
+        }
+        
+        async function testReadPermissions() {
+            addTestResult('INFO', '📖 Testing Firebase read permissions...');
+            
+            try {
+                if (!firebaseConfig.isReady()) {
+                    addTestResult('ERROR', '❌ Firebase not ready');
+                    return;
+                }
+                
+                const db = firebaseConfig.getDatabase();
+                const sessionsRef = db.ref('sessions');
+                
+                const snapshot = await sessionsRef.once('value');
+                const sessionsData = snapshot.val() || {};
+                
+                const sessionCount = Object.keys(sessionsData).length;
+                addTestResult('SUCCESS', '✅ Read permissions working');
+                addTestResult('INFO', `Found ${sessionCount} sessions in Firebase`);
+                
+                if (sessionCount > 0) {
+                    Object.entries(sessionsData).forEach(([sessionId, session]) => {
+                        addTestResult('INFO', `- ${session.email} (${session.role}) - Last seen: ${new Date(session.lastSeen).toLocaleString()}`);
+                    });
+                }
+                
+            } catch (error) {
+                addTestResult('ERROR', `❌ Read permission failed: ${error.message}`);
+            }
+        }
+        
+        async function simulateSession() {
+            addTestResult('INFO', '🧪 Simulating session creation...');
+            
+            try {
+                if (!firebaseConfig.isReady()) {
+                    addTestResult('ERROR', '❌ Firebase not ready');
+                    return;
+                }
+                
+                const db = firebaseConfig.getDatabase();
+                const sessionId = 'sim_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                const sessionRef = db.ref(`sessions/${sessionId}`);
+                
+                const simulatedSession = {
+                    id: sessionId,
+                    email: 'simulated@test.com',
+                    name: 'Simulated User',
+                    role: 'user',
+                    deviceFingerprint: 'sim-device-' + Date.now(),
+                    location: 'Test Location',
+                    loginTime: Date.now(),
+                    lastSeen: Date.now(),
+                    userAgent: navigator.userAgent.substring(0, 100),
+                    browser: 'Test Browser',
+                    ip: 'Hidden for privacy'
+                };
+                
+                await sessionRef.set(simulatedSession);
+                addTestResult('SUCCESS', `✅ Simulated session created: ${sessionId}`);
+                
+                // Keep it alive for 30 seconds
+                const keepAlive = setInterval(async () => {
+                    try {
+                        simulatedSession.lastSeen = Date.now();
+                        await sessionRef.set(simulatedSession);
+                        addTestResult('INFO', `📡 Session ${sessionId} heartbeat sent`);
+                    } catch (error) {
+                        addTestResult('ERROR', `❌ Heartbeat failed: ${error.message}`);
+                        clearInterval(keepAlive);
+                    }
+                }, 10000);
+                
+                // Clean up after 30 seconds
+                setTimeout(async () => {
+                    clearInterval(keepAlive);
+                    await sessionRef.remove();
+                    addTestResult('INFO', `🧹 Simulated session ${sessionId} removed`);
+                }, 30000);
+                
+            } catch (error) {
+                addTestResult('ERROR', `❌ Session simulation failed: ${error.message}`);
+            }
+        }
+        
+        // Auto-run basic test on load
+        window.addEventListener('load', function() {
+            addTestResult('INFO', '🚀 Firebase Test Tool loaded');
+            addTestResult('INFO', `User Agent: ${navigator.userAgent}`);
+            addTestResult('INFO', 'Click "Test Connection" to start diagnostics');
+        });
+    </script>
+</body>
+</html>
