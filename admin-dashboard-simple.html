@@ -214,7 +214,7 @@
 
         function getLocalStorageSessions() {
             const sessions = [];
-            const sessionTimeout = 5 * 60 * 1000; // 5 minutes
+            const sessionTimeout = 30 * 60 * 1000; // ✅ FIX 3: Changed from 5 minutes to 30 minutes (match broadcast-session-tracker.js)
             
             try {
                 // Check global session list

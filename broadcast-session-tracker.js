@@ -167,7 +167,7 @@ class BroadcastSessionTracker {
     }
 
     // Stop session tracking
-    stopSession() {
+    async stopSession() {
         if (!this.currentSession) return;
 
         console.log('🛑 Stopping session broadcast for:', this.currentSession.email);
@@ -176,8 +176,8 @@ class BroadcastSessionTracker {
             // Firebase mode: Remove from cloud database
             try {
                 const sessionRef = this.db.ref(`sessions/${this.currentSession.id}`);
-                sessionRef.remove();
-                console.log('📡 Firebase: Session removed from cloud');
+                await sessionRef.remove(); // ✅ FIX 1: Added await
+                console.log('📡 Firebase: Session successfully removed from cloud');
             } catch (error) {
                 console.warn('⚠️ Firebase: Session removal failed:', error);
             }
@@ -187,12 +187,14 @@ class BroadcastSessionTracker {
         try {
             const sessionKey = `session_${this.currentSession.email.replace(/[^a-zA-Z0-9]/g, '_')}_${this.currentSession.deviceFingerprint}`;
             localStorage.removeItem(sessionKey);
+            console.log('💾 LocalStorage: Session cleaned up');
         } catch (error) {
             console.warn('LocalStorage cleanup failed:', error);
         }
 
         this.currentSession = null;
         this.isBroadcasting = false;
+        console.log('✅ Session cleanup completed');
     }
 
     // Get all active sessions (for admin dashboard)
