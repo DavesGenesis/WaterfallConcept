@@ -37,6 +37,19 @@ class BroadcastSessionTracker {
 
     // Start session tracking
     startSession(userData) {
+        // ✅ PREVENT DUPLICATE SESSIONS
+        if (this.currentSession && this.currentSession.email === userData.email) {
+            console.log('⚠️ Session already exists for:', userData.email, '- skipping duplicate creation');
+            return this.currentSession.id;
+        }
+
+        // ✅ STOP ANY EXISTING SESSION FIRST
+        if (this.currentSession) {
+            console.log('🔄 Stopping existing session before starting new one');
+            // Use sync version for immediate cleanup when starting new session
+            this.stopSessionSync();
+        }
+
         this.currentSession = {
             id: this.generateSessionId(),
             email: userData.email,
@@ -51,7 +64,7 @@ class BroadcastSessionTracker {
             ip: 'Hidden for privacy'
         };
 
-        console.log('🚀 Starting session broadcast for:', this.currentSession.email);
+        console.log('🚀 Starting session broadcast for:', this.currentSession.email, 'with ID:', this.currentSession.id);
         
         // Start broadcasting immediately
         this.startBroadcasting();
@@ -166,11 +179,11 @@ class BroadcastSessionTracker {
         }
     }
 
-    // Stop session tracking
+    // Stop session tracking (async version for logout)
     async stopSession() {
         if (!this.currentSession) return;
 
-        console.log('🛑 Stopping session broadcast for:', this.currentSession.email);
+        console.log('🛑 Stopping session broadcast for:', this.currentSession.email, 'ID:', this.currentSession.id);
 
         if (this.firebaseEnabled && this.db) {
             // Firebase mode: Remove from cloud database
@@ -195,6 +208,37 @@ class BroadcastSessionTracker {
         this.currentSession = null;
         this.isBroadcasting = false;
         console.log('✅ Session cleanup completed');
+    }
+
+    // Stop session tracking (sync version for immediate cleanup)
+    stopSessionSync() {
+        if (!this.currentSession) return;
+
+        console.log('🛑 Immediate session stop for:', this.currentSession.email, 'ID:', this.currentSession.id);
+
+        if (this.firebaseEnabled && this.db) {
+            // Firebase mode: Remove from cloud database (fire and forget)
+            try {
+                const sessionRef = this.db.ref(`sessions/${this.currentSession.id}`);
+                sessionRef.remove(); // No await - immediate cleanup
+                console.log('📡 Firebase: Session removal initiated');
+            } catch (error) {
+                console.warn('⚠️ Firebase: Session removal failed:', error);
+            }
+        }
+
+        // Also remove from localStorage
+        try {
+            const sessionKey = `session_${this.currentSession.email.replace(/[^a-zA-Z0-9]/g, '_')}_${this.currentSession.deviceFingerprint}`;
+            localStorage.removeItem(sessionKey);
+            console.log('💾 LocalStorage: Session cleaned up');
+        } catch (error) {
+            console.warn('LocalStorage cleanup failed:', error);
+        }
+
+        this.currentSession = null;
+        this.isBroadcasting = false;
+        console.log('✅ Immediate session cleanup completed');
     }
 
     // Get all active sessions (for admin dashboard)

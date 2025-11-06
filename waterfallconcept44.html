@@ -1422,7 +1422,12 @@
                         updatedSessions.push(newSession);
                         
                         // Start session tracking if not already started
-                        sessionTracker.startSession(newSession);
+                        if (!sessionTracker.currentSession) {
+                            console.log('🚀 Starting new Firebase session for:', newSession.email);
+                            sessionTracker.startSession(newSession);
+                        } else {
+                            console.log('📡 Session already active for:', sessionTracker.currentSession.email);
+                        }
                     }
                     
                     // Keep only active sessions (last 8 hours)
