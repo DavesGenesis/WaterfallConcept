@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPad Debug - Waterfall Login Test</title>
+    
+    <!-- Firebase SDK Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    
+    <script src="config-advanced.js"></script>
+    <script src="broadcast-session-tracker.js"></script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .debug-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .success { border-color: #28a745; background: #d4edda; }
+        .error { border-color: #dc3545; background: #f8d7da; }
+        .warning { border-color: #ffc107; background: #fff3cd; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover { background: #0056b3; }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .login-form {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 iPad Debug Tool</h1>
+        <p>This page helps diagnose login issues on iPad/mobile devices.</p>
+        
+        <div class="login-form">
+            <h3>Test Login</h3>
+            <input type="email" id="email" placeholder="Email" value="ferry1112@gmail.com">
+            <input type="password" id="password" placeholder="Password" value="Ferry@Gmail2025">
+            <button onclick="testLogin()">Test Login</button>
+            <button onclick="clearDebug()">Clear Debug</button>
+        </div>
+        
+        <div id="debug-output"></div>
+        
+        <div class="debug-info">
+            <strong>System Check:</strong>
+            <div id="system-check">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        let debugOutput = [];
+        
+        // Override console.log to capture messages
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addDebugMessage('LOG', args.join(' '));
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addDebugMessage('ERROR', args.join(' '));
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addDebugMessage('WARN', args.join(' '));
+        };
+        
+        function addDebugMessage(type, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            debugOutput.push(`[${timestamp}] ${type}: ${message}`);
+            updateDebugDisplay();
+        }
+        
+        function updateDebugDisplay() {
+            const output = document.getElementById('debug-output');
+            output.innerHTML = debugOutput.map(msg => {
+                let className = '';
+                if (msg.includes('ERROR')) className = 'error';
+                else if (msg.includes('WARN')) className = 'warning';
+                else if (msg.includes('✅')) className = 'success';
+                
+                return `<div class="debug-info ${className}">${msg}</div>`;
+            }).join('');
+            
+            // Auto-scroll to bottom
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function clearDebug() {
+            debugOutput = [];
+            updateDebugDisplay();
+        }
+        
+        async function testLogin() {
+            addDebugMessage('INFO', '🚀 Starting login test...');
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            addDebugMessage('INFO', `Testing email: ${email}`);
+            
+            try {
+                // Check if config is loaded
+                if (typeof WaterfallConfig === 'undefined') {
+                    addDebugMessage('ERROR', '❌ WaterfallConfig not loaded');
+                    return;
+                }
+                
+                addDebugMessage('INFO', '✅ WaterfallConfig loaded');
+                addDebugMessage('INFO', `Available users: ${Object.keys(WaterfallConfig.users).join(', ')}`);
+                
+                // Check user exists
+                const user = WaterfallConfig.users[email];
+                if (!user) {
+                    addDebugMessage('ERROR', `❌ User not found: ${email}`);
+                    return;
+                }
+                
+                addDebugMessage('INFO', `✅ User found: ${user.name} (${user.role})`);
+                
+                // Check password
+                if (user.password !== password) {
+                    addDebugMessage('ERROR', `❌ Password mismatch`);
+                    addDebugMessage('INFO', `Expected: ${user.password}`);
+                    addDebugMessage('INFO', `Provided: ${password}`);
+                    return;
+                }
+                
+                addDebugMessage('INFO', '✅ Password correct');
+                
+                // Test Firebase
+                if (typeof firebaseConfig !== 'undefined') {
+                    addDebugMessage('INFO', '🔥 Testing Firebase connection...');
+                    
+                    if (firebaseConfig.isReady()) {
+                        addDebugMessage('INFO', '✅ Firebase connected');
+                    } else {
+                        addDebugMessage('WARN', '⚠️ Firebase not ready, will use localStorage');
+                    }
+                } else {
+                    addDebugMessage('WARN', '⚠️ Firebase config not found');
+                }
+                
+                // Test session tracker
+                if (typeof BroadcastSessionTracker !== 'undefined') {
+                    addDebugMessage('INFO', '📡 Testing session tracker...');
+                    
+                    const tracker = new BroadcastSessionTracker();
+                    const sessionId = tracker.startSession({
+                        email: email,
+                        name: user.name,
+                        role: user.role,
+                        deviceFingerprint: 'ipad-test',
+                        location: 'Test Location'
+                    });
+                    
+                    addDebugMessage('INFO', `✅ Session started: ${sessionId}`);
+                    
+                    // Test debug info
+                    const debugInfo = tracker.getDebugInfo();
+                    addDebugMessage('INFO', `Session mode: ${debugInfo.mode}`);
+                    addDebugMessage('INFO', `Firebase enabled: ${debugInfo.firebaseEnabled}`);
+                } else {
+                    addDebugMessage('ERROR', '❌ BroadcastSessionTracker not found');
+                }
+                
+                addDebugMessage('INFO', '🎉 All tests passed! Login should work.');
+                
+                // Simulate redirect
+                setTimeout(() => {
+                    addDebugMessage('INFO', '🔄 Would redirect to waterfallconcept44.html');
+                }, 1000);
+                
+            } catch (error) {
+                addDebugMessage('ERROR', `❌ Test failed: ${error.message}`);
+            }
+        }
+        
+        // System check on load
+        window.addEventListener('load', function() {
+            let systemInfo = [];
+            
+            systemInfo.push(`User Agent: ${navigator.userAgent}`);
+            systemInfo.push(`Screen: ${screen.width}x${screen.height}`);
+            systemInfo.push(`Viewport: ${window.innerWidth}x${window.innerHeight}`);
+            systemInfo.push(`Platform: ${navigator.platform}`);
+            systemInfo.push(`Language: ${navigator.language}`);
+            
+            // Check script loading
+            systemInfo.push(`WaterfallConfig: ${typeof WaterfallConfig !== 'undefined' ? '✅ Loaded' : '❌ Missing'}`);
+            systemInfo.push(`Firebase: ${typeof firebase !== 'undefined' ? '✅ Loaded' : '❌ Missing'}`);
+            systemInfo.push(`FirebaseConfig: ${typeof firebaseConfig !== 'undefined' ? '✅ Loaded' : '❌ Missing'}`);
+            systemInfo.push(`SessionTracker: ${typeof BroadcastSessionTracker !== 'undefined' ? '✅ Loaded' : '❌ Missing'}`);
+            
+            document.getElementById('system-check').textContent = systemInfo.join('\n');
+            
+            addDebugMessage('INFO', '📱 iPad Debug Tool loaded');
+        });
+    </script>
+</body>
+</html>
