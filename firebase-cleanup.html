@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Cleanup Tool</title>
+    
+    <!-- Firebase SDK Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #0a192f;
+            color: #64ffda;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #172a46;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .session-item {
+            background: #1e3a5f;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #64ffda;
+        }
+        .test-session {
+            border-left-color: #ffc107;
+            background: #4d3d1a;
+        }
+        .expired-session {
+            border-left-color: #dc3545;
+            background: #4d1a1a;
+        }
+        .cleanup-output {
+            background: #1e3a5f;
+            border: 1px solid #64ffda;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        button {
+            background: #64ffda;
+            color: #0a192f;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-weight: bold;
+        }
+        button:hover { background: #4fd1c7; }
+        .danger { background: #dc3545; color: white; }
+        .danger:hover { background: #c82333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Firebase Cleanup Tool</h1>
+        <p>Clean up test sessions and expired data from Firebase.</p>
+        
+        <button onclick="analyzeSessions()">Analyze Sessions</button>
+        <button onclick="cleanupTestSessions()">Clean Test Sessions</button>
+        <button onclick="cleanupExpiredSessions()">Clean Expired Sessions</button>
+        <button class="danger" onclick="clearAllSessions()">Clear ALL Sessions</button>
+        
+        <div id="cleanup-output" class="cleanup-output">
+            Firebase Cleanup Tool loaded. Click "Analyze Sessions" to start.
+        </div>
+        
+        <div id="sessions-list"></div>
+    </div>
+
+    <script>
+        let cleanupMessages = [];
+        
+        function addCleanupMessage(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            cleanupMessages.push(`[${timestamp}] ${message}`);
+            
+            if (cleanupMessages.length > 30) {
+                cleanupMessages = cleanupMessages.slice(-30);
+            }
+            
+            document.getElementById('cleanup-output').textContent = cleanupMessages.join('\n');
+        }
+        
+        async function analyzeSessions() {
+            addCleanupMessage('🔍 Analyzing Firebase sessions...');
+            
+            try {
+                if (!firebaseConfig.isReady()) {
+                    await firebaseConfig.initialize();
+                }
+                
+                const db = firebaseConfig.getDatabase();
+                const sessionsRef = db.ref('sessions');
+                const snapshot = await sessionsRef.once('value');
+                const sessionsData = snapshot.val() || {};
+                
+                const sessions = Object.entries(sessionsData);
+                addCleanupMessage(`📊 Found ${sessions.length} total sessions in Firebase`);
+                
+                let realSessions = 0;
+                let testSessions = 0;
+                let expiredSessions = 0;
+                const now = Date.now();
+                const sessionTimeout = 30 * 60 * 1000; // 30 minutes
+                
+                const sessionsList = document.getElementById('sessions-list');
+                sessionsList.innerHTML = '<h3>Session Analysis:</h3>';
+                
+                sessions.forEach(([sessionId, session]) => {
+                    const isExpired = !session.lastSeen || (now - session.lastSeen > sessionTimeout);
+                    const isTest = session.email && (
+                        session.email.includes('test') || 
+                        session.email.includes('example.com') ||
+                        session.email.includes('simulated') ||
+                        sessionId.startsWith('test_') ||
+                        sessionId.startsWith('sim_')
+                    );
+                    
+                    let className = 'session-item';
+                    let type = 'Real';
+                    
+                    if (isTest) {
+                        className += ' test-session';
+                        type = 'Test';
+                        testSessions++;
+                    } else if (isExpired) {
+                        className += ' expired-session';
+                        type = 'Expired';
+                        expiredSessions++;
+                    } else {
+                        realSessions++;
+                    }
+                    
+                    const lastSeen = session.lastSeen ? new Date(session.lastSeen).toLocaleString() : 'Never';
+                    
+                    sessionsList.innerHTML += `
+                        <div class="${className}">
+                            <strong>${type}: ${session.email || 'Unknown'}</strong><br>
+                            ID: ${sessionId}<br>
+                            Role: ${session.role || 'Unknown'}<br>
+                            Last seen: ${lastSeen}<br>
+                            Age: ${isExpired ? 'EXPIRED' : 'Active'}
+                        </div>
+                    `;
+                });
+                
+                addCleanupMessage(`📈 Analysis complete:`);
+                addCleanupMessage(`  - Real sessions: ${realSessions}`);
+                addCleanupMessage(`  - Test sessions: ${testSessions}`);
+                addCleanupMessage(`  - Expired sessions: ${expiredSessions}`);
+                
+            } catch (error) {
+                addCleanupMessage(`❌ Analysis failed: ${error.message}`);
+            }
+        }
+        
+        async function cleanupTestSessions() {
+            addCleanupMessage('🧪 Cleaning up test sessions...');
+            
+            try {
+                const db = firebaseConfig.getDatabase();
+                const sessionsRef = db.ref('sessions');
+                const snapshot = await sessionsRef.once('value');
+                const sessionsData = snapshot.val() || {};
+                
+                let cleaned = 0;
+                
+                for (const [sessionId, session] of Object.entries(sessionsData)) {
+                    const isTest = session.email && (
+                        session.email.includes('test') || 
+                        session.email.includes('example.com') ||
+                        session.email.includes('simulated') ||
+                        sessionId.startsWith('test_') ||
+                        sessionId.startsWith('sim_')
+                    );
+                    
+                    if (isTest) {
+                        await db.ref(`sessions/${sessionId}`).remove();
+                        addCleanupMessage(`🗑️ Removed test session: ${session.email} (${sessionId})`);
+                        cleaned++;
+                    }
+                }
+                
+                addCleanupMessage(`✅ Cleaned up ${cleaned} test sessions`);
+                
+                // Re-analyze after cleanup
+                setTimeout(analyzeSessions, 1000);
+                
+            } catch (error) {
+                addCleanupMessage(`❌ Test cleanup failed: ${error.message}`);
+            }
+        }
+        
+        async function cleanupExpiredSessions() {
+            addCleanupMessage('⏰ Cleaning up expired sessions...');
+            
+            try {
+                const db = firebaseConfig.getDatabase();
+                const sessionsRef = db.ref('sessions');
+                const snapshot = await sessionsRef.once('value');
+                const sessionsData = snapshot.val() || {};
+                
+                const now = Date.now();
+                const sessionTimeout = 30 * 60 * 1000; // 30 minutes
+                let cleaned = 0;
+                
+                for (const [sessionId, session] of Object.entries(sessionsData)) {
+                    const isExpired = !session.lastSeen || (now - session.lastSeen > sessionTimeout);
+                    
+                    if (isExpired) {
+                        await db.ref(`sessions/${sessionId}`).remove();
+                        addCleanupMessage(`🗑️ Removed expired session: ${session.email || 'Unknown'} (${sessionId})`);
+                        cleaned++;
+                    }
+                }
+                
+                addCleanupMessage(`✅ Cleaned up ${cleaned} expired sessions`);
+                
+                // Re-analyze after cleanup
+                setTimeout(analyzeSessions, 1000);
+                
+            } catch (error) {
+                addCleanupMessage(`❌ Expired cleanup failed: ${error.message}`);
+            }
+        }
+        
+        async function clearAllSessions() {
+            if (!confirm('⚠️ This will delete ALL sessions from Firebase. Are you sure?')) {
+                return;
+            }
+            
+            addCleanupMessage('🚨 CLEARING ALL SESSIONS...');
+            
+            try {
+                const db = firebaseConfig.getDatabase();
+                await db.ref('sessions').remove();
+                
+                addCleanupMessage('✅ All sessions cleared from Firebase');
+                
+                // Clear the display
+                document.getElementById('sessions-list').innerHTML = '';
+                
+                // Re-analyze after cleanup
+                setTimeout(analyzeSessions, 1000);
+                
+            } catch (error) {
+                addCleanupMessage(`❌ Clear all failed: ${error.message}`);
+            }
+        }
+        
+        // Auto-run analysis on load
+        window.addEventListener('load', function() {
+            addCleanupMessage('🚀 Firebase Cleanup Tool loaded');
+            setTimeout(analyzeSessions, 2000);
+        });
+    </script>
+</body>
+</html>
