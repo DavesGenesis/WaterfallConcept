@@ -4,7 +4,7 @@
 class BroadcastSessionTracker {
     constructor() {
         this.broadcastInterval = 10000; // 10 seconds
-        this.sessionTimeout = 5 * 60 * 1000; // 5 minutes
+        this.sessionTimeout = 30 * 60 * 1000; // 30 minutes
         this.currentSession = null;
         this.isBroadcasting = false;
         this.firebaseEnabled = false;
@@ -72,9 +72,9 @@ class BroadcastSessionTracker {
         if (ua.includes('Safari')) return 'Safari';
         if (ua.includes('Edge')) return 'Edge';
         return 'Unknown';
-    }    
+    }
 
-//Start broadcasting this session
+    // Start broadcasting this session
     startBroadcasting() {
         if (this.isBroadcasting) return;
         
@@ -162,8 +162,9 @@ class BroadcastSessionTracker {
         } catch (error) {
             console.error('Error updating localStorage session list:', error);
         }
-    } 
-   // Stop session tracking
+    }
+
+    // Stop session tracking
     stopSession() {
         if (!this.currentSession) return;
 
