@@ -1358,6 +1358,12 @@
                     // Update activity in global session registry
                     updateGlobalSessionActivity(authData);
                     
+                    // ✅ FIX 2: Start session tracking for authenticated users
+                    if (typeof sessionTracker !== 'undefined' && !sessionTracker.currentSession) {
+                        console.log('🚀 Starting Firebase session tracking for authenticated user:', authData.email);
+                        sessionTracker.startSession(authData);
+                    }
+                    
                     // Show admin dashboard button for admin/manager roles
                     if (['admin', 'manager'].includes(authData.role)) {
                         const adminBtn = document.getElementById('adminDashboardBtn');
@@ -1442,6 +1448,31 @@
                 }
             }, 30000);
 
+            // ✅ FIX 3: Handle browser close/refresh
+            window.addEventListener('beforeunload', function() {
+                if (typeof sessionTracker !== 'undefined' && sessionTracker.currentSession) {
+                    console.log('🚪 Browser closing - stopping Firebase session');
+                    sessionTracker.stopSession();
+                }
+            });
+
+            // ✅ FIX 3: Handle page visibility changes (tab switching, minimizing)
+            document.addEventListener('visibilitychange', function() {
+                if (document.hidden) {
+                    // Page is hidden (tab switched, minimized, etc.)
+                    if (typeof sessionTracker !== 'undefined' && sessionTracker.currentSession) {
+                        console.log('👁️ Page hidden - updating session activity');
+                        sessionTracker.updateActivity();
+                    }
+                } else {
+                    // Page is visible again
+                    if (typeof sessionTracker !== 'undefined' && sessionTracker.currentSession) {
+                        console.log('👁️ Page visible - updating session activity');
+                        sessionTracker.updateActivity();
+                    }
+                }
+            });
+
             // Logout functionality
             document.getElementById('logoutBtn').addEventListener('click', function() {
                 if (confirm('Are you sure you want to logout?')) {
@@ -1457,6 +1488,12 @@
                         }
                     } catch (error) {
                         console.error('Error logging logout:', error);
+                    }
+                    
+                    // ✅ FIX 1: Stop Firebase session broadcasting
+                    if (typeof sessionTracker !== 'undefined') {
+                        console.log('🛑 Stopping Firebase session on logout');
+                        sessionTracker.stopSession();
                     }
                     
                     sessionStorage.removeItem('waterfallAuth');
