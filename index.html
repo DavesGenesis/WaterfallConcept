@@ -529,10 +529,15 @@
                 // Initialize session tracker if not already done
                 if (!this.sessionTracker && typeof BroadcastSessionTracker !== 'undefined') {
                     this.sessionTracker = new BroadcastSessionTracker();
+                    
+                    // Wait for Firebase to initialize before starting session
+                    console.log('⏳ Waiting for Firebase initialization...');
+                    await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
                 }
                 
                 if (this.sessionTracker) {
                     this.sessionTracker.startSession(sessionData);
+                    console.log('✅ Session tracker started');
                 } else {
                     console.warn('⚠️ Session tracker not available, continuing without cross-browser tracking');
                 }

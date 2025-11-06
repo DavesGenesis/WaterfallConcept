@@ -94,13 +94,15 @@ class BroadcastSessionTracker {
                 try {
                     const sessionRef = this.db.ref(`sessions/${this.currentSession.id}`);
                     await sessionRef.set(this.currentSession);
-                    console.log('📡 Firebase: Session broadcasted to cloud');
+                    console.log('📡 Firebase: Session broadcasted to cloud for', this.currentSession.email);
                 } catch (error) {
-                    console.warn('⚠️ Firebase: Broadcast failed, falling back to localStorage:', error);
+                    console.error('❌ Firebase: Broadcast failed:', error);
+                    console.warn('⚠️ Falling back to localStorage');
                     this.broadcastToLocalStorage();
                 }
             } else {
                 // Fallback mode: Use localStorage
+                console.log('💾 Using localStorage fallback (Firebase not enabled)');
                 this.broadcastToLocalStorage();
             }
 
