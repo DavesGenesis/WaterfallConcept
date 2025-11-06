@@ -319,7 +319,7 @@
                 this.deviceFingerprint = null;
                 this.locationData = null;
                 this.sessionToken = null;
-                this.sessionTracker = new BroadcastSessionTracker();
+                this.sessionTracker = null; // Initialize later when needed
                 
                 this.init();
             }
@@ -526,7 +526,16 @@
                 this.storeSessionHistory(sessionData);
                 
                 // Start broadcasting session (cross-user)
-                this.sessionTracker.startSession(sessionData);
+                // Initialize session tracker if not already done
+                if (!this.sessionTracker && typeof BroadcastSessionTracker !== 'undefined') {
+                    this.sessionTracker = new BroadcastSessionTracker();
+                }
+                
+                if (this.sessionTracker) {
+                    this.sessionTracker.startSession(sessionData);
+                } else {
+                    console.warn('⚠️ Session tracker not available, continuing without cross-browser tracking');
+                }
                 
                 // Store login attempt for tracking
                 this.storeLoginAttempt(email, true);

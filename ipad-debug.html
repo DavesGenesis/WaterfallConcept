@@ -189,26 +189,38 @@
                 }
                 
                 // Test session tracker
+                addDebugMessage('INFO', '📡 Testing session tracker...');
+                
+                // Wait a bit for scripts to load
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
                 if (typeof BroadcastSessionTracker !== 'undefined') {
-                    addDebugMessage('INFO', '📡 Testing session tracker...');
-                    
-                    const tracker = new BroadcastSessionTracker();
-                    const sessionId = tracker.startSession({
-                        email: email,
-                        name: user.name,
-                        role: user.role,
-                        deviceFingerprint: 'ipad-test',
-                        location: 'Test Location'
-                    });
-                    
-                    addDebugMessage('INFO', `✅ Session started: ${sessionId}`);
-                    
-                    // Test debug info
-                    const debugInfo = tracker.getDebugInfo();
-                    addDebugMessage('INFO', `Session mode: ${debugInfo.mode}`);
-                    addDebugMessage('INFO', `Firebase enabled: ${debugInfo.firebaseEnabled}`);
+                    try {
+                        const tracker = new BroadcastSessionTracker();
+                        
+                        // Wait for Firebase initialization
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        
+                        const sessionId = tracker.startSession({
+                            email: email,
+                            name: user.name,
+                            role: user.role,
+                            deviceFingerprint: 'ipad-test',
+                            location: 'Test Location'
+                        });
+                        
+                        addDebugMessage('INFO', `✅ Session started: ${sessionId}`);
+                        
+                        // Test debug info
+                        const debugInfo = tracker.getDebugInfo();
+                        addDebugMessage('INFO', `Session mode: ${debugInfo.mode}`);
+                        addDebugMessage('INFO', `Firebase enabled: ${debugInfo.firebaseEnabled}`);
+                    } catch (error) {
+                        addDebugMessage('ERROR', `❌ Session tracker error: ${error.message}`);
+                    }
                 } else {
-                    addDebugMessage('ERROR', '❌ BroadcastSessionTracker not found');
+                    addDebugMessage('ERROR', '❌ BroadcastSessionTracker not found - script may not be loaded');
+                    addDebugMessage('INFO', '🔄 Login will continue without cross-browser tracking');
                 }
                 
                 addDebugMessage('INFO', '🎉 All tests passed! Login should work.');
