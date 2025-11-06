@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Debug Test</title>
+    
+    <!-- Firebase SDK Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="config-advanced.js"></script>
+    <script src="broadcast-session-tracker.js"></script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #0a192f;
+            color: #64ffda;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #172a46;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .login-form {
+            background: #1e3a5f;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .debug-output {
+            background: #1e3a5f;
+            border: 1px solid #64ffda;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #64ffda;
+            border-radius: 5px;
+            background: #0a192f;
+            color: #64ffda;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #64ffda;
+            color: #0a192f;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-weight: bold;
+        }
+        button:hover { background: #4fd1c7; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Login Debug Test</h1>
+        <p>Test the complete login flow and session tracking process.</p>
+        
+        <div class="login-form">
+            <h3>Test Login</h3>
+            <input type="email" id="email" placeholder="Email" value="ferry1112@gmail.com">
+            <input type="password" id="password" placeholder="Password" value="Ferry@Gmail2025">
+            <button onclick="testCompleteLogin()">Test Complete Login Flow</button>
+            <button onclick="testSessionTrackerOnly()">Test Session Tracker Only</button>
+            <button onclick="clearDebug()">Clear Debug</button>
+        </div>
+        
+        <div id="debug-output" class="debug-output">
+            Login Debug Tool loaded. Ready for testing.
+        </div>
+    </div>
+
+    <script>
+        let debugMessages = [];
+        let sessionTracker = null;
+        
+        function addDebugMessage(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            debugMessages.push(`[${timestamp}] ${message}`);
+            
+            // Keep only last 30 messages
+            if (debugMessages.length > 30) {
+                debugMessages = debugMessages.slice(-30);
+            }
+            
+            document.getElementById('debug-output').textContent = debugMessages.join('\n');
+            
+            // Auto-scroll to bottom
+            const output = document.getElementById('debug-output');
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function clearDebug() {
+            debugMessages = [];
+            document.getElementById('debug-output').textContent = 'Debug cleared. Ready for testing.';
+        }
+        
+        async function testCompleteLogin() {
+            addDebugMessage('🚀 === TESTING COMPLETE LOGIN FLOW ===');
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                // Step 1: Validate credentials
+                addDebugMessage('1️⃣ Validating credentials...');
+                
+                if (typeof WaterfallConfig === 'undefined') {
+                    addDebugMessage('❌ WaterfallConfig not loaded');
+                    return;
+                }
+                
+                const user = WaterfallConfig.users[email];
+                if (!user) {
+                    addDebugMessage(`❌ User not found: ${email}`);
+                    return;
+                }
+                
+                if (user.password !== password) {
+                    addDebugMessage('❌ Invalid password');
+                    return;
+                }
+                
+                addDebugMessage(`✅ Credentials valid for ${user.name} (${user.role})`);
+                
+                // Step 2: Create session data
+                addDebugMessage('2️⃣ Creating session data...');
+                
+                const sessionData = {
+                    email: email,
+                    name: user.name,
+                    role: user.role,
+                    deviceFingerprint: 'debug-device-' + Date.now(),
+                    location: 'Debug Location',
+                    loginTime: Date.now(),
+                    userAgent: navigator.userAgent.substring(0, 100)
+                };
+                
+                addDebugMessage(`✅ Session data created for ${sessionData.email}`);
+                
+                // Step 3: Initialize session tracker
+                addDebugMessage('3️⃣ Initializing session tracker...');
+                
+                if (typeof BroadcastSessionTracker === 'undefined') {
+                    addDebugMessage('❌ BroadcastSessionTracker not available');
+                    return;
+                }
+                
+                if (!sessionTracker) {
+                    sessionTracker = new BroadcastSessionTracker();
+                    addDebugMessage('✅ Session tracker created');
+                    
+                    // Wait for Firebase initialization
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    
+                    const debugInfo = sessionTracker.getDebugInfo();
+                    addDebugMessage(`📊 Session tracker mode: ${debugInfo.mode}`);
+                    addDebugMessage(`🔥 Firebase enabled: ${debugInfo.firebaseEnabled}`);
+                }
+                
+                // Step 4: Start session
+                addDebugMessage('4️⃣ Starting session broadcast...');
+                
+                const sessionId = sessionTracker.startSession(sessionData);
+                addDebugMessage(`✅ Session started with ID: ${sessionId}`);
+                
+                // Step 5: Store authentication data
+                addDebugMessage('5️⃣ Storing authentication data...');
+                
+                const authData = {
+                    authenticated: true,
+                    email: email,
+                    role: user.role,
+                    name: user.name,
+                    loginTime: Date.now(),
+                    expiresAt: Date.now() + (8 * 60 * 60 * 1000), // 8 hours
+                    sessionId: sessionId
+                };
+                
+                sessionStorage.setItem('waterfallAuth', JSON.stringify(authData));
+                addDebugMessage('✅ Authentication data stored in sessionStorage');
+                
+                // Step 6: Verify session is broadcasting
+                addDebugMessage('6️⃣ Verifying session broadcast...');
+                
+                setTimeout(async () => {
+                    try {
+                        if (sessionTracker.firebaseEnabled) {
+                            const allSessions = await sessionTracker.getAllActiveSessions();
+                            addDebugMessage(`📊 Firebase sessions found: ${allSessions.length}`);
+                            
+                            const mySession = allSessions.find(s => s.email === email);
+                            if (mySession) {
+                                addDebugMessage(`✅ My session found in Firebase: ${mySession.id}`);
+                            } else {
+                                addDebugMessage('❌ My session NOT found in Firebase');
+                            }
+                        } else {
+                            addDebugMessage('⚠️ Firebase not enabled, checking localStorage...');
+                            
+                            const sessionKey = `session_${email.replace(/[^a-zA-Z0-9]/g, '_')}_${sessionData.deviceFingerprint}`;
+                            const storedSession = localStorage.getItem(sessionKey);
+                            
+                            if (storedSession) {
+                                addDebugMessage('✅ Session found in localStorage');
+                            } else {
+                                addDebugMessage('❌ Session NOT found in localStorage');
+                            }
+                        }
+                    } catch (error) {
+                        addDebugMessage(`❌ Session verification failed: ${error.message}`);
+                    }
+                }, 5000);
+                
+                addDebugMessage('🎉 === LOGIN FLOW COMPLETE ===');
+                addDebugMessage('Wait 5 seconds for session verification...');
+                
+            } catch (error) {
+                addDebugMessage(`❌ Login flow failed: ${error.message}`);
+            }
+        }
+        
+        async function testSessionTrackerOnly() {
+            addDebugMessage('🧪 === TESTING SESSION TRACKER ONLY ===');
+            
+            try {
+                if (typeof BroadcastSessionTracker === 'undefined') {
+                    addDebugMessage('❌ BroadcastSessionTracker not available');
+                    return;
+                }
+                
+                const tracker = new BroadcastSessionTracker();
+                addDebugMessage('✅ Session tracker created');
+                
+                // Wait for initialization
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                const debugInfo = tracker.getDebugInfo();
+                addDebugMessage(`📊 Mode: ${debugInfo.mode}`);
+                addDebugMessage(`🔥 Firebase enabled: ${debugInfo.firebaseEnabled}`);
+                
+                // Create test session
+                const testSession = {
+                    email: 'test-tracker@example.com',
+                    name: 'Test Tracker User',
+                    role: 'test',
+                    deviceFingerprint: 'tracker-test-' + Date.now(),
+                    location: 'Test Location'
+                };
+                
+                const sessionId = tracker.startSession(testSession);
+                addDebugMessage(`✅ Test session started: ${sessionId}`);
+                
+                // Verify after 5 seconds
+                setTimeout(async () => {
+                    try {
+                        const allSessions = await tracker.getAllActiveSessions();
+                        addDebugMessage(`📊 Total sessions found: ${allSessions.length}`);
+                        
+                        const testSessionFound = allSessions.find(s => s.email === testSession.email);
+                        if (testSessionFound) {
+                            addDebugMessage('✅ Test session found in results');
+                        } else {
+                            addDebugMessage('❌ Test session NOT found in results');
+                        }
+                    } catch (error) {
+                        addDebugMessage(`❌ Session verification failed: ${error.message}`);
+                    }
+                }, 5000);
+                
+            } catch (error) {
+                addDebugMessage(`❌ Session tracker test failed: ${error.message}`);
+            }
+        }
+        
+        // Initialize on page load
+        window.addEventListener('load', function() {
+            addDebugMessage('🚀 Login Debug Tool loaded');
+            addDebugMessage('Ready to test login flow and session tracking');
+        });
+    </script>
+</body>
+</html>
