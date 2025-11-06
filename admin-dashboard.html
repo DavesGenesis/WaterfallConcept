@@ -499,8 +499,52 @@
         class SecurityDashboard {
             constructor() {
                 this.refreshInterval = null;
-                this.sessionTracker = new BroadcastSessionTracker();
+                this.sessionTracker = null;
                 this.init();
+            }
+
+            // Fallback method to get sessions from localStorage
+            getLocalStorageSessions() {
+                try {
+                    const sessions = [];
+                    const sessionTimeout = 5 * 60 * 1000; // 5 minutes
+                    
+                    // Check for global session list
+                    const globalList = localStorage.getItem('globalSessionList');
+                    if (globalList) {
+                        const data = JSON.parse(globalList);
+                        const validSessions = (data.sessions || []).filter(session => {
+                            return session && session.lastSeen && 
+                                   (Date.now() - session.lastSeen < sessionTimeout);
+                        });
+                        sessions.push(...validSessions);
+                    }
+                    
+                    // Also check individual session keys
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key && key.startsWith('session_')) {
+                            try {
+                                const session = JSON.parse(localStorage.getItem(key));
+                                if (session && session.lastSeen && 
+                                    (Date.now() - session.lastSeen < sessionTimeout)) {
+                                    // Avoid duplicates
+                                    if (!sessions.find(s => s.email === session.email)) {
+                                        sessions.push(session);
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('Error parsing session:', key);
+                            }
+                        }
+                    }
+                    
+                    console.log(`💾 LocalStorage fallback: Found ${sessions.length} sessions`);
+                    return sessions;
+                } catch (error) {
+                    console.error('LocalStorage fallback failed:', error);
+                    return [];
+                }
             }
 
             init() {
@@ -749,7 +793,30 @@
                     console.log('🔍 === GETTING ACTIVE SESSIONS ===');
                     
                     // Get sessions from broadcast tracker
-                    const broadcastSessions = this.sessionTracker.getAllActiveSessions();
+                    let broadcastSessions = [];
+                    
+                    // Initialize session tracker if not already done
+                    if (!this.sessionTracker && typeof BroadcastSessionTracker !== 'undefined') {
+                        try {
+                            this.sessionTracker = new BroadcastSessionTracker();
+                            console.log('✅ Session tracker initialized');
+                        } catch (error) {
+                            console.warn('⚠️ Session tracker initialization failed:', error);
+                        }
+                    }
+                    
+                    if (this.sessionTracker) {
+                        try {
+                            broadcastSessions = await this.sessionTracker.getAllActiveSessions();
+                        } catch (error) {
+                            console.warn('⚠️ Failed to get sessions from tracker:', error);
+                            broadcastSessions = [];
+                        }
+                    } else {
+                        console.warn('⚠️ Session tracker not available, checking localStorage fallback');
+                        // Fallback: Get sessions from localStorage directly
+                        broadcastSessions = this.getLocalStorageSessions();
+                    }
                     console.log('📡 Broadcast sessions:', broadcastSessions);
                     
                     // Get debug info
