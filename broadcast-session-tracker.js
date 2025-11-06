@@ -72,8 +72,9 @@ class BroadcastSessionTracker {
         if (ua.includes('Safari')) return 'Safari';
         if (ua.includes('Edge')) return 'Edge';
         return 'Unknown';
-    }    // 
-Start broadcasting this session
+    }    
+
+//Start broadcasting this session
     startBroadcasting() {
         if (this.isBroadcasting) return;
         
