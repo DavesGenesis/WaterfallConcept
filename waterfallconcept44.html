@@ -1359,9 +1359,26 @@
                     updateGlobalSessionActivity(authData);
                     
                     // ✅ FIX 2: Start session tracking for authenticated users
-                    if (typeof sessionTracker !== 'undefined' && !sessionTracker.currentSession) {
-                        console.log('🚀 Starting Firebase session tracking for authenticated user:', authData.email);
-                        sessionTracker.startSession(authData);
+                    if (typeof sessionTracker !== 'undefined') {
+                        if (!sessionTracker.currentSession) {
+                            const sessionId = sessionTracker.startSession(authData);
+                            
+                            // Show session start confirmation
+                            setTimeout(() => {
+                                alert('🚀 SESSION STARTED!\n\n' +
+                                      '✅ User: ' + authData.email + '\n' +
+                                      '✅ Session ID: ' + sessionId + '\n' +
+                                      '✅ Firebase: ' + sessionTracker.firebaseEnabled + '\n\n' +
+                                      'Session is now broadcasting to Firebase every 10 seconds.');
+                            }, 2000); // Delay to let Firebase initialize
+                        } else {
+                            alert('📡 SESSION ALREADY EXISTS:\n\n' +
+                                  'Email: ' + sessionTracker.currentSession.email + '\n' +
+                                  'ID: ' + sessionTracker.currentSession.id + '\n\n' +
+                                  'Using existing session.');
+                        }
+                    } else {
+                        alert('❌ CRITICAL ERROR:\n\nsessionTracker is not defined during page load!\n\nThis means the broadcast-session-tracker.js file is not loading properly.');
                     }
                     
                     // Show admin dashboard button for admin/manager roles
@@ -1490,6 +1507,37 @@
                 }
             });
 
+            // ✅ DEBUG: Add global test function for manual testing
+            window.testLogout = async function() {
+                console.log('🧪 Testing manual logout...');
+                if (typeof sessionTracker !== 'undefined') {
+                    console.log('🔍 sessionTracker exists:', !!sessionTracker);
+                    console.log('🔍 currentSession exists:', !!sessionTracker.currentSession);
+                    if (sessionTracker.currentSession) {
+                        console.log('🔍 Session ID:', sessionTracker.currentSession.id);
+                        console.log('🔍 Session email:', sessionTracker.currentSession.email);
+                        console.log('🛑 Calling stopSession...');
+                        await sessionTracker.stopSession();
+                        console.log('✅ Manual logout test completed');
+                    } else {
+                        console.warn('⚠️ No session to stop');
+                    }
+                } else {
+                    console.error('❌ sessionTracker not found');
+                }
+            };
+
+            // ✅ DEBUG: Add global session info function
+            window.getSessionInfo = function() {
+                console.log('📊 Session Information:');
+                console.log('- sessionTracker exists:', typeof sessionTracker !== 'undefined');
+                if (typeof sessionTracker !== 'undefined') {
+                    console.log('- Firebase enabled:', sessionTracker.firebaseEnabled);
+                    console.log('- Is broadcasting:', sessionTracker.isBroadcasting);
+                    console.log('- Current session:', sessionTracker.currentSession);
+                }
+            };
+
             // Logout functionality
             document.getElementById('logoutBtn').addEventListener('click', async function() {
                 if (confirm('Are you sure you want to logout?')) {
@@ -1509,13 +1557,32 @@
                     
                     // ✅ FIX 2: Wait for Firebase session cleanup to complete
                     if (typeof sessionTracker !== 'undefined') {
-                        console.log('🛑 Stopping Firebase session on logout - waiting for completion...');
+                        let debugInfo = '🛑 LOGOUT DEBUG INFO:\n\n';
+                        debugInfo += '✅ sessionTracker exists: ' + !!sessionTracker + '\n';
+                        debugInfo += '✅ currentSession exists: ' + !!sessionTracker.currentSession + '\n';
+                        debugInfo += '✅ Firebase enabled: ' + sessionTracker.firebaseEnabled + '\n\n';
+                        
+                        if (sessionTracker.currentSession) {
+                            debugInfo += '📋 Current Session:\n';
+                            debugInfo += '- ID: ' + sessionTracker.currentSession.id + '\n';
+                            debugInfo += '- Email: ' + sessionTracker.currentSession.email + '\n';
+                            debugInfo += '- Role: ' + sessionTracker.currentSession.role + '\n\n';
+                            debugInfo += '🛑 Now calling stopSession()...';
+                        } else {
+                            debugInfo += '⚠️ NO CURRENT SESSION FOUND!\n';
+                            debugInfo += 'This is why logout is not working.';
+                        }
+                        
+                        alert(debugInfo);
+                        
                         try {
                             await sessionTracker.stopSession();
-                            console.log('✅ Firebase session cleanup completed');
+                            alert('✅ SUCCESS: Firebase session cleanup completed!');
                         } catch (error) {
-                            console.error('❌ Error during session cleanup:', error);
+                            alert('❌ ERROR during session cleanup:\n' + error.message);
                         }
+                    } else {
+                        alert('❌ CRITICAL ERROR:\nsessionTracker is not defined!\nThis means the session tracker failed to initialize.');
                     }
                     
                     sessionStorage.removeItem('waterfallAuth');

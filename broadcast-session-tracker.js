@@ -181,33 +181,38 @@ class BroadcastSessionTracker {
 
     // Stop session tracking (async version for logout)
     async stopSession() {
-        if (!this.currentSession) return;
+        if (!this.currentSession) {
+            // Show alert for debugging
+            alert('⚠️ STOP SESSION FAILED:\n\nNo current session found!\nThis means the session was never started or already stopped.');
+            return;
+        }
 
-        console.log('🛑 Stopping session broadcast for:', this.currentSession.email, 'ID:', this.currentSession.id);
-
+        const sessionInfo = `🛑 STOPPING SESSION:\n\nEmail: ${this.currentSession.email}\nID: ${this.currentSession.id}\nFirebase: ${this.firebaseEnabled}`;
+        
         if (this.firebaseEnabled && this.db) {
             // Firebase mode: Remove from cloud database
             try {
                 const sessionRef = this.db.ref(`sessions/${this.currentSession.id}`);
                 await sessionRef.remove(); // ✅ FIX 1: Added await
-                console.log('📡 Firebase: Session successfully removed from cloud');
+                
+                alert(sessionInfo + '\n\n✅ SUCCESS: Session removed from Firebase!');
             } catch (error) {
-                console.warn('⚠️ Firebase: Session removal failed:', error);
+                alert(sessionInfo + '\n\n❌ ERROR: Firebase removal failed:\n' + error.message);
             }
+        } else {
+            alert(sessionInfo + '\n\n⚠️ WARNING: Firebase not enabled - using localStorage only');
         }
 
         // Also remove from localStorage
         try {
             const sessionKey = `session_${this.currentSession.email.replace(/[^a-zA-Z0-9]/g, '_')}_${this.currentSession.deviceFingerprint}`;
             localStorage.removeItem(sessionKey);
-            console.log('💾 LocalStorage: Session cleaned up');
         } catch (error) {
-            console.warn('LocalStorage cleanup failed:', error);
+            alert('❌ LocalStorage cleanup failed: ' + error.message);
         }
 
         this.currentSession = null;
         this.isBroadcasting = false;
-        console.log('✅ Session cleanup completed');
     }
 
     // Stop session tracking (sync version for immediate cleanup)
