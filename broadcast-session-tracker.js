@@ -7,7 +7,6 @@ class BroadcastSessionTracker {
         this.sessionTimeout = 30 * 60 * 1000; // 30 minutes (CONSISTENT)
         this.currentSession = null;
         this.isBroadcasting = false;
-        this.isStartingSession = false; // ✅ NEW: Prevent concurrent session creation
         this.firebaseEnabled = false;
         this.db = null;
         
@@ -62,19 +61,13 @@ class BroadcastSessionTracker {
             return null;
         }
 
-        // ✅ FIX 2: Prevent concurrent session creation
-        if (this.isStartingSession) {
-            console.warn('⚠️ Session creation already in progress, skipping');
-            return null;
-        }
-
-        // ✅ FIX 3: Prevent duplicate sessions
+        // ✅ FIX 2: Prevent duplicate sessions
         if (this.currentSession && this.currentSession.email === userData.email) {
             console.log('⚠️ Session already exists for:', userData.email);
             return this.currentSession.id;
         }
 
-        // ✅ FIX 4: Stop any existing session first (synchronously)
+        // ✅ FIX 3: Stop any existing session first (synchronously)
         if (this.currentSession) {
             console.log('🔄 Stopping existing session before starting new one');
             await this.stopSession(); // Use async version to ensure cleanup
@@ -146,10 +139,8 @@ class BroadcastSessionTracker {
             this.currentSession.lastSeen = Date.now();
 
             // ✅ FIX 5: Validate session before broadcasting
-            const integrity = this.verifySessionIntegrity();
-            if (!integrity.valid) {
-                console.error('❌ Session integrity check failed:', integrity.missingFields.join(', '));
-                console.error('❌ Stopping broadcast due to corrupted session');
+            if (!this.validateSession()) {
+                console.error('❌ Session validation failed, stopping broadcast');
                 this.isBroadcasting = false;
                 return;
             }
@@ -288,10 +279,8 @@ class BroadcastSessionTracker {
         }
 
         // ✅ FIX 6: Validate before cleanup
-        const integrity = this.verifySessionIntegrity();
-        if (!integrity.valid) {
-            console.warn('⚠️ Session integrity check failed:', integrity.missingFields.join(', '));
-            console.warn('⚠️ Forcing cleanup of corrupted session');
+        if (!this.validateSession()) {
+            console.warn('⚠️ Session invalid, forcing cleanup');
             // Force cleanup even if invalid
             this.currentSession = null;
             this.isBroadcasting = false;
@@ -386,15 +375,6 @@ class BroadcastSessionTracker {
     // Update activity (keep session alive)
     updateActivity() {
         if (this.currentSession) {
-            // ✅ Proactive integrity check before updating activity
-            const integrity = this.verifySessionIntegrity();
-            if (!integrity.valid) {
-                console.warn('⚠️ Session corrupted during activity update:', integrity.missingFields.join(', '));
-                console.warn('⚠️ Stopping corrupted session');
-                this.stopSession();
-                return;
-            }
-            
             this.currentSession.lastSeen = Date.now();
         }
     }
