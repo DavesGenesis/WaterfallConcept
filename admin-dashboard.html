@@ -553,7 +553,12 @@
         </button>
     </div>
     <div class="panel-body" id="blockedUsersList">
-        <p style="color: var(--text-muted); text-align: center;">Loading blocked users...</p>
+        <p style="color: var(--text-muted); text-align: center;">
+            ⏳ Loading blocked users...<br>
+            <small style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.5rem; display: block;">
+                Waiting for Firebase initialization (3 seconds)
+            </small>
+        </p>
     </div>
 </div>
 
@@ -1435,17 +1440,11 @@ async viewUserDetails(email) {
             }
         }
 
-
-// Global instance
+        // Global dashboard instance
         let dashboard;
 
-// ====================================================================
-// PART 4: ADD THESE GLOBAL FUNCTIONS BEFORE </script> TAG
-// Insert around line 900, before the closing </script>
-// ====================================================================
-
-// ✅ NEW: Refresh blocked users list
-async function refreshBlockedUsers() {
+        // ✅ NEW: Refresh blocked users list
+        async function refreshBlockedUsers() {
     console.log('🔄 Refreshing blocked users list...');
     const container = document.getElementById('blockedUsersList');
     
