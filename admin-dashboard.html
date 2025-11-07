@@ -1739,11 +1739,6 @@ document.addEventListener('DOMContentLoaded', () => {
             dashboard.clearAllLogs();
         }
 
-        // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', () => {
-            dashboard = new SecurityDashboard();
-        });
-
         // Close modal when clicking outside
         window.addEventListener('click', (e) => {
             if (e.target.classList.contains('modal')) {
