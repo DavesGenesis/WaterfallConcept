@@ -1447,19 +1447,41 @@ async viewUserDetails(email) {
 // ✅ NEW: Refresh blocked users list
 async function refreshBlockedUsers() {
     console.log('🔄 Refreshing blocked users list...');
+    const container = document.getElementById('blockedUsersList');
     
     try {
-        const blockedUsers = await dashboard.getBlockedUsers();
-        const container = document.getElementById('blockedUsersList');
+        // Check if dashboard exists
+        if (typeof dashboard === 'undefined' || !dashboard) {
+            container.innerHTML = `
+                <p style="color: var(--danger); text-align: center; padding: 2rem;">
+                    ❌ ERROR: Dashboard not initialized<br>
+                    <small>Please refresh the page</small>
+                </p>`;
+            return;
+        }
         
-        if (blockedUsers.length === 0) {
-            container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 2rem;">No blocked users</p>';
+        // Check if getBlockedUsers method exists
+        if (typeof dashboard.getBlockedUsers !== 'function') {
+            container.innerHTML = `
+                <p style="color: var(--danger); text-align: center; padding: 2rem;">
+                    ❌ ERROR: getBlockedUsers method not found<br>
+                    <small>Dashboard class may be incomplete</small>
+                </p>`;
+            return;
+        }
+        
+        console.log('✅ Dashboard exists, calling getBlockedUsers...');
+        const blockedUsers = await dashboard.getBlockedUsers();
+        console.log('✅ Got blocked users:', blockedUsers);
+        
+        if (!blockedUsers || blockedUsers.length === 0) {
+            container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 2rem;">✅ No blocked users</p>';
             return;
         }
         
         container.innerHTML = blockedUsers.map(user => {
             const blockedDate = new Date(user.blockedAt || Date.now());
-            const blockedAgo = Math.floor((Date.now() - user.blockedAt) / 60000); // minutes ago
+            const blockedAgo = Math.floor((Date.now() - (user.blockedAt || Date.now())) / 60000); // minutes ago
             const timeAgo = blockedAgo < 60 ? `${blockedAgo}m ago` : 
                            blockedAgo < 1440 ? `${Math.floor(blockedAgo / 60)}h ago` : 
                            `${Math.floor(blockedAgo / 1440)}d ago`;
@@ -1496,19 +1518,70 @@ async function refreshBlockedUsers() {
         
     } catch (error) {
         console.error('❌ Error refreshing blocked users:', error);
-        document.getElementById('blockedUsersList').innerHTML = 
-            '<p style="color: var(--danger); text-align: center; padding: 2rem;">Error loading blocked users. Check console.</p>';
+        container.innerHTML = `
+            <p style="color: var(--danger); text-align: center; padding: 2rem;">
+                ❌ ERROR: ${error.message}<br>
+                <small style="font-family: monospace; display: block; margin-top: 0.5rem; color: var(--text-muted);">
+                    ${error.stack ? error.stack.split('\n')[0] : 'No stack trace'}
+                </small><br>
+                <button onclick="refreshBlockedUsers()" class="btn btn-warning btn-small" style="margin-top: 1rem;">
+                    🔄 Try Again
+                </button>
+            </p>`;
     }
 }
 
 // ✅ UPDATE: Add blocked users refresh to initialization
 // Find the existing DOMContentLoaded and UPDATE it to include:
 // Initialize dashboard - SINGLE VERSION ONLY
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Admin Dashboard initializing...');
     
     // Create dashboard instance
     dashboard = new SecurityDashboard();
+    
+    // ✅ FIX: Ensure getBlockedUsers method exists on dashboard
+    if (typeof dashboard.getBlockedUsers !== 'function') {
+        console.warn('⚠️ getBlockedUsers not found in dashboard, adding it...');
+        dashboard.getBlockedUsers = async function() {
+            try {
+                if (typeof firebaseConfig === 'undefined') {
+                    console.warn('Firebase not available, using localStorage');
+                    const localBlocked = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
+                    return localBlocked.map(email => ({ 
+                        email, 
+                        blocked: true, 
+                        blockedAt: Date.now(),
+                        reason: 'Blocked (localStorage)'
+                    }));
+                }
+
+                if (!firebaseConfig.isReady()) {
+                    await firebaseConfig.initialize();
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                const db = firebaseConfig.getDatabase();
+                const blockedRef = db.ref('blockedUsers');
+                const snapshot = await blockedRef.once('value');
+                const blockedData = snapshot.val() || {};
+                
+                const blockedUsers = Object.values(blockedData).filter(user => user.blocked);
+                console.log(`📊 Retrieved ${blockedUsers.length} blocked users from Firebase`);
+                return blockedUsers;
+                
+            } catch (error) {
+                console.error('Error getting blocked users:', error);
+                const localBlocked = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
+                return localBlocked.map(email => ({ 
+                    email, 
+                    blocked: true,
+                    blockedAt: Date.now(),
+                    reason: 'Blocked (localStorage fallback)'
+                }));
+            }
+        };
+    }
     
     // Load blocked users list after dashboard initializes
     setTimeout(() => {
