@@ -1,35 +1,32 @@
-// Firebase-Enabled Broadcast Session Tracker - FIXED VERSION
-// Real-time cross-browser session tracking using Firebase Realtime Database
+// Fixed Firebase-Enabled Broadcast Session Tracker
+// Prevents double session creation with improved locking mechanism
+// this version from claude
 
 class BroadcastSessionTracker {
     constructor() {
         this.broadcastInterval = 10000; // 10 seconds
-        this.sessionTimeout = 30 * 60 * 1000; // 30 minutes (CONSISTENT)
+        this.sessionTimeout = 30 * 60 * 1000; // 30 minutes
         this.currentSession = null;
         this.isBroadcasting = false;
         this.firebaseEnabled = false;
         this.db = null;
+        this.isInitializing = false; // ✅ NEW: Initialization lock
         
         console.log('🔧 BroadcastSessionTracker constructor called');
-        
-        // DON'T initialize Firebase here - let it initialize naturally
-        // We'll check if it's ready when we need it
     }
 
     // Initialize Firebase connection (called when needed)
     async ensureFirebaseReady() {
         if (this.firebaseEnabled) {
-            return true; // Already initialized
+            return true;
         }
 
         try {
-            // Wait for firebaseConfig to be available
             if (typeof firebaseConfig === 'undefined') {
                 console.warn('⚠️ Firebase: Config not found, using localStorage');
                 return false;
             }
 
-            // Wait up to 5 seconds for Firebase to initialize
             let attempts = 0;
             while (!firebaseConfig.isReady() && attempts < 10) {
                 await new Promise(resolve => setTimeout(resolve, 500));
@@ -51,56 +48,126 @@ class BroadcastSessionTracker {
         }
     }
 
-    // Start session tracking - FIXED VERSION
+    // ✅ FIXED: Start session tracking with proper locking
     async startSession(userData) {
         console.log('🚀 startSession called with:', userData.email);
 
-        // ✅ FIX 1: Validate input data
+        // ✅ FIX: Check initialization lock
+        if (this.isInitializing) {
+            console.warn('⚠️ Session initialization already in progress');
+            return null;
+        }
+
+        // ✅ FIX: Validate input data
         if (!userData || !userData.email) {
             console.error('❌ Cannot start session: Invalid user data');
             return null;
         }
 
-        // ✅ FIX 2: Prevent duplicate sessions
+        // ✅ FIX: Prevent duplicate sessions
         if (this.currentSession && this.currentSession.email === userData.email) {
             console.log('⚠️ Session already exists for:', userData.email);
             return this.currentSession.id;
         }
 
-        // ✅ FIX 3: Stop any existing session first (synchronously)
-        if (this.currentSession) {
-            console.log('🔄 Stopping existing session before starting new one');
-            await this.stopSession(); // Use async version to ensure cleanup
+        // ✅ FIX: Set initialization lock
+        this.isInitializing = true;
+
+        try {
+            // Stop any existing session first
+            if (this.currentSession) {
+                console.log('🔄 Stopping existing session before starting new one');
+                await this.stopSession();
+            }
+
+            // Ensure Firebase is ready
+            await this.ensureFirebaseReady();
+
+            // ✅ NEW: Check if session already exists in Firebase
+            if (this.firebaseEnabled && this.db) {
+                const existingSession = await this.findExistingSession(userData);
+                if (existingSession) {
+                    console.log('✅ Using existing Firebase session:', existingSession.id);
+                    this.currentSession = existingSession;
+                    this.startBroadcasting();
+                    return existingSession.id;
+                }
+            }
+
+            // Create new session object
+            this.currentSession = {
+                id: this.generateSessionId(),
+                email: userData.email,
+                name: userData.name,
+                role: userData.role,
+                deviceFingerprint: userData.deviceFingerprint || 'unknown',
+                deviceName: userData.deviceName || 'Unknown Device',
+                location: userData.location || 'Unknown',
+                loginTime: Date.now(),
+                lastSeen: Date.now(),
+                userAgent: navigator.userAgent.substring(0, 100),
+                browser: this.getBrowserInfo()
+            };
+
+            console.log('✅ Session object created:', {
+                id: this.currentSession.id,
+                email: this.currentSession.email,
+                firebaseEnabled: this.firebaseEnabled
+            });
+            
+            // ✅ FIXED: Wait a moment before broadcasting to ensure Firebase is ready
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Start broadcasting
+            this.startBroadcasting();
+            
+            return this.currentSession.id;
+        } finally {
+            // ✅ FIX: Release lock after completion
+            this.isInitializing = false;
+        }
+    }
+
+    // ✅ NEW: Find existing session in Firebase
+    async findExistingSession(userData) {
+        if (!this.firebaseEnabled || !this.db) {
+            return null;
         }
 
-        // ✅ FIX 4: Ensure Firebase is ready BEFORE creating session
-        await this.ensureFirebaseReady();
+        try {
+            const sessionsRef = this.db.ref('sessions');
+            const snapshot = await sessionsRef
+                .orderByChild('email')
+                .equalTo(userData.email)
+                .once('value');
+            
+            const sessions = snapshot.val();
+            if (!sessions) {
+                return null;
+            }
 
-        // Create session object
-        this.currentSession = {
-            id: this.generateSessionId(),
-            email: userData.email,
-            name: userData.name,
-            role: userData.role,
-            deviceFingerprint: userData.deviceFingerprint || 'unknown',
-            deviceName: userData.deviceName || 'Unknown Device',
-            location: userData.location || 'Unknown',
-            loginTime: Date.now(),
-            lastSeen: Date.now(),
-            userAgent: navigator.userAgent.substring(0, 100),
-            browser: this.getBrowserInfo()
-        };
+            // Find session with matching device fingerprint
+            for (const [sessionId, session] of Object.entries(sessions)) {
+                if (session.deviceFingerprint === userData.deviceFingerprint) {
+                    const age = Date.now() - session.lastSeen;
+                    
+                    // If session is recent (< 60 seconds), reuse it
+                    if (age < 60000) {
+                        console.log('♻️ Reusing active session (age: ' + Math.floor(age/1000) + 's)');
+                        return session;
+                    } else {
+                        // Clean up stale session
+                        console.log('🧹 Removing stale session:', sessionId);
+                        await this.db.ref(`sessions/${sessionId}`).remove();
+                    }
+                }
+            }
 
-        console.log('✅ Session object created:', {
-            id: this.currentSession.id,
-            email: this.currentSession.email,
-            firebaseEnabled: this.firebaseEnabled
-        });
-        
-        // Start broadcasting immediately
-        this.startBroadcasting();
-        
-        return this.currentSession.id;
+            return null;
+        } catch (error) {
+            console.warn('⚠️ Error finding existing session:', error);
+            return null;
+        }
     }
 
     // Generate unique session ID
@@ -130,7 +197,7 @@ class BroadcastSessionTracker {
         
         const broadcast = async () => {
             if (!this.currentSession) {
-                console.log('⏹️ No session, stopping broadcast');
+                console.log('ℹ️ No session, stopping broadcast');
                 this.isBroadcasting = false;
                 return;
             }
@@ -138,7 +205,7 @@ class BroadcastSessionTracker {
             // Update last seen timestamp
             this.currentSession.lastSeen = Date.now();
 
-            // ✅ FIX 5: Validate session before broadcasting
+            // Validate session before broadcasting
             const integrity = this.verifySessionIntegrity();
             if (!integrity.valid) {
                 console.error('❌ Session integrity check failed:', integrity.missingFields.join(', '));
@@ -151,11 +218,27 @@ class BroadcastSessionTracker {
                 // Firebase mode: Store in cloud database
                 try {
                     const sessionRef = this.db.ref(`sessions/${this.currentSession.id}`);
-                    await sessionRef.set(this.currentSession);
-                    console.log('📡 Firebase: Broadcasted', this.currentSession.email);
+                    
+                    // ✅ FIX: Use update instead of set to avoid race conditions
+                    await sessionRef.update({
+                        lastSeen: this.currentSession.lastSeen
+                    });
+                    
+                    console.log('📡 Firebase: Updated activity', this.currentSession.email);
                 } catch (error) {
-                    console.error('❌ Firebase: Broadcast failed:', error);
-                    this.broadcastToLocalStorage();
+                    // If update fails, it might be because session doesn't exist yet
+                    if (error.message && error.message.includes('not found')) {
+                        console.log('📡 Firebase: Session not found, creating...');
+                        try {
+                            await this.db.ref(`sessions/${this.currentSession.id}`).set(this.currentSession);
+                            console.log('✅ Firebase: Session created');
+                        } catch (setError) {
+                            console.error('❌ Firebase: Failed to create session:', setError);
+                        }
+                    } else {
+                        console.error('❌ Firebase: Broadcast failed:', error);
+                        this.broadcastToLocalStorage();
+                    }
                 }
             } else {
                 // Fallback mode: Use localStorage
@@ -163,29 +246,36 @@ class BroadcastSessionTracker {
             }
 
             // Schedule next broadcast
-            setTimeout(broadcast, this.broadcastInterval);
+            if (this.isBroadcasting) {
+                setTimeout(broadcast, this.broadcastInterval);
+            }
         };
 
-        // Start broadcasting
-        broadcast();
-    }
-
-    // ✅ NEW: Validate session integrity
-    validateSession() {
-        if (!this.currentSession) return false;
-
-        const requiredFields = ['id', 'email', 'name', 'role'];
-        for (const field of requiredFields) {
-            if (!this.currentSession[field]) {
-                console.error(`❌ Session validation failed: Missing ${field}`);
-                return false;
+        // ✅ FIX: Initial broadcast after a small delay
+        setTimeout(() => {
+            if (this.firebaseEnabled && this.db && this.currentSession) {
+                // First broadcast: Full session data
+                this.db.ref(`sessions/${this.currentSession.id}`)
+                    .set(this.currentSession)
+                    .then(() => {
+                        console.log('✅ Firebase: Initial session broadcast successful');
+                        // Start periodic updates
+                        setTimeout(broadcast, this.broadcastInterval);
+                    })
+                    .catch(error => {
+                        console.error('❌ Firebase: Initial broadcast failed:', error);
+                        // Fallback to localStorage
+                        this.broadcastToLocalStorage();
+                        setTimeout(broadcast, this.broadcastInterval);
+                    });
+            } else {
+                // Start broadcast loop immediately for localStorage mode
+                broadcast();
             }
-        }
-
-        return true;
+        }, 100);
     }
 
-    // ✅ NEW: Detailed session integrity verification (for debugging)
+    // Validate session integrity
     verifySessionIntegrity() {
         const result = {
             valid: false,
@@ -200,24 +290,22 @@ class BroadcastSessionTracker {
             return result;
         }
 
-        // Get session info
         result.sessionKeys = Object.keys(this.currentSession);
         result.rawSession = JSON.stringify(this.currentSession, null, 2);
 
-        // Check required fields
         const requiredFields = ['id', 'email', 'name', 'role', 'deviceFingerprint', 'loginTime', 'lastSeen'];
         
         requiredFields.forEach(field => {
-            if (this.currentSession[field] === undefined || this.currentSession[field] === null || this.currentSession[field] === '') {
+            if (this.currentSession[field] === undefined || 
+                this.currentSession[field] === null || 
+                this.currentSession[field] === '') {
                 result.missingFields.push(field);
             } else {
                 result.fieldTypes[field] = typeof this.currentSession[field];
             }
         });
 
-        // Session is valid if no missing fields
         result.valid = result.missingFields.length === 0;
-
         return result;
     }
 
@@ -226,9 +314,7 @@ class BroadcastSessionTracker {
         try {
             const sessionKey = `session_${this.currentSession.email.replace(/[^a-zA-Z0-9]/g, '_')}_${this.currentSession.deviceFingerprint}`;
             localStorage.setItem(sessionKey, JSON.stringify(this.currentSession));
-            
             this.updateLocalStorageSessionList();
-            
             console.log('💾 LocalStorage: Broadcasted');
         } catch (error) {
             console.error('❌ LocalStorage: Broadcast failed:', error);
@@ -271,7 +357,7 @@ class BroadcastSessionTracker {
         }
     }
 
-    // Stop session tracking - FIXED VERSION
+    // Stop session tracking
     async stopSession() {
         console.log('🛑 stopSession called');
 
@@ -280,12 +366,10 @@ class BroadcastSessionTracker {
             return;
         }
 
-        // ✅ FIX 6: Validate before cleanup
         const integrity = this.verifySessionIntegrity();
         if (!integrity.valid) {
             console.warn('⚠️ Session integrity check failed:', integrity.missingFields.join(', '));
             console.warn('⚠️ Forcing cleanup of corrupted session');
-            // Force cleanup even if invalid
             this.currentSession = null;
             this.isBroadcasting = false;
             return;
@@ -329,11 +413,9 @@ class BroadcastSessionTracker {
 
     // Get all active sessions (for admin dashboard)
     async getAllActiveSessions() {
-        // Ensure Firebase is ready
         await this.ensureFirebaseReady();
 
         if (this.firebaseEnabled && this.db) {
-            // Firebase mode: Get from cloud database
             try {
                 const sessionsRef = this.db.ref('sessions');
                 const snapshot = await sessionsRef.once('value');
@@ -351,7 +433,6 @@ class BroadcastSessionTracker {
                 return this.getLocalStorageSessions();
             }
         } else {
-            // Fallback mode: Use localStorage
             return this.getLocalStorageSessions();
         }
     }
@@ -379,7 +460,6 @@ class BroadcastSessionTracker {
     // Update activity (keep session alive)
     updateActivity() {
         if (this.currentSession) {
-            // ✅ Proactive integrity check before updating activity
             const integrity = this.verifySessionIntegrity();
             if (!integrity.valid) {
                 console.warn('⚠️ Session corrupted during activity update:', integrity.missingFields.join(', '));
@@ -397,12 +477,14 @@ class BroadcastSessionTracker {
         return {
             firebaseEnabled: this.firebaseEnabled,
             isBroadcasting: this.isBroadcasting,
+            isInitializing: this.isInitializing,
             hasCurrentSession: !!this.currentSession,
             currentSession: this.currentSession ? {
                 id: this.currentSession.id,
                 email: this.currentSession.email,
                 role: this.currentSession.role,
-                age: this.currentSession.loginTime ? Math.floor((Date.now() - this.currentSession.loginTime) / 1000) + 's' : 'unknown'
+                age: this.currentSession.loginTime ? 
+                    Math.floor((Date.now() - this.currentSession.loginTime) / 1000) + 's' : 'unknown'
             } : null,
             mode: this.firebaseEnabled ? 'Firebase (Cross-Browser)' : 'LocalStorage (Same Browser Only)'
         };

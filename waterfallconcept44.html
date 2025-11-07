@@ -1347,408 +1347,411 @@
             container.innerHTML = html;
         }
 
-        // Event Listeners
-        document.addEventListener('DOMContentLoaded', function () {
-            // ✅ FIX: Initialize session tracker FIRST, before any authentication checks
-            const sessionTracker = new BroadcastSessionTracker();
+
+  // Event Listeners - correction from claude
+document.addEventListener('DOMContentLoaded', function () {
+    // ✅ CRITICAL FIX: Add session initialization lock
+    let sessionInitLock = false;
+    
+    // ✅ Initialize session tracker FIRST
+    const sessionTracker = new BroadcastSessionTracker();
+    
+    // Make sessionTracker globally available for logout and debugging
+    window.sessionTracker = sessionTracker;
+    
+    // ✅ FIXED: Initialize session with lock to prevent double counting
+    async function initializeSession(authData) {
+        // Check if already initializing
+        if (sessionInitLock) {
+            console.log('⚠️ Session initialization already in progress, skipping');
+            return null;
+        }
+        
+        // Check if session already exists in Firebase
+        try {
+            await sessionTracker.ensureFirebaseReady();
             
-            // Display user info and setup admin access
+            if (sessionTracker.firebaseEnabled && sessionTracker.db) {
+                // Check Firebase for existing session with same email
+                const sessionsRef = sessionTracker.db.ref('sessions');
+                const snapshot = await sessionsRef.orderByChild('email').equalTo(authData.email).once('value');
+                const existingSessions = snapshot.val();
+                
+                if (existingSessions) {
+                    const sessionIds = Object.keys(existingSessions);
+                    console.log(`⚠️ Found ${sessionIds.length} existing Firebase session(s) for ${authData.email}`);
+                    
+                    // Use existing session if it's still active (within last 60 seconds)
+                    for (const sessionId of sessionIds) {
+                        const session = existingSessions[sessionId];
+                        if (session.deviceFingerprint === authData.deviceFingerprint) {
+                            const age = Date.now() - session.lastSeen;
+                            if (age < 60000) { // Less than 1 minute old
+                                console.log('✅ Reusing existing active session:', sessionId);
+                                sessionTracker.currentSession = session;
+                                sessionTracker.startBroadcasting();
+                                return sessionId;
+                            } else {
+                                // Clean up stale session
+                                console.log('🧹 Removing stale session:', sessionId);
+                                await sessionTracker.db.ref(`sessions/${sessionId}`).remove();
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('⚠️ Error checking existing sessions:', error);
+        }
+        
+        // Set lock
+        sessionInitLock = true;
+        
+        try {
+            // Start new session
+            console.log('🚀 Starting new session for:', authData.email);
+            const sessionId = await sessionTracker.startSession(authData);
+            
+            if (sessionId) {
+                console.log('✅ SESSION STARTED SUCCESSFULLY!');
+                console.log('  User:', authData.email);
+                console.log('  Session ID:', sessionId);
+                console.log('  Firebase:', sessionTracker.firebaseEnabled);
+            }
+            
+            return sessionId;
+        } finally {
+            // Release lock after 2 seconds
+            setTimeout(() => {
+                sessionInitLock = false;
+            }, 2000);
+        }
+    }
+    
+    // Display user info and setup admin access
+    try {
+        const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+        if (authData.authenticated) {
+            document.getElementById('userEmail').textContent = authData.email;
+            
+            // ✅ FIXED: Initialize session with lock mechanism
+            initializeSession(authData).then(sessionId => {
+                if (sessionId) {
+                    console.log('✅ Session initialization completed:', sessionId);
+                }
+            }).catch(error => {
+                console.error('❌ Session initialization failed:', error);
+            });
+            
+            // Show admin dashboard button for admin/manager roles
+            if (['admin', 'manager'].includes(authData.role)) {
+                const adminBtn = document.getElementById('adminDashboardBtn');
+                adminBtn.style.display = 'block';
+                adminBtn.addEventListener('click', function() {
+                    window.open('admin-dashboard.html', '_blank');
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error loading user data:', error);
+    }
+    
+    // ✅ SIMPLIFIED: Just update localStorage timestamp (don't create sessions)
+    function updateGlobalSessionActivity(authData) {
+        try {
+            const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
+            
+            const updatedSessions = globalSessions.map(session => {
+                if (session.email === authData.email && 
+                    session.deviceFingerprint === authData.deviceFingerprint) {
+                    return {
+                        ...session,
+                        lastActivity: Date.now(),
+                        registryTimestamp: Date.now()
+                    };
+                }
+                return session;
+            });
+            
+            // Keep only active sessions (last 8 hours)
+            const eightHoursAgo = Date.now() - (8 * 60 * 60 * 1000);
+            const activeSessions = updatedSessions.filter(s => s.lastActivity > eightHoursAgo);
+            
+            localStorage.setItem('globalSessionRegistry', JSON.stringify(activeSessions));
+            localStorage.setItem('sessionUpdate', Date.now().toString());
+        } catch (error) {
+            console.error('Error updating session activity:', error);
+        }
+    }
+
+    // Update activity every 30 seconds
+    setInterval(() => {
+        try {
+            const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+            if (authData.authenticated) {
+                updateGlobalSessionActivity(authData);
+                
+                if (sessionTracker && sessionTracker.currentSession) {
+                    sessionTracker.updateActivity();
+                }
+            }
+        } catch (error) {
+            console.error('Error in activity update:', error);
+        }
+    }, 30000);
+
+    // ✅ Handle browser close/refresh
+    window.addEventListener('beforeunload', function(event) {
+        if (sessionTracker && sessionTracker.currentSession) {
+            console.log('🚪 Browser closing - stopping Firebase session');
+            try {
+                if (sessionTracker.firebaseEnabled && sessionTracker.db) {
+                    const sessionRef = sessionTracker.db.ref(`sessions/${sessionTracker.currentSession.id}`);
+                    sessionRef.remove();
+                }
+                sessionTracker.currentSession = null;
+                sessionTracker.isBroadcasting = false;
+                console.log('🚪 Emergency session cleanup initiated');
+            } catch (error) {
+                console.warn('⚠️ Emergency cleanup failed:', error);
+            }
+        }
+    });
+
+    // ✅ Handle page visibility changes
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            if (sessionTracker && sessionTracker.currentSession) {
+                console.log('👁️ Page hidden - updating session activity');
+                sessionTracker.updateActivity();
+            }
+        } else {
+            if (sessionTracker && sessionTracker.currentSession) {
+                console.log('👁️ Page visible - updating session activity');
+                sessionTracker.updateActivity();
+            }
+        }
+    });
+
+    // ✅ DEBUG: Global test functions
+    window.testLogout = async function() {
+        console.log('🧪 Testing manual logout...');
+        if (sessionTracker) {
+            console.log('🔍 sessionTracker exists:', !!sessionTracker);
+            console.log('🔍 currentSession exists:', !!sessionTracker.currentSession);
+            if (sessionTracker.currentSession) {
+                console.log('🔍 Session ID:', sessionTracker.currentSession.id);
+                console.log('🔍 Session email:', sessionTracker.currentSession.email);
+                console.log('🛑 Calling stopSession...');
+                await sessionTracker.stopSession();
+                console.log('✅ Manual logout test completed');
+            } else {
+                console.warn('⚠️ No session to stop');
+            }
+        } else {
+            console.error('❌ sessionTracker not found');
+        }
+    };
+
+    window.getSessionInfo = function() {
+        console.log('📊 Session Information:');
+        console.log('- sessionTracker exists:', !!sessionTracker);
+        if (sessionTracker) {
+            console.log('- Firebase enabled:', sessionTracker.firebaseEnabled);
+            console.log('- Is broadcasting:', sessionTracker.isBroadcasting);
+            console.log('- Current session:', sessionTracker.currentSession);
+        }
+    };
+
+    // Logout functionality
+    document.getElementById('logoutBtn').addEventListener('click', async function() {
+        if (confirm('Are you sure you want to logout?')) {
             try {
                 const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
-                if (authData.authenticated) {
-                    document.getElementById('userEmail').textContent = authData.email;
-                    
-                    // Update activity in global session registry
-                    updateGlobalSessionActivity(authData);
-                    
-                    // ✅ FIX: Start session tracking for authenticated users (sessionTracker now exists)
-                    if (sessionTracker) {
-                        if (!sessionTracker.currentSession) {
-                            const sessionId = sessionTracker.startSession(authData);
-                            
-                            // Log session start confirmation (non-blocking)
-                            setTimeout(() => {
-                                console.log('🚀 SESSION STARTED!');
-                                console.log('✅ User:', authData.email);
-                                console.log('✅ Session ID:', sessionId);
-                                console.log('✅ Firebase:', sessionTracker.firebaseEnabled);
-                                console.log('Session is now broadcasting to Firebase every 10 seconds.');
-                            }, 2000); // Delay to let Firebase initialize
-                        } else {
-                            console.log('📡 SESSION ALREADY EXISTS:');
-                            console.log('Email:', sessionTracker.currentSession.email);
-                            console.log('ID:', sessionTracker.currentSession.id);
-                            console.log('Using existing session.');
-                        }
-                    } else {
-                        console.error('❌ CRITICAL ERROR: sessionTracker failed to initialize!');
-                        console.error('This means the broadcast-session-tracker.js file is not loading properly.');
-                    }
-                    
-                    // Show admin dashboard button for admin/manager roles
-                    if (['admin', 'manager'].includes(authData.role)) {
-                        const adminBtn = document.getElementById('adminDashboardBtn');
-                        adminBtn.style.display = 'block';
-                        adminBtn.addEventListener('click', function() {
-                            window.open('admin-dashboard.html', '_blank');
-                        });
-                    }
+                if (typeof SecurityUtils !== 'undefined') {
+                    SecurityUtils.logSecurityEvent('LOGOUT', {
+                        email: authData.email,
+                        message: 'User logged out manually',
+                        timestamp: Date.now()
+                    });
                 }
             } catch (error) {
-                console.error('Error loading user data:', error);
+                console.error('Error logging logout:', error);
             }
-
-            // Function to update global session activity
-            async function updateGlobalSessionActivity(authData) {
-                try {
-                    // Update activity in session tracker (this happens automatically via broadcasting)
-                    
-                    // Also update local storage (fallback)
-                    const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
-                    
-                    // Find and update current user's session
-                    const updatedSessions = globalSessions.map(session => {
-                        if (session.email === authData.email && session.deviceFingerprint === authData.deviceFingerprint) {
-                            return {
-                                ...session,
-                                lastActivity: Date.now(),
-                                registryTimestamp: Date.now()
-                            };
-                        }
-                        return session;
-                    });
-                    
-                    // If session not found, add it
-                    const sessionExists = updatedSessions.some(s => 
-                        s.email === authData.email && s.deviceFingerprint === authData.deviceFingerprint
-                    );
-                    
-                    if (!sessionExists) {
-                        const newSession = {
-                            email: authData.email,
-                            deviceFingerprint: authData.deviceFingerprint,
-                            deviceName: authData.deviceName || 'Unknown Device',
-                            location: authData.location || 'Unknown Location',
-                            loginTime: authData.loginTime,
-                            sessionToken: authData.sessionToken,
-                            role: authData.role,
-                            name: authData.name,
-                            lastActivity: Date.now(),
-                            registryTimestamp: Date.now()
-                        };
-                        
-                        updatedSessions.push(newSession);
-                        
-                        // ✅ FIX: Don't start session here - let main authentication code handle it
-                        // This prevents double session creation
-                        console.log('  Session tdata prepared for:', newSession.email);
-                    }
-                    
-                    // Keep only active sessions (last 8 hours)
-                    const eightHoursAgo = Date.now() - (8 * 60 * 60 * 1000);
-                    const activeSessions = updatedSessions.filter(s => s.lastActivity > eightHoursAgo);
-                    
-                    localStorage.setItem('globalSessionRegistry', JSON.stringify(activeSessions));
-                    localStorage.setItem('sessionUpdate', Date.now().toString());
-                } catch (error) {
-                    console.error('Error updating session activity:', error);
-                }
-            }
-
-            // Update activity every 30 seconds
-            setInterval(() => {
-                try {
-                    const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
-                    if (authData.authenticated) {
-                        updateGlobalSessionActivity(authData);
-                        
-                        // Also update session tracker activity
-                        if (sessionTracker && sessionTracker.currentSession) {
-                            sessionTracker.updateActivity();
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error in activity update:', error);
-                }
-            }, 30000);
-
-            // ✅ FIX 3: Handle browser close/refresh
-            window.addEventListener('beforeunload', function(event) {
-                if (sessionTracker && sessionTracker.currentSession) {
-                    console.log('🚪 Browser closing - stopping Firebase session');
-                    // Note: beforeunload has limited time, so we use the sync version for immediate cleanup
-                    try {
-                        // For browser close, we need immediate cleanup without await
-                        if (sessionTracker.firebaseEnabled && sessionTracker.db) {
-                            const sessionRef = sessionTracker.db.ref(`sessions/${sessionTracker.currentSession.id}`);
-                            sessionRef.remove(); // Fire and forget for browser close
-                        }
-                        sessionTracker.currentSession = null;
-                        sessionTracker.isBroadcasting = false;
-                        console.log('🚪 Emergency session cleanup initiated');
-                    } catch (error) {
-                        console.warn('⚠️ Emergency cleanup failed:', error);
-                    }
-                }
-            });
-
-            // ✅ FIX 3: Handle page visibility changes (tab switching, minimizing)
-            document.addEventListener('visibilitychange', function() {
-                if (document.hidden) {
-                    // Page is hidden (tab switched, minimized, etc.)
-                    if (sessionTracker && sessionTracker.currentSession) {
-                        console.log('👁️ Page hidden - updating session activity');
-                        sessionTracker.updateActivity();
-                    }
-                } else {
-                    // Page is visible again
-                    if (sessionTracker && sessionTracker.currentSession) {
-                        console.log('👁️ Page visible - updating session activity');
-                        sessionTracker.updateActivity();
-                    }
-                }
-            });
-
-            // ✅ DEBUG: Add global test function for manual testing
-            window.testLogout = async function() {
-                console.log('🧪 Testing manual logout...');
-                if (sessionTracker) {
-                    console.log('🔍 sessionTracker exists:', !!sessionTracker);
-                    console.log('🔍 currentSession exists:', !!sessionTracker.currentSession);
-                    if (sessionTracker.currentSession) {
-                        console.log('🔍 Session ID:', sessionTracker.currentSession.id);
-                        console.log('🔍 Session email:', sessionTracker.currentSession.email);
-                        console.log('🛑 Calling stopSession...');
-                        await sessionTracker.stopSession();
-                        console.log('✅ Manual logout test completed');
-                    } else {
-                        console.warn('⚠️ No session to stop');
-                    }
-                } else {
-                    console.error('❌ sessionTracker not found');
-                }
-            };
-
-            // ✅ DEBUG: Add global session info function
-            window.getSessionInfo = function() {
-                console.log('📊 Session Information:');
-                console.log('- sessionTracker exists:', !!sessionTracker);
-                if (sessionTracker) {
-                    console.log('- Firebase enabled:', sessionTracker.firebaseEnabled);
-                    console.log('- Is broadcasting:', sessionTracker.isBroadcasting);
-                    console.log('- Current session:', sessionTracker.currentSession);
-                }
-            };
-
-            // Logout functionality
-            document.getElementById('logoutBtn').addEventListener('click', async function() {
-                if (confirm('Are you sure you want to logout?')) {
-                    // Log the logout event
-                    try {
-                        const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
-                        if (typeof SecurityUtils !== 'undefined') {
-                            SecurityUtils.logSecurityEvent('LOGOUT', {
-                                email: authData.email,
-                                message: 'User logged out manually',
-                                timestamp: Date.now()
-                            });
-                        }
-                    } catch (error) {
-                        console.error('Error logging logout:', error);
-                    }
-                    
-                    // ✅ FIX: Clean logout without blocking alerts
-                    if (sessionTracker) {
-                        console.log('  LOGOUT DEBUG BINFO:');
-                        console.log('✅ sessionTracker exists:', !!sessionTracker);
-                        console.log('✅ currentSession exists:', !!sessionTracker.currentSession);
-                        console.log('✅ Firebase enabled:', sessionTracker.firebaseEnabled);
-                        
-                        if (sessionTracker.currentSession) {
-                            // Session integrity verification (non-blocking)
-                            const integrity = sessionTracker.verifySessionIntegrity();
-                            console.log('📋 SESSION INTEGRITY CHECK:');
-                            console.log('- Valid:', integrity.valid);
-                            
-                            if (!integrity.valid) {
-                                console.warn('- Missing Fields:', integrity.missingFields.join(', '));
-                            }
-                            
-                            console.log('- Field Types:', integrity.fieldTypes);
-                            console.log('- Available Keys:', integrity.sessionKeys.join(', '));
-                            console.log('🔍 RAW SESSION DATA:', integrity.rawSession);
-                            
-                            if (integrity.valid) {
-                                console.log('✅ Session data is VALID - proceeding with stopSession()...');
-                            } else {
-                                console.error('❌ Session data is CORRUPTED! Missing fields:', integrity.missingFields.join(', '));
-                            }
-                        } else {
-                            console.warn('⚠️ NO CURRENT SESSION FOUND!');
-                        }
-                        
-                        try {
-                            await sessionTracker.stopSession();
-                            console.log('✅ SUCCESS: Firebase session cleanup completed!');
-                        } catch (error) {
-                            console.error('❌ ERROR during session cleanup:', error.message);
-                        }
-                    } else {
-                        console.error('❌ CRITICAL ERROR: sessionTracker is not defined!');
-                    }
-                    
-                    sessionStorage.removeItem('waterfallAuth');
-                    localStorage.removeItem('waterfallActiveSession');
-                    
-                    // Small delay to ensure cleanup is fully processed
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 500);
-                }
-            });
-
-            // Sidebar toggle
-            const menuToggleMobile = document.getElementById('menuToggleMobile');
-            const closeSidebar = document.getElementById('closeSidebar');
-            const parameterControlToggle = document.getElementById('parameterControlToggle');
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('overlay');
-
-            // --- Initial State Check (Desktop) ---
-            // If on desktop on load, ensure the sidebar starts open.
-            if (window.innerWidth >= 1024) {
-                 sidebar.classList.remove('sidebar-desktop-closed');
-            } else {
-                 sidebar.classList.add('sidebar-closed');
-            }
-
-            // --- NEW: Created a single function for toggling the sidebar ---
-            const sidebarToggleLogic = () => {
-                const isDesktop = window.innerWidth >= 1024;
-                
-                if (isDesktop) {
-                    // Toggle desktop class (toggles between full width and minimized icon mode)
-                    sidebar.classList.toggle('sidebar-desktop-closed');
-                    // Ensure mobile classes are irrelevant
-                    overlay.classList.add('hidden');
-                    sidebar.classList.remove('sidebar-open');
-                    sidebar.classList.remove('sidebar-closed'); 
-                } else {
-                    // Toggle mobile classes (toggles between hidden (-100%) and visible (0))
-                    if (sidebar.classList.contains('sidebar-open')) {
-                        // Is open, so close it
-                        sidebar.classList.remove('sidebar-open');
-                        sidebar.classList.add('sidebar-closed');
-                        overlay.classList.add('hidden');
-                    } else {
-                        // Is closed, so open it
-                        sidebar.classList.remove('sidebar-closed');
-                        sidebar.classList.add('sidebar-open');
-                        overlay.classList.remove('hidden');
-                    }
-                    // Reset desktop class if it was applied on mobile resize or otherwise
-                    sidebar.classList.remove('sidebar-desktop-closed'); 
-                }
-            };
-
-            // --- Attach listeners to all controls ---
-            // 1. Mobile Hamburger Button (in Header)
-            menuToggleMobile.addEventListener('click', sidebarToggleLogic);
             
-            // 2. Sidebar Title/Icon (for Desktop/Mobile close) - This is the primary toggle
-            parameterControlToggle.addEventListener('click', sidebarToggleLogic);
+            // ✅ Clean logout
+            if (sessionTracker) {
+                console.log('🛑 LOGOUT DEBUG INFO:');
+                console.log('✅ sessionTracker exists:', !!sessionTracker);
+                console.log('✅ currentSession exists:', !!sessionTracker.currentSession);
+                console.log('✅ Firebase enabled:', sessionTracker.firebaseEnabled);
+                
+                if (sessionTracker.currentSession) {
+                    const integrity = sessionTracker.verifySessionIntegrity();
+                    console.log('📋 SESSION INTEGRITY CHECK:');
+                    console.log('- Valid:', integrity.valid);
+                    
+                    if (!integrity.valid) {
+                        console.warn('- Missing Fields:', integrity.missingFields.join(', '));
+                    }
+                    
+                    console.log('- Field Types:', integrity.fieldTypes);
+                    console.log('- Available Keys:', integrity.sessionKeys.join(', '));
+                    
+                    if (integrity.valid) {
+                        console.log('✅ Session data is VALID - proceeding with stopSession()...');
+                    } else {
+                        console.error('❌ Session data is CORRUPTED! Missing fields:', integrity.missingFields.join(', '));
+                    }
+                } else {
+                    console.warn('⚠️ NO CURRENT SESSION FOUND!');
+                }
+                
+                try {
+                    await sessionTracker.stopSession();
+                    console.log('✅ SUCCESS: Firebase session cleanup completed!');
+                } catch (error) {
+                    console.error('❌ ERROR during session cleanup:', error.message);
+                }
+            } else {
+                console.error('❌ CRITICAL ERROR: sessionTracker is not defined!');
+            }
+            
+            sessionStorage.removeItem('waterfallAuth');
+            localStorage.removeItem('waterfallActiveSession');
+            
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 500);
+        }
+    });
 
-            // 3. Mobile Close Button (inside sidebar)
-            closeSidebar.addEventListener('click', sidebarToggleLogic);
+    // Sidebar toggle functionality
+    const menuToggleMobile = document.getElementById('menuToggleMobile');
+    const closeSidebar = document.getElementById('closeSidebar');
+    const parameterControlToggle = document.getElementById('parameterControlToggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
 
-            // 4. Overlay (for mobile close)
-            overlay.addEventListener('click', () => {
-                // This is mobile-only and should ONLY close
+    // Initial state check
+    if (window.innerWidth >= 1024) {
+        sidebar.classList.remove('sidebar-desktop-closed');
+    } else {
+        sidebar.classList.add('sidebar-closed');
+    }
+
+    // Sidebar toggle logic
+    const sidebarToggleLogic = () => {
+        const isDesktop = window.innerWidth >= 1024;
+        
+        if (isDesktop) {
+            sidebar.classList.toggle('sidebar-desktop-closed');
+            overlay.classList.add('hidden');
+            sidebar.classList.remove('sidebar-open');
+            sidebar.classList.remove('sidebar-closed'); 
+        } else {
+            if (sidebar.classList.contains('sidebar-open')) {
                 sidebar.classList.remove('sidebar-open');
                 sidebar.classList.add('sidebar-closed');
                 overlay.classList.add('hidden');
-            });
+            } else {
+                sidebar.classList.remove('sidebar-closed');
+                sidebar.classList.add('sidebar-open');
+                overlay.classList.remove('hidden');
+            }
+            sidebar.classList.remove('sidebar-desktop-closed'); 
+        }
+    };
 
-            // Tab switching
-            const traditionalTab = document.getElementById('traditionalTab');
-            const waterfallTab = document.getElementById('waterfallTab');
-            const traditionalContent = document.getElementById('traditionalContent');
-            const waterfallContent = document.getElementById('waterfallContent');
+    menuToggleMobile.addEventListener('click', sidebarToggleLogic);
+    parameterControlToggle.addEventListener('click', sidebarToggleLogic);
+    closeSidebar.addEventListener('click', sidebarToggleLogic);
+    overlay.addEventListener('click', () => {
+        sidebar.classList.remove('sidebar-open');
+        sidebar.classList.add('sidebar-closed');
+        overlay.classList.add('hidden');
+    });
 
-            traditionalTab.addEventListener('click', () => {
-                traditionalTab.classList.add('active');
-                waterfallTab.classList.remove('active');
-                traditionalContent.classList.remove('hidden');
-                waterfallContent.classList.add('hidden');
-            });
+    // Tab switching
+    const traditionalTab = document.getElementById('traditionalTab');
+    const waterfallTab = document.getElementById('waterfallTab');
+    const traditionalContent = document.getElementById('traditionalContent');
+    const waterfallContent = document.getElementById('waterfallContent');
 
-            waterfallTab.addEventListener('click', () => {
-                waterfallTab.classList.add('active');
-                traditionalTab.classList.remove('active');
-                waterfallContent.classList.remove('hidden');
-                traditionalContent.classList.add('hidden');
-            });
+    traditionalTab.addEventListener('click', () => {
+        traditionalTab.classList.add('active');
+        waterfallTab.classList.remove('active');
+        traditionalContent.classList.remove('hidden');
+        waterfallContent.classList.add('hidden');
+    });
 
-            // Assets input
-            const assetsInput = document.getElementById('assetsInput');
-            assetsInput.addEventListener('input', (e) => {
-                const cleaned = e.target.value.replace(/[^0-9]/g, '');
-                const num = parseInt(cleaned) || 0;
-                state.initialAssets = Math.max(10000000000, num);
-                calculate();
-            });
-            assetsInput.addEventListener('blur', () => {
-                assetsInput.value = state.initialAssets.toLocaleString('id-ID');
-            });
+    waterfallTab.addEventListener('click', () => {
+        waterfallTab.classList.add('active');
+        traditionalTab.classList.remove('active');
+        waterfallContent.classList.remove('hidden');
+        traditionalContent.classList.add('hidden');
+    });
 
-            // Age slider
-            const ageSlider = document.getElementById('ageSlider');
-            ageSlider.addEventListener('input', (e) => {
-                state.fatherAge = parseInt(e.target.value);
-                calculate();
-            });
+    // Assets input
+    const assetsInput = document.getElementById('assetsInput');
+    assetsInput.addEventListener('input', (e) => {
+        const cleaned = e.target.value.replace(/[^0-9]/g, '');
+        const num = parseInt(cleaned) || 0;
+        state.initialAssets = Math.max(10000000000, num);
+        calculate();
+    });
+    assetsInput.addEventListener('blur', () => {
+        assetsInput.value = state.initialAssets.toLocaleString('id-ID');
+    });
 
-            // Children slider
-            const childrenSlider = document.getElementById('childrenSlider');
-            childrenSlider.addEventListener('input', (e) => {
-                state.numChildren = parseInt(e.target.value);
-                calculate();
-            });
+    // Age slider
+    const ageSlider = document.getElementById('ageSlider');
+    ageSlider.addEventListener('input', (e) => {
+        state.fatherAge = parseInt(e.target.value);
+        calculate();
+    });
 
-            // LEGACY Allocation Children input
-            const legacyAllocationChildrenInput = document.getElementById('legacyAllocationChildrenInput');
-            legacyAllocationChildrenInput.addEventListener('input', (e) => {
-                const cleaned = e.target.value.replace(/[^0-9]/g, '');
-                const num = parseInt(cleaned) || 0;
-                state.legacyAllocationChildren = num;
-                calculate();
-            });
-            legacyAllocationChildrenInput.addEventListener('blur', () => {
-                legacyAllocationChildrenInput.value = state.legacyAllocationChildren.toLocaleString('id-ID');
-            });
+    // Children slider
+    const childrenSlider = document.getElementById('childrenSlider');
+    childrenSlider.addEventListener('input', (e) => {
+        state.numChildren = parseInt(e.target.value);
+        calculate();
+    });
 
-            // LEGACY Allocation Grandchildren input
-            const legacyAllocationGrandchildrenInput = document.getElementById('legacyAllocationGrandchildrenInput');
-            legacyAllocationGrandchildrenInput.addEventListener('input', (e) => {
-                const cleaned = e.target.value.replace(/[^0-9]/g, ''); // Fixed typo e.g.target to e.target
-                const num = parseInt(cleaned) || 0;
-                state.legacyAllocationGrandchildren = num;
-                calculate();
-            });
-            legacyAllocationGrandchildrenInput.addEventListener('blur', () => {
-                legacyAllocationGrandchildrenInput.value = state.legacyAllocationGrandchildren.toLocaleString('id-ID');
-            });
+    // Legacy Allocation Children input
+    const legacyAllocationChildrenInput = document.getElementById('legacyAllocationChildrenInput');
+    legacyAllocationChildrenInput.addEventListener('input', (e) => {
+        const cleaned = e.target.value.replace(/[^0-9]/g, '');
+        const num = parseInt(cleaned) || 0;
+        state.legacyAllocationChildren = num;
+        calculate();
+    });
+    legacyAllocationChildrenInput.addEventListener('blur', () => {
+        legacyAllocationChildrenInput.value = state.legacyAllocationChildren.toLocaleString('id-ID');
+    });
 
-            // Child age slider
-            const childAgeSlider = document.getElementById('childAgeSlider');
-            childAgeSlider.addEventListener('input', (e) => {
-                state.childAge = parseInt(e.target.value);
-                calculate();
-            });
+    // Legacy Allocation Grandchildren input
+    const legacyAllocationGrandchildrenInput = document.getElementById('legacyAllocationGrandchildrenInput');
+    legacyAllocationGrandchildrenInput.addEventListener('input', (e) => {
+        const cleaned = e.target.value.replace(/[^0-9]/g, '');
+        const num = parseInt(cleaned) || 0;
+        state.legacyAllocationGrandchildren = num;
+        calculate();
+    });
+    legacyAllocationGrandchildrenInput.addEventListener('blur', () => {
+        legacyAllocationGrandchildrenInput.value = state.legacyAllocationGrandchildren.toLocaleString('id-ID');
+    });
 
-            // Initial calculation
-            calculate();
-        });
+    // Child age slider
+    const childAgeSlider = document.getElementById('childAgeSlider');
+    childAgeSlider.addEventListener('input', (e) => {
+        state.childAge = parseInt(e.target.value);
+        calculate();
+    });
+
+    // Initial calculation
+    calculate();
+});
     </script>
 </body>
 
