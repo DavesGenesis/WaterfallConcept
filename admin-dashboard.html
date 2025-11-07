@@ -1618,14 +1618,22 @@ async function refreshBlockedUsers() {
 
 // ✅ UPDATE: Add blocked users refresh to initialization
 // Find the existing DOMContentLoaded and UPDATE it to include:
+// Initialize dashboard - SINGLE VERSION ONLY
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Admin Dashboard initializing...');
+    
+    // Create dashboard instance
     dashboard = new SecurityDashboard();
     
     // Load blocked users list after dashboard initializes
     setTimeout(() => {
+        console.log('📋 Loading blocked users...');
         refreshBlockedUsers();
     }, 3000); // Wait 3 seconds for Firebase to be ready
 });
+
+
+
         async function refreshData() {
             const indicator = document.getElementById('refreshIndicator');
             indicator.style.display = 'inline-block';
