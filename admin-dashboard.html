@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Security Monitoring</title>
     
-    <!-- ✅ Firebase SDK Scripts -->
+    <!-- Firebase SDK Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="firebase-config.js"></script>
-    <!-- ✅ End Firebase Scripts -->
     
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="config-advanced.js"></script>
     <script src="broadcast-session-tracker.js"></script>
+    
     <style>
         :root {
             --bg-primary: #0a192f;
@@ -57,7 +57,7 @@
             border: 1px solid var(--border-color);
             margin-bottom: 2rem;
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 1rem;
@@ -72,10 +72,24 @@
             gap: 0.5rem;
         }
 
+        .mode-badge {
+            background: var(--success);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .mode-badge.localStorage-mode {
+            background: var(--warning);
+        }
+
         .header-actions {
             display: flex;
             gap: 1rem;
-            margin-left: auto;
+            flex-wrap: wrap;
         }
 
         .btn {
@@ -153,6 +167,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 2rem;
+            margin-bottom: 2rem;
         }
 
         .panel {
@@ -167,7 +182,7 @@
             border-bottom: 1px solid var(--border-color);
             background: var(--bg-card-darker);
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
         }
 
@@ -184,6 +199,32 @@
             padding: 1.5rem;
             max-height: 500px;
             overflow-y: auto;
+        }
+
+        .session-item {
+            background: var(--bg-card-darker);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+        }
+
+        .session-email {
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .session-details {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        .session-id {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: monospace;
+            margin-top: 3px;
         }
 
         .log-entry {
@@ -210,7 +251,7 @@
 
         .log-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 0.5rem;
         }
@@ -232,7 +273,7 @@
 
         .user-row {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             padding: 1rem;
             border-radius: 0.5rem;
@@ -279,15 +320,6 @@
             font-weight: 600;
         }
 
-        .warning-badge {
-            background: var(--warning);
-            color: var(--bg-primary);
-            padding: 0.25rem 0.5rem;
-            border-radius: 1rem;
-            font-size: 0.7rem;
-            font-weight: 600;
-        }
-
         .modal {
             display: none;
             position: fixed;
@@ -306,7 +338,7 @@
             padding: 2rem;
             border-radius: 1rem;
             border: 1px solid var(--border-color);
-            max-width: 600px;
+            max-width: 700px;
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
@@ -314,7 +346,7 @@
 
         .modal-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 1.5rem;
         }
@@ -348,6 +380,19 @@
             to { transform: rotate(360deg); }
         }
 
+        .debug-output {
+            background: var(--bg-card-darker);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+        }
+
         @media (max-width: 768px) {
             .content-grid {
                 grid-template-columns: 1fr;
@@ -360,6 +405,10 @@
             .dashboard-container {
                 padding: 1rem;
             }
+            
+            .header-actions {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -370,6 +419,7 @@
             <h1>
                 <i class="fas fa-shield-alt"></i>
                 Security Dashboard
+                <span id="modeIndicator" class="mode-badge">Loading...</span>
             </h1>
             <div class="header-actions">
                 <button class="btn btn-primary" onclick="refreshData()">
@@ -377,17 +427,21 @@
                     Refresh
                     <span id="refreshIndicator" class="refresh-indicator" style="display: none;"></span>
                 </button>
-                <button class="btn btn-info" onclick="debugSessions()" title="Debug Sessions">
+                <button class="btn btn-primary" onclick="debugSessions()">
                     <i class="fas fa-bug"></i>
                     Debug
                 </button>
+                <button class="btn btn-danger" onclick="cleanupExpired()">
+                    <i class="fas fa-trash"></i>
+                    Clean Expired
+                </button>
                 <button class="btn btn-warning" onclick="dashboard.exportLogs()">
                     <i class="fas fa-download"></i>
-                    Export Logs
+                    Export
                 </button>
                 <a href="waterfallconcept44.html" class="btn btn-primary">
                     <i class="fas fa-arrow-left"></i>
-                    Back to Tool
+                    Back
                 </a>
             </div>
         </div>
@@ -402,13 +456,13 @@
                 <div class="stat-value" id="suspiciousActivity">0</div>
                 <div class="stat-label">Suspicious Activities</div>
             </div>
-            <div class="stat-card" id="activeSessionsCard">
+            <div class="stat-card">
                 <div class="stat-value" id="activeSessions">0</div>
                 <div class="stat-label">Active Sessions</div>
             </div>
-            <div class="stat-card" id="blockedAttemptsCard">
-                <div class="stat-value" id="blockedAttempts">0</div>
-                <div class="stat-label">Blocked Login Attempts</div>
+            <div class="stat-card">
+                <div class="stat-value" id="uniqueUsers">0</div>
+                <div class="stat-label">Unique Users</div>
             </div>
         </div>
 
@@ -427,7 +481,7 @@
                     </button>
                 </div>
                 <div class="panel-body" id="securityLogs">
-                    <!-- Logs will be populated here -->
+                    <p style="color: var(--text-muted); text-align: center;">Loading...</p>
                 </div>
             </div>
 
@@ -438,14 +492,27 @@
                         <i class="fas fa-users"></i>
                         User Activity Monitor
                     </h3>
-                    <button class="btn btn-warning btn-small" onclick="showUserDetails()">
+                    <button class="btn btn-warning btn-small" onclick="showAllUsers()">
                         <i class="fas fa-eye"></i>
                         View All
                     </button>
                 </div>
                 <div class="panel-body" id="userActivity">
-                    <!-- User activity will be populated here -->
+                    <p style="color: var(--text-muted); text-align: center;">Loading...</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- Active Sessions Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <h3 class="panel-title">
+                    <i class="fas fa-broadcast-tower"></i>
+                    All Active Sessions
+                </h3>
+            </div>
+            <div class="panel-body" id="sessionsList">
+                <p style="color: var(--text-muted); text-align: center;">Loading...</p>
             </div>
         </div>
 
@@ -468,7 +535,7 @@
                 </div>
             </div>
             <div class="panel-body" id="recentActivity">
-                <!-- Recent activity will be populated here -->
+                <p style="color: var(--text-muted); text-align: center;">Loading...</p>
             </div>
         </div>
     </div>
@@ -480,9 +547,7 @@
                 <h3 class="modal-title">User Security Details</h3>
                 <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
-            <div id="userModalContent">
-                <!-- User details will be populated here -->
-            </div>
+            <div id="userModalContent"></div>
         </div>
     </div>
 
@@ -493,9 +558,18 @@
                 <h3 class="modal-title">Detailed Security Logs</h3>
                 <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
-            <div id="logsModalContent">
-                <!-- Detailed logs will be populated here -->
+            <div id="logsModalContent"></div>
+        </div>
+    </div>
+
+    <!-- Debug Output Modal -->
+    <div id="debugModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Debug Information</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
+            <div id="debugOutput" class="debug-output">Running diagnostics...</div>
         </div>
     </div>
 
@@ -503,17 +577,97 @@
         class SecurityDashboard {
             constructor() {
                 this.refreshInterval = null;
-                this.sessionTracker = null;
+                this.firebaseEnabled = false;
+                this.debugMessages = [];
                 this.init();
             }
 
-            // Fallback method to get sessions from localStorage
-            getLocalStorageSessions() {
+            init() {
+                this.checkAdminAccess();
+                this.loadDashboardData();
+                this.startAutoRefresh();
+            }
+
+            addDebugMessage(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                this.debugMessages.push(`[${timestamp}] ${message}`);
+                
+                if (this.debugMessages.length > 50) {
+                    this.debugMessages = this.debugMessages.slice(-50);
+                }
+                
+                console.log(message);
+            }
+
+            checkAdminAccess() {
                 try {
-                    const sessions = [];
-                    const sessionTimeout = 5 * 60 * 1000; // 5 minutes
+                    const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
                     
-                    // Check for global session list
+                    if (!authData.authenticated || !['admin', 'manager'].includes(authData.role)) {
+                        alert('Access Denied: Admin or Manager privileges required');
+                        window.location.href = 'waterfallconcept44.html';
+                        return;
+                    }
+                    
+                    this.addDebugMessage(`✅ Admin access verified: ${authData.email} (${authData.role})`);
+                } catch (error) {
+                    window.location.href = 'waterfallconcept44.html';
+                }
+            }
+
+            async loadDashboardData() {
+                this.addDebugMessage('🔄 Loading dashboard data...');
+                await this.updateStatistics();
+                this.loadSecurityLogs();
+                await this.loadUserActivity();
+                await this.loadAllSessions();
+                this.loadRecentActivity();
+            }
+
+            // ✅ FIXED: Direct Firebase access (from simple version)
+            async getFirebaseSessions() {
+                try {
+                    if (typeof firebaseConfig === 'undefined') {
+                        this.addDebugMessage('❌ Firebase config not loaded');
+                        return [];
+                    }
+
+                    if (!firebaseConfig.isReady()) {
+                        this.addDebugMessage('⏳ Firebase not ready, initializing...');
+                        await firebaseConfig.initialize();
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+
+                    const db = firebaseConfig.getDatabase();
+                    const sessionsRef = db.ref('sessions');
+                    const snapshot = await sessionsRef.once('value');
+                    const sessionsData = snapshot.val() || {};
+                    
+                    const sessionTimeout = 30 * 60 * 1000;
+                    const sessions = Object.entries(sessionsData)
+                        .map(([id, session]) => ({ ...session, id }))
+                        .filter(session => {
+                            return session.lastSeen && 
+                                   (Date.now() - session.lastSeen < sessionTimeout);
+                        });
+                    
+                    this.firebaseEnabled = true;
+                    this.addDebugMessage(`✅ Firebase: ${sessions.length} active sessions`);
+                    
+                    return sessions;
+                    
+                } catch (error) {
+                    this.addDebugMessage(`❌ Firebase error: ${error.message}`);
+                    this.firebaseEnabled = false;
+                    return [];
+                }
+            }
+
+            getLocalStorageSessions() {
+                const sessions = [];
+                const sessionTimeout = 30 * 60 * 1000;
+                
+                try {
                     const globalList = localStorage.getItem('globalSessionList');
                     if (globalList) {
                         const data = JSON.parse(globalList);
@@ -524,7 +678,6 @@
                         sessions.push(...validSessions);
                     }
                     
-                    // Also check individual session keys
                     for (let i = 0; i < localStorage.length; i++) {
                         const key = localStorage.key(i);
                         if (key && key.startsWith('session_')) {
@@ -532,108 +685,68 @@
                                 const session = JSON.parse(localStorage.getItem(key));
                                 if (session && session.lastSeen && 
                                     (Date.now() - session.lastSeen < sessionTimeout)) {
-                                    // Avoid duplicates
-                                    if (!sessions.find(s => s.email === session.email)) {
+                                    if (!sessions.find(s => s.id === session.id)) {
                                         sessions.push(session);
                                     }
                                 }
-                            } catch (e) {
-                                console.warn('Error parsing session:', key);
-                            }
+                            } catch (e) {}
                         }
                     }
                     
-                    console.log(`💾 LocalStorage fallback: Found ${sessions.length} sessions`);
-                    return sessions;
+                    this.addDebugMessage(`💾 LocalStorage: ${sessions.length} sessions`);
                 } catch (error) {
-                    console.error('LocalStorage fallback failed:', error);
-                    return [];
+                    this.addDebugMessage(`❌ LocalStorage error: ${error.message}`);
                 }
+                
+                return sessions;
             }
 
-            init() {
-                this.checkAdminAccess();
-                this.loadDashboardData();
-                this.startAutoRefresh();
-                this.setupSessionListener();
-            }
-
-            setupSessionListener() {
-                // Setup broadcast session tracker listener
-                this.sessionTracker.setupListener(() => {
-                    console.log('📻 Session broadcast detected - refreshing dashboard');
-                    this.loadDashboardData();
+            async getActiveSessions() {
+                const firebaseSessions = await this.getFirebaseSessions();
+                const localSessions = this.getLocalStorageSessions();
+                
+                const allSessions = [...firebaseSessions];
+                localSessions.forEach(localSession => {
+                    if (!allSessions.find(s => s.id === localSession.id)) {
+                        allSessions.push(localSession);
+                    }
                 });
-            }
-
-            checkAdminAccess() {
-                try {
-                    const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
-                    
-                    if (!authData.authenticated || !['admin', 'manager'].includes(authData.role)) {
-                        alert('Access Denied: Admin or Manager privileges required');
-                        window.location.href = 'auth-advanced-security.html';
-                        return;
-                    }
-                } catch (error) {
-                    window.location.href = 'auth-advanced-security.html';
+                
+                // Update mode indicator
+                const modeIndicator = document.getElementById('modeIndicator');
+                if (this.firebaseEnabled) {
+                    modeIndicator.textContent = 'Firebase Mode';
+                    modeIndicator.className = 'mode-badge';
+                } else {
+                    modeIndicator.textContent = 'LocalStorage Mode';
+                    modeIndicator.className = 'mode-badge localStorage-mode';
                 }
-            }
-
-            async loadDashboardData() {
-                this.syncGlobalSessions();
-                await this.updateStatistics();
-                this.loadSecurityLogs();
-                await this.loadUserActivity();
-                this.loadRecentActivity();
-            }
-
-            syncGlobalSessions() {
-                // Force sync with global session registry
-                try {
-                    const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
-                    console.log('Global sessions found:', globalSessions.length);
-                    
-                    // Clean up old sessions (older than 8 hours)
-                    const eightHoursAgo = Date.now() - (8 * 60 * 60 * 1000);
-                    const activeSessions = globalSessions.filter(session => {
-                        const lastActivity = session.lastActivity || session.loginTime;
-                        return lastActivity > eightHoursAgo;
-                    });
-                    
-                    if (activeSessions.length !== globalSessions.length) {
-                        localStorage.setItem('globalSessionRegistry', JSON.stringify(activeSessions));
-                    }
-                } catch (error) {
-                    console.error('Error syncing global sessions:', error);
-                }
+                
+                return allSessions;
             }
 
             async updateStatistics() {
                 const logs = this.getSecurityLogs();
                 const sessions = await this.getActiveSessions();
-                const failedAttempts = this.getFailedAttempts();
 
-                // Count critical alerts (last 24 hours)
                 const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
                 const criticalAlerts = logs.filter(log => 
                     log.timestamp > oneDayAgo && 
                     ['CREDENTIAL_SHARING', 'CONCURRENT_SESSION', 'SUSPICIOUS_LOCATION'].includes(log.event)
                 ).length;
 
-                // Count suspicious activities
                 const suspiciousActivities = logs.filter(log => 
                     log.timestamp > oneDayAgo && 
                     ['RAPID_LOGIN_ATTEMPTS', 'DEVICE_MISMATCH', 'UNUSUAL_PATTERN'].includes(log.event)
                 ).length;
 
-                // Update UI
+                const uniqueUsers = new Set(sessions.map(s => s.email)).size;
+
                 document.getElementById('criticalAlerts').textContent = criticalAlerts;
                 document.getElementById('suspiciousActivity').textContent = suspiciousActivities;
                 document.getElementById('activeSessions').textContent = sessions.length;
-                document.getElementById('blockedAttempts').textContent = failedAttempts.length;
+                document.getElementById('uniqueUsers').textContent = uniqueUsers;
 
-                // Update card styles based on alerts
                 const criticalCard = document.getElementById('criticalAlertsCard');
                 const suspiciousCard = document.getElementById('suspiciousActivityCard');
                 
@@ -654,7 +767,6 @@
                 const logs = this.getSecurityLogs();
                 const container = document.getElementById('securityLogs');
                 
-                // Filter for critical security events
                 const criticalLogs = logs.filter(log => 
                     ['CREDENTIAL_SHARING', 'CONCURRENT_SESSION', 'SUSPICIOUS_LOCATION', 'DEVICE_MISMATCH'].includes(log.event)
                 ).slice(0, 10);
@@ -685,14 +797,8 @@
                 const logs = this.getSecurityLogs();
                 const container = document.getElementById('userActivity');
 
-                // Debug information
-                console.log('Active sessions detected:', sessions);
-                console.log('Total sessions:', sessions.length);
-
-                // Group activities by user
                 const userActivities = {};
                 
-                // Add active sessions
                 sessions.forEach(session => {
                     const email = session.email || 'unknown@unknown.com';
                     const name = session.name || 'Unknown User';
@@ -705,7 +811,7 @@
                             role: role,
                             activeSessions: 0,
                             suspiciousEvents: 0,
-                            lastActivity: session.lastActivity || session.loginTime,
+                            lastActivity: session.lastSeen || session.loginTime,
                             devices: new Set(),
                             locations: new Set()
                         };
@@ -716,7 +822,6 @@
                     userActivities[email].locations.add(session.location || 'unknown');
                 });
 
-                // Add suspicious events
                 logs.forEach(log => {
                     if (log.details.email && userActivities[log.details.email]) {
                         if (['CREDENTIAL_SHARING', 'CONCURRENT_SESSION', 'SUSPICIOUS_LOCATION'].includes(log.event)) {
@@ -732,7 +837,7 @@
                     return;
                 }
 
-                container.innerHTML = users.map(user => `
+                container.innerHTML = users.slice(0, 10).map(user => `
                     <div class="user-row ${user.suspiciousEvents > 0 ? 'suspicious' : ''}">
                         <div class="user-info">
                             <div class="user-name">
@@ -740,9 +845,9 @@
                                 ${user.suspiciousEvents > 0 ? `<span class="alert-badge">${user.suspiciousEvents} alerts</span>` : ''}
                             </div>
                             <div class="user-details">
-                                Active Sessions: ${user.activeSessions} | 
+                                Sessions: ${user.activeSessions} | 
                                 Devices: ${user.devices.size} | 
-                                Last Activity: ${this.formatTime(user.lastActivity)}
+                                Last: ${this.formatTime(user.lastActivity)}
                             </div>
                         </div>
                         <div class="user-actions">
@@ -759,6 +864,42 @@
                         </div>
                     </div>
                 `).join('');
+            }
+
+            async loadAllSessions() {
+                const sessions = await this.getActiveSessions();
+                const container = document.getElementById('sessionsList');
+                
+                if (sessions.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 2rem;">No active sessions found</p>';
+                    return;
+                }
+
+                container.innerHTML = sessions.map(session => {
+                    const lastSeenDate = new Date(session.lastSeen || session.loginTime);
+                    const ageMinutes = Math.floor((Date.now() - (session.lastSeen || session.loginTime)) / 60000);
+                    const ageDisplay = ageMinutes < 1 ? 'Just now' : 
+                                      ageMinutes < 60 ? `${ageMinutes}m ago` : 
+                                      `${Math.floor(ageMinutes / 60)}h ${ageMinutes % 60}m ago`;
+                    
+                    return `
+                        <div class="session-item">
+                            <div class="session-email">
+                                ${session.email || 'Unknown'} 
+                                <span style="color: var(--text-muted); font-size: 0.8rem;">(${session.role || 'Unknown'})</span>
+                            </div>
+                            <div class="session-details">
+                                Device: ${session.deviceName || 'Unknown'} | 
+                                Browser: ${session.browser || 'Unknown'} | 
+                                Last seen: ${ageDisplay}
+                            </div>
+                            <div class="session-id">
+                                ID: ${session.id || 'Unknown'} | 
+                                Fingerprint: ${session.deviceFingerprint || 'Unknown'}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
             }
 
             loadRecentActivity() {
@@ -786,63 +927,7 @@
             getSecurityLogs() {
                 try {
                     return JSON.parse(localStorage.getItem('securityLogs') || '[]')
-                        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                } catch {
-                    return [];
-                }
-            }
-
-            async getActiveSessions() {
-                try {
-                    console.log('🔍 === GETTING ACTIVE SESSIONS ===');
-                    
-                    // Get sessions from broadcast tracker
-                    let broadcastSessions = [];
-                    
-                    // Initialize session tracker if not already done
-                    if (!this.sessionTracker && typeof BroadcastSessionTracker !== 'undefined') {
-                        try {
-                            this.sessionTracker = new BroadcastSessionTracker();
-                            console.log('✅ Session tracker initialized');
-                        } catch (error) {
-                            console.warn('⚠️ Session tracker initialization failed:', error);
-                        }
-                    }
-                    
-                    if (this.sessionTracker) {
-                        try {
-                            broadcastSessions = await this.sessionTracker.getAllActiveSessions();
-                        } catch (error) {
-                            console.warn('⚠️ Failed to get sessions from tracker:', error);
-                            broadcastSessions = [];
-                        }
-                    } else {
-                        console.warn('⚠️ Session tracker not available, checking localStorage fallback');
-                        // Fallback: Get sessions from localStorage directly
-                        broadcastSessions = this.getLocalStorageSessions();
-                    }
-                    console.log('📡 Broadcast sessions:', broadcastSessions);
-                    
-                    // Get debug info
-                    const debugInfo = this.sessionTracker.getDebugInfo();
-                    console.log('🐛 Debug info:', debugInfo);
-                    
-                    console.log('✅ === END SESSION ANALYSIS ===');
-                    
-                    return broadcastSessions;
-                } catch (error) {
-                    console.error('❌ Error getting active sessions:', error);
-                    return [];
-                }
-            }
-
-            getFailedAttempts() {
-                try {
-                    return JSON.parse(localStorage.getItem('failedLoginAttempts') || '[]')
-                        .filter(attempt => {
-                            // Show attempts from last 24 hours
-                            return (Date.now() - attempt.timestamp) < (24 * 60 * 60 * 1000);
-                        });
+                        .sort((a, b) => b.timestamp - a.timestamp);
                 } catch {
                     return [];
                 }
@@ -900,26 +985,26 @@
                 
                 const modalContent = document.getElementById('userModalContent');
                 modalContent.innerHTML = `
-                    <h4>Security Profile: ${email}</h4>
+                    <h4 style="color: var(--accent); margin-bottom: 1rem;">Security Profile: ${email}</h4>
                     
                     <h5 style="margin-top: 1.5rem; color: var(--accent);">Active Sessions (${sessions.length})</h5>
                     ${sessions.map(session => `
-                        <div style="background: var(--bg-card-darker); padding: 1rem; border-radius: 0.5rem; margin: 0.5rem 0;">
+                        <div style="background: var(--bg-card-darker); padding: 1rem; border-radius: 0.5rem; margin: 0.5rem 0; border: 1px solid var(--border-color);">
                             <strong>Device:</strong> ${session.deviceName || 'Unknown'}<br>
-                            <strong>Location:</strong> ${session.location}<br>
+                            <strong>Location:</strong> ${session.location || 'Unknown'}<br>
                             <strong>Login Time:</strong> ${this.formatTime(session.loginTime)}<br>
-                            <strong>Fingerprint:</strong> ${session.deviceFingerprint}
+                            <strong>Fingerprint:</strong> ${session.deviceFingerprint || 'Unknown'}
                         </div>
-                    `).join('') || '<p>No active sessions</p>'}
+                    `).join('') || '<p style="color: var(--text-muted);">No active sessions</p>'}
                     
                     <h5 style="margin-top: 1.5rem; color: var(--accent);">Recent Security Events (${logs.length})</h5>
                     ${logs.slice(0, 10).map(log => `
-                        <div style="background: var(--bg-card-darker); padding: 1rem; border-radius: 0.5rem; margin: 0.5rem 0;">
+                        <div style="background: var(--bg-card-darker); padding: 1rem; border-radius: 0.5rem; margin: 0.5rem 0; border: 1px solid var(--border-color);">
                             <strong>${this.formatEventType(log.event)}</strong><br>
-                            <small>${this.formatTime(log.timestamp)}</small><br>
+                            <small style="color: var(--text-muted);">${this.formatTime(log.timestamp)}</small><br>
                             ${this.formatLogDetails(log)}
                         </div>
-                    `).join('') || '<p>No security events</p>'}
+                    `).join('') || '<p style="color: var(--text-muted);">No security events</p>'}
                     
                     <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
                         <button class="btn btn-danger" onclick="dashboard.blockUser('${email}')">
@@ -936,20 +1021,20 @@
 
             blockUser(email) {
                 if (confirm(`Are you sure you want to block access for ${email}?`)) {
-                    // Add to blocked users list
                     const blockedUsers = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
                     if (!blockedUsers.includes(email)) {
                         blockedUsers.push(email);
                         localStorage.setItem('blockedUsers', JSON.stringify(blockedUsers));
                     }
                     
-                    // Log the action
-                    SecurityUtils.logSecurityEvent('USER_BLOCKED', {
-                        email: email,
-                        blockedBy: 'admin',
-                        timestamp: Date.now(),
-                        message: `User ${email} has been blocked by administrator`
-                    });
+                    if (typeof SecurityUtils !== 'undefined') {
+                        SecurityUtils.logSecurityEvent('USER_BLOCKED', {
+                            email: email,
+                            blockedBy: 'admin',
+                            timestamp: Date.now(),
+                            message: `User ${email} has been blocked by administrator`
+                        });
+                    }
                     
                     alert(`User ${email} has been blocked successfully.`);
                     this.loadDashboardData();
@@ -957,29 +1042,21 @@
                 }
             }
 
-            resetUserSessions(email) {
+            async resetUserSessions(email) {
                 if (confirm(`Reset all active sessions for ${email}?`)) {
-                    // Clear user sessions
-                    const sessions = (await this.getActiveSessions()).filter(session => session.email !== email);
-                    localStorage.setItem('sessionHistory', JSON.stringify(sessions));
-                    
-                    // Log the action
-                    SecurityUtils.logSecurityEvent('SESSIONS_RESET', {
-                        email: email,
-                        resetBy: 'admin',
-                        timestamp: Date.now(),
-                        message: `All sessions for ${email} have been reset by administrator`
-                    });
+                    if (typeof SecurityUtils !== 'undefined') {
+                        SecurityUtils.logSecurityEvent('SESSIONS_RESET', {
+                            email: email,
+                            resetBy: 'admin',
+                            timestamp: Date.now(),
+                            message: `All sessions for ${email} have been reset by administrator`
+                        });
+                    }
                     
                     alert(`Sessions for ${email} have been reset.`);
                     this.loadDashboardData();
                     this.closeModal();
                 }
-            }
-
-            showUserDetails() {
-                // Show all users modal
-                this.viewUserDetails('all');
             }
 
             showDetailedLogs() {
@@ -996,10 +1073,10 @@
                                 </div>
                                 <div class="log-details">
                                     ${this.formatLogDetails(log)}
-                                    <br><small><strong>Raw Data:</strong> ${JSON.stringify(log.details, null, 2)}</small>
+                                    <br><small style="color: var(--text-muted);"><strong>Raw Data:</strong> ${JSON.stringify(log.details, null, 2)}</small>
                                 </div>
                             </div>
-                        `).join('') || '<p>No logs available</p>'}
+                        `).join('') || '<p style="color: var(--text-muted);">No logs available</p>'}
                     </div>
                 `;
                 
@@ -1009,6 +1086,7 @@
             closeModal() {
                 document.getElementById('userModal').style.display = 'none';
                 document.getElementById('logsModal').style.display = 'none';
+                document.getElementById('debugModal').style.display = 'none';
             }
 
             clearCriticalLogs() {
@@ -1033,13 +1111,12 @@
             async exportLogs() {
                 const logs = this.getSecurityLogs();
                 const sessions = await this.getActiveSessions();
-                const failedAttempts = this.getFailedAttempts();
                 
                 const exportData = {
                     exportTime: new Date().toISOString(),
                     securityLogs: logs,
                     activeSessions: sessions,
-                    failedAttempts: failedAttempts
+                    firebaseEnabled: this.firebaseEnabled
                 };
                 
                 const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -1056,7 +1133,7 @@
             startAutoRefresh() {
                 this.refreshInterval = setInterval(() => {
                     this.loadDashboardData();
-                }, 30000); // Refresh every 30 seconds
+                }, 15000); // Refresh every 15 seconds
             }
 
             stopAutoRefresh() {
@@ -1066,7 +1143,7 @@
             }
         }
 
-        // Global functions
+        // Global instance
         let dashboard;
 
         async function refreshData() {
@@ -1074,46 +1151,88 @@
             indicator.style.display = 'inline-block';
             
             try {
-                console.log('🔄 === MANUAL REFRESH STARTED ===');
-                
-                // Force refresh session data
-                const sessions = await dashboard.getActiveSessions();
-                console.log('📊 Retrieved sessions:', sessions);
-                
-                // Reload all dashboard data
                 await dashboard.loadDashboardData();
-                
-                // Get debug info
-                if (dashboard.sessionTracker) {
-                    const debugInfo = dashboard.sessionTracker.getDebugInfo();
-                    console.log('🔍 Session tracker debug:', debugInfo);
-                }
-                
-                console.log('✅ Refresh completed successfully');
-                
-            } catch (error) {
-                console.error('❌ Refresh failed:', error);
             } finally {
                 indicator.style.display = 'none';
             }
+        }
+
+        async function debugSessions() {
+            dashboard.debugMessages = [];
+            dashboard.addDebugMessage('🛠️ === DEBUG SESSIONS ===');
+            
+            try {
+                const firebaseSessions = await dashboard.getFirebaseSessions();
+                dashboard.addDebugMessage(`🔥 Firebase sessions: ${firebaseSessions.length}`);
                 
-                // Show simple alert with session count
-                alert(`🔄 Refresh Complete!
-
-Active Sessions Found: ${sessions.length}
-Broadcasting: ${debugInfo.isBroadcasting ? 'Yes' : 'No'}
-LocalStorage Keys: ${debugInfo.localStorageKeys.length}
-
-Check console for detailed information.`);
-            }, 1000);
+                const localSessions = dashboard.getLocalStorageSessions();
+                dashboard.addDebugMessage(`💾 LocalStorage sessions: ${localSessions.length}`);
+                
+                const allSessions = await dashboard.getActiveSessions();
+                dashboard.addDebugMessage(`📊 Total active sessions: ${allSessions.length}`);
+                
+                dashboard.addDebugMessage(`🔌 Firebase enabled: ${dashboard.firebaseEnabled ? 'Yes' : 'No'}`);
+                
+                if (typeof firebaseConfig !== 'undefined') {
+                    dashboard.addDebugMessage(`✅ Firebase config loaded: Yes`);
+                    dashboard.addDebugMessage(`✅ Firebase ready: ${firebaseConfig.isReady() ? 'Yes' : 'No'}`);
+                } else {
+                    dashboard.addDebugMessage(`❌ Firebase config loaded: No`);
+                }
+                
+                const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                dashboard.addDebugMessage(`👤 Current user: ${authData.email || 'Not logged in'}`);
+                
+                dashboard.addDebugMessage('=== DEBUG COMPLETE ===');
+                
+                document.getElementById('debugOutput').textContent = dashboard.debugMessages.join('\n');
+                document.getElementById('debugModal').style.display = 'flex';
+                
+            } catch (error) {
+                dashboard.addDebugMessage(`❌ Debug failed: ${error.message}`);
+                document.getElementById('debugOutput').textContent = dashboard.debugMessages.join('\n');
+                document.getElementById('debugModal').style.display = 'flex';
+            }
         }
 
-        function exportLogs() {
-            dashboard.exportLogs();
+        async function cleanupExpired() {
+            if (!confirm('Remove all expired sessions from Firebase?')) {
+                return;
+            }
+            
+            try {
+                if (!firebaseConfig.isReady()) {
+                    await firebaseConfig.initialize();
+                }
+                
+                const db = firebaseConfig.getDatabase();
+                const sessionsRef = db.ref('sessions');
+                const snapshot = await sessionsRef.once('value');
+                const sessionsData = snapshot.val() || {};
+                
+                const now = Date.now();
+                const sessionTimeout = 30 * 60 * 1000;
+                let cleaned = 0;
+                
+                for (const [sessionId, session] of Object.entries(sessionsData)) {
+                    const isExpired = !session.lastSeen || (now - session.lastSeen > sessionTimeout);
+                    
+                    if (isExpired) {
+                        await db.ref(`sessions/${sessionId}`).remove();
+                        cleaned++;
+                    }
+                }
+                
+                alert(`✅ Cleaned ${cleaned} expired sessions`);
+                await dashboard.loadDashboardData();
+                
+            } catch (error) {
+                alert(`❌ Cleanup failed: ${error.message}`);
+            }
         }
 
-        function showUserDetails() {
-            dashboard.showUserDetails();
+        function showAllUsers() {
+            dashboard.showDetailedLogs();
         }
 
         function showDetailedLogs() {
@@ -1143,37 +1262,6 @@ Check console for detailed information.`);
                 closeModal();
             }
         });
-
-        // Debug function for troubleshooting sessions
-        async function debugSessions() {
-            console.log('🐛 === DEBUG SESSIONS ===');
-            
-            try {
-                // Test session retrieval
-                const sessions = await dashboard.getActiveSessions();
-                console.log('📊 Sessions from getActiveSessions():', sessions);
-                
-                // Test localStorage directly
-                const localSessions = dashboard.getLocalStorageSessions();
-                console.log('💾 Sessions from localStorage:', localSessions);
-                
-                // Test Firebase directly
-                if (dashboard.sessionTracker && dashboard.sessionTracker.firebaseEnabled) {
-                    const firebaseSessions = await dashboard.sessionTracker.getAllActiveSessions();
-                    console.log('🔥 Sessions from Firebase:', firebaseSessions);
-                }
-                
-                // Show in alert for easy viewing
-                alert(`Debug Results:
-Sessions found: ${sessions.length}
-LocalStorage sessions: ${localSessions.length}
-Check console for detailed logs`);
-                
-            } catch (error) {
-                console.error('❌ Debug failed:', error);
-                alert('Debug failed - check console for errors');
-            }
-        }
     </script>
 </body>
 </html>
