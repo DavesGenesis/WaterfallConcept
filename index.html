@@ -433,20 +433,78 @@
                 this.setLoadingState(false);
             }
 
-            validateCredentials(email, password) {
-                const user = WaterfallConfig.users[email];
-                return user && user.password === password;
-            }
+           
 
-            async handleSuccessfulLogin(email, deviceName) {
-                const user = WaterfallConfig.users[email];
-                
-                // Check for existing active sessions and potential sharing
-                const existingSessions = this.getStoredSessions();
-                const userSessions = existingSessions.filter(s => s.email === email);
-                const deviceSessions = existingSessions.filter(s => s.deviceFingerprint === this.deviceFingerprint);
-                
-                // SECURITY CHECK: Detect potential credential sharing
+
+// Replace the validateCredentials and handleSuccessfulLogin methods with these:
+
+async validateCredentials(email, password) {
+    // ✅ STEP 1: Check if user is blocked in Firebase
+    const isBlocked = await this.checkIfUserBlocked(email);
+    
+    if (isBlocked) {
+        this.showMessage('error', '🚫 Access Denied: Your account has been blocked by an administrator. Please contact support.');
+        
+        // Log blocked login attempt
+        SecurityUtils.logSecurityEvent('BLOCKED_LOGIN_ATTEMPT', {
+            email: email,
+            deviceFingerprint: this.deviceFingerprint,
+            location: `${this.locationData.city}, ${this.locationData.country}`,
+            message: `Blocked user ${email} attempted to login`,
+            severity: 'CRITICAL',
+            timestamp: Date.now()
+        });
+        
+        return false;
+    }
+    
+    // ✅ STEP 2: Check credentials
+    const user = WaterfallConfig.users[email];
+    return user && user.password === password;
+}                
+
+// ✅ NEW METHOD: Check if user is blocked in Firebase
+async checkIfUserBlocked(email) {
+    try {
+        // Check Firebase first (most authoritative)
+        if (typeof firebaseConfig !== 'undefined' && firebaseConfig.isReady()) {
+            const db = firebaseConfig.getDatabase();
+            const blockedRef = db.ref(`blockedUsers/${this.sanitizeEmail(email)}`);
+            const snapshot = await blockedRef.once('value');
+            const blockedData = snapshot.val();
+            
+            if (blockedData && blockedData.blocked) {
+                console.log('✅ User blocked in Firebase:', email);
+                return true;
+            }
+        }
+        
+        // Fallback: Check localStorage (for offline or Firebase unavailable)
+        const localBlocked = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
+        if (localBlocked.includes(email)) {
+            console.log('✅ User blocked in localStorage:', email);
+            return true;
+        }
+        
+        return false;
+        
+    } catch (error) {
+        console.error('Error checking blocked status:', error);
+        
+        // Fallback to localStorage on error
+        const localBlocked = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
+        return localBlocked.includes(email);
+    }
+}
+
+// ✅ NEW METHOD: Sanitize email for Firebase key
+sanitizeEmail(email) {
+    // Firebase keys cannot contain . # $ [ ] /
+    return email.replace(/[.#$[\]\/]/g, '_');
+}
+
+
+		// SECURITY CHECK: Detect potential credential sharing
                 if (userSessions.length > 0) {
                     const differentDevices = userSessions.filter(s => s.deviceFingerprint !== this.deviceFingerprint);
                     const differentLocations = userSessions.filter(s => s.location !== `${this.locationData.city}, ${this.locationData.country}`);
