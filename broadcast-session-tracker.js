@@ -7,6 +7,7 @@ class BroadcastSessionTracker {
         this.sessionTimeout = 30 * 60 * 1000; // 30 minutes (CONSISTENT)
         this.currentSession = null;
         this.isBroadcasting = false;
+        this.isStartingSession = false; // ✅ NEW: Prevent concurrent session creation
         this.firebaseEnabled = false;
         this.db = null;
         
@@ -61,13 +62,19 @@ class BroadcastSessionTracker {
             return null;
         }
 
-        // ✅ FIX 2: Prevent duplicate sessions
+        // ✅ FIX 2: Prevent concurrent session creation
+        if (this.isStartingSession) {
+            console.warn('⚠️ Session creation already in progress, skipping');
+            return null;
+        }
+
+        // ✅ FIX 3: Prevent duplicate sessions
         if (this.currentSession && this.currentSession.email === userData.email) {
             console.log('⚠️ Session already exists for:', userData.email);
             return this.currentSession.id;
         }
 
-        // ✅ FIX 3: Stop any existing session first (synchronously)
+        // ✅ FIX 4: Stop any existing session first (synchronously)
         if (this.currentSession) {
             console.log('🔄 Stopping existing session before starting new one');
             await this.stopSession(); // Use async version to ensure cleanup

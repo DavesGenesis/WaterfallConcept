@@ -1348,7 +1348,7 @@
         }
 
         // Event Listeners
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', async function () {
             // ✅ FIX: Initialize session tracker FIRST, before any authentication checks
             const sessionTracker = new BroadcastSessionTracker();
             
@@ -1363,22 +1363,35 @@
                     
                     // ✅ FIX: Start session tracking for authenticated users (sessionTracker now exists)
                     if (sessionTracker) {
-                        if (!sessionTracker.currentSession) {
-                            const sessionId = sessionTracker.startSession(authData);
+                        const attemptId = Date.now().toString(36);
+                        console.log(`🔍 [${attemptId}] Session check for:`, authData.email);
+                        console.log(`🔍 [${attemptId}] Current session exists:`, !!sessionTracker.currentSession);
+                        console.log(`🔍 [${attemptId}] Is starting session:`, !!sessionTracker.isStartingSession);
+                        
+                        if (!sessionTracker.currentSession && !sessionTracker.isStartingSession) {
+                            console.log(`🚀 [${attemptId}] Starting new session for:`, authData.email);
+                            sessionTracker.isStartingSession = true; // Prevent concurrent session creation
                             
-                            // Log session start confirmation (non-blocking)
-                            setTimeout(() => {
-                                console.log('🚀 SESSION STARTED!');
-                                console.log('✅ User:', authData.email);
-                                console.log('✅ Session ID:', sessionId);
-                                console.log('✅ Firebase:', sessionTracker.firebaseEnabled);
-                                console.log('Session is now broadcasting to Firebase every 10 seconds.');
-                            }, 2000); // Delay to let Firebase initialize
+                            try {
+                                const sessionId = await sessionTracker.startSession(authData);
+                                
+                                // Log session start confirmation (non-blocking)
+                                console.log(`✅ [${attemptId}] SESSION STARTED!`);
+                                console.log(`✅ [${attemptId}] User:`, authData.email);
+                                console.log(`✅ [${attemptId}] Session ID:`, sessionId);
+                                console.log(`✅ [${attemptId}] Firebase:`, sessionTracker.firebaseEnabled);
+                            } catch (error) {
+                                console.error(`❌ [${attemptId}] Failed to start session:`, error);
+                            } finally {
+                                sessionTracker.isStartingSession = false;
+                                console.log(`🏁 [${attemptId}] Session creation attempt completed`);
+                            }
+                        } else if (sessionTracker.isStartingSession) {
+                            console.log(`⏳ [${attemptId}] Session creation already in progress for:`, authData.email);
                         } else {
-                            console.log('📡 SESSION ALREADY EXISTS:');
-                            console.log('Email:', sessionTracker.currentSession.email);
-                            console.log('ID:', sessionTracker.currentSession.id);
-                            console.log('Using existing session.');
+                            console.log(`📡 [${attemptId}] SESSION ALREADY EXISTS:`);
+                            console.log(`📡 [${attemptId}] Email:`, sessionTracker.currentSession.email);
+                            console.log(`📡 [${attemptId}] ID:`, sessionTracker.currentSession.id);
                         }
                     } else {
                         console.error('❌ CRITICAL ERROR: sessionTracker failed to initialize!');
