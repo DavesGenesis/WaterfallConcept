@@ -439,61 +439,103 @@
 // Replace the validateCredentials and handleSuccessfulLogin methods with these:
 
 async validateCredentials(email, password) {
-    // ✅ STEP 1: Check if user is blocked in Firebase
-    const isBlocked = await this.checkIfUserBlocked(email);
-    
-    if (isBlocked) {
-        this.showMessage('error', '🚫 Access Denied: Your account has been blocked by an administrator. Please contact support.');
+    try {
+        console.log('🔐 Validating credentials for:', email);
         
-        // Log blocked login attempt
-        SecurityUtils.logSecurityEvent('BLOCKED_LOGIN_ATTEMPT', {
-            email: email,
-            deviceFingerprint: this.deviceFingerprint,
-            location: `${this.locationData.city}, ${this.locationData.country}`,
-            message: `Blocked user ${email} attempted to login`,
-            severity: 'CRITICAL',
-            timestamp: Date.now()
-        });
+        // ✅ STEP 1: Check if user is blocked in Firebase
+        const isBlocked = await this.checkIfUserBlocked(email);
         
-        return false;
+        if (isBlocked) {
+            console.log('🚫 Login blocked for:', email);
+            this.showMessage('error', '🚫 Access Denied: Your account has been blocked by an administrator. Please contact support.');
+            
+            // Log blocked login attempt
+            if (typeof SecurityUtils !== 'undefined') {
+                SecurityUtils.logSecurityEvent('BLOCKED_LOGIN_ATTEMPT', {
+                    email: email,
+                    deviceFingerprint: this.deviceFingerprint,
+                    location: `${this.locationData.city}, ${this.locationData.country}`,
+                    message: `Blocked user ${email} attempted to login`,
+                    severity: 'CRITICAL',
+                    timestamp: Date.now()
+                });
+            }
+            
+            return false;
+        }
+        
+        // ✅ STEP 2: Check credentials
+        console.log('✅ User not blocked, checking credentials...');
+        const user = WaterfallConfig.users[email];
+        const isValid = user && user.password === password;
+        console.log('Credentials valid:', isValid);
+        
+        return isValid;
+        
+    } catch (error) {
+        console.error('❌ Error in validateCredentials:', error);
+        // On error, still try to validate credentials (fail-open for login)
+        const user = WaterfallConfig.users[email];
+        return user && user.password === password;
     }
-    
-    // ✅ STEP 2: Check credentials
-    const user = WaterfallConfig.users[email];
-    return user && user.password === password;
 }                
 
 // ✅ NEW METHOD: Check if user is blocked in Firebase
 async checkIfUserBlocked(email) {
     try {
+        console.log('🔍 Checking if user is blocked:', email);
+        
         // Check Firebase first (most authoritative)
         if (typeof firebaseConfig !== 'undefined' && firebaseConfig.isReady()) {
+            console.log('✅ Firebase is ready, checking blocklist...');
             const db = firebaseConfig.getDatabase();
             const blockedRef = db.ref(`blockedUsers/${this.sanitizeEmail(email)}`);
             const snapshot = await blockedRef.once('value');
             const blockedData = snapshot.val();
             
-            if (blockedData && blockedData.blocked) {
-                console.log('✅ User blocked in Firebase:', email);
+            console.log('Firebase blocked data:', blockedData);
+            
+            if (blockedData && blockedData.blocked === true) {
+                console.log('🚫 User IS blocked in Firebase:', email);
                 return true;
             }
+        } else {
+            console.warn('⚠️ Firebase not ready, using localStorage fallback');
         }
         
         // Fallback: Check localStorage (for offline or Firebase unavailable)
         const localBlocked = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
+        console.log('localStorage blocked users:', localBlocked);
+        
         if (localBlocked.includes(email)) {
-            console.log('✅ User blocked in localStorage:', email);
+            console.log('🚫 User IS blocked in localStorage:', email);
             return true;
         }
         
+        console.log('✅ User is NOT blocked:', email);
         return false;
         
     } catch (error) {
-        console.error('Error checking blocked status:', error);
+        console.error('❌ Error checking blocked status:', error);
+        console.error('Error details:', error.message, error.stack);
         
-        // Fallback to localStorage on error
-        const localBlocked = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
-        return localBlocked.includes(email);
+        // ✅ CRITICAL FIX: On error, assume user is NOT blocked (fail open for login)
+        // This prevents blocking ALL users if Firebase has issues
+        console.warn('⚠️ Assuming user is NOT blocked due to error (fail-open)');
+        
+        // Still check localStorage as last resort
+        try {
+            const localBlocked = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
+            if (localBlocked.includes(email)) {
+                console.log('🚫 User IS blocked in localStorage (fallback):', email);
+                return true;
+            }
+        } catch (localError) {
+            console.error('❌ localStorage check also failed:', localError);
+        }
+        
+        // If all checks fail, allow login (fail-open)
+        return false;
     }
 }
 
@@ -503,6 +545,12 @@ sanitizeEmail(email) {
     return email.replace(/[.#$[\]\/]/g, '_');
 }
 
+async handleSuccessfulLogin(email, deviceName) {
+                const user = WaterfallConfig.users[email];
+                
+                // Get existing sessions for this user
+                const allSessions = this.getStoredSessions();
+                const userSessions = allSessions.filter(session => session.email === email);
 
 		// SECURITY CHECK: Detect potential credential sharing
                 if (userSessions.length > 0) {
