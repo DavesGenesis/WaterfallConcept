@@ -729,7 +729,7 @@
                 const localSessions = this.getLocalStorageSessions();
                 
                 const allSessions = [...firebaseSessions];
-                localSessions.forEach(localSession => {
+             
                    localSessions.forEach(localSession => {
     			// Check if this exact session (same email + device) already exists
     			const isDuplicate = allSessions.find(s => 
