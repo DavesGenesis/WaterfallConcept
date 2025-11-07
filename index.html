@@ -311,9 +311,62 @@
             • Real-time monitoring<br>
             • Encrypted local storage
         </div>
+
+        <!-- ✅ DEBUG PANEL -->
+        <div id="debugPanel" style="margin-top: 1rem; padding: 1rem; background: var(--bg-card-darker); border: 1px solid var(--warning); border-radius: 0.5rem; font-size: 0.75rem; font-family: monospace; display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <strong style="color: var(--warning);">🔍 Debug Info</strong>
+                <button onclick="document.getElementById('debugPanel').style.display='none'" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem;">✕</button>
+            </div>
+            <div id="debugContent" style="color: var(--text-secondary); max-height: 200px; overflow-y: auto;"></div>
+            <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
+                <button onclick="checkBlockedUsersUI()" class="auth-button" style="padding: 0.5rem; font-size: 0.75rem;">
+                    Check Blocked Users
+                </button>
+                <button onclick="clearAllBlockedUsersUI()" class="auth-button" style="padding: 0.5rem; font-size: 0.75rem; background: linear-gradient(135deg, var(--danger), #ff4466);">
+                    Clear All Blocks
+                </button>
+            </div>
+        </div>
+
+        <!-- ✅ DEBUG TOGGLE BUTTON -->
+        <div style="text-align: center; margin-top: 1rem;">
+            <button onclick="document.getElementById('debugPanel').style.display='block'" style="background: none; border: 1px solid var(--border-color); color: var(--text-muted); padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.75rem;">
+                🔧 Show Debug Panel
+            </button>
+        </div>
     </div>
 
     <script>
+        // ✅ DEBUG: Capture console.log to debug panel
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addToDebugPanel(message, type = 'log') {
+            const debugContent = document.getElementById('debugContent');
+            if (debugContent) {
+                const color = type === 'error' ? 'var(--danger)' : type === 'warn' ? 'var(--warning)' : 'var(--text-secondary)';
+                const time = new Date().toLocaleTimeString();
+                debugContent.innerHTML += `<div style="color: ${color}; margin-bottom: 0.25rem;">[${time}] ${message}</div>`;
+                debugContent.scrollTop = debugContent.scrollHeight;
+            }
+            // Still log to actual console
+            if (type === 'error') originalError(message);
+            else if (type === 'warn') originalWarn(message);
+            else originalLog(message);
+        }
+        
+        console.log = function(...args) {
+            addToDebugPanel(args.join(' '), 'log');
+        };
+        console.error = function(...args) {
+            addToDebugPanel(args.join(' '), 'error');
+        };
+        console.warn = function(...args) {
+            addToDebugPanel(args.join(' '), 'warn');
+        };
+
         class AdvancedAuthManager {
             constructor() {
                 this.deviceFingerprint = null;
@@ -418,13 +471,24 @@
                 const password = document.getElementById('password').value;
                 const deviceName = document.getElementById('deviceName').value || 'Unknown Device';
                 
+                console.log('=== LOGIN ATTEMPT ===');
+                console.log('Email:', email);
+                console.log('Device Name:', deviceName);
+                console.log('WaterfallConfig available:', typeof WaterfallConfig !== 'undefined');
+                if (typeof WaterfallConfig !== 'undefined') {
+                    console.log('Available users:', Object.keys(WaterfallConfig.users || {}));
+                }
+                
                 this.setLoadingState(true);
                 this.hideMessages();
 
                 // Simulate network delay
                 await new Promise(resolve => setTimeout(resolve, 1500));
 
-                if (this.validateCredentials(email, password)) {
+                const isValid = await this.validateCredentials(email, password);
+                console.log('Validation result:', isValid);
+                
+                if (isValid) {
                     await this.handleSuccessfulLogin(email, deviceName);
                 } else {
                     this.handleFailedLogin();
@@ -441,8 +505,27 @@
 async validateCredentials(email, password) {
     try {
         console.log('🔐 Validating credentials for:', email);
+        console.log('🔐 Password provided:', password ? '***' : 'EMPTY');
         
-        // ✅ STEP 1: Check if user is blocked in Firebase
+        // ✅ STEP 1: Check credentials FIRST (to see if this is the issue)
+        const user = WaterfallConfig.users[email];
+        console.log('👤 User found in config:', !!user);
+        
+        if (!user) {
+            console.error('❌ User not found in WaterfallConfig.users');
+            return false;
+        }
+        
+        const passwordMatch = user.password === password;
+        console.log('🔑 Password match:', passwordMatch);
+        
+        if (!passwordMatch) {
+            console.error('❌ Password does not match');
+            return false;
+        }
+        
+        // ✅ STEP 2: Check if user is blocked in Firebase
+        console.log('✅ Credentials valid, now checking if blocked...');
         const isBlocked = await this.checkIfUserBlocked(email);
         
         if (isBlocked) {
@@ -464,16 +547,12 @@ async validateCredentials(email, password) {
             return false;
         }
         
-        // ✅ STEP 2: Check credentials
-        console.log('✅ User not blocked, checking credentials...');
-        const user = WaterfallConfig.users[email];
-        const isValid = user && user.password === password;
-        console.log('Credentials valid:', isValid);
-        
-        return isValid;
+        console.log('✅ User is NOT blocked, login allowed');
+        return true;
         
     } catch (error) {
         console.error('❌ Error in validateCredentials:', error);
+        console.error('Error stack:', error.stack);
         // On error, still try to validate credentials (fail-open for login)
         const user = WaterfallConfig.users[email];
         return user && user.password === password;
@@ -948,9 +1027,62 @@ async handleSuccessfulLogin(email, deviceName) {
             }
         }
 
+        // ✅ UI Functions for debug panel
+        async function checkBlockedUsersUI() {
+            document.getElementById('debugPanel').style.display = 'block';
+            document.getElementById('debugContent').innerHTML = '';
+            
+            console.log('=== CHECKING BLOCKED USERS ===');
+            
+            // Check localStorage
+            const localBlocked = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
+            console.log('📦 localStorage blocked users: ' + (localBlocked.length > 0 ? localBlocked.join(', ') : 'NONE'));
+            
+            // Check Firebase
+            if (typeof firebaseConfig !== 'undefined' && firebaseConfig.isReady()) {
+                const db = firebaseConfig.getDatabase();
+                const blockedRef = db.ref('blockedUsers');
+                const snapshot = await blockedRef.once('value');
+                const blockedData = snapshot.val() || {};
+                const blockedEmails = Object.values(blockedData).map(u => u.email).filter(e => e);
+                console.log('🔥 Firebase blocked users: ' + (blockedEmails.length > 0 ? blockedEmails.join(', ') : 'NONE'));
+                console.log('📊 Total blocked in Firebase: ' + Object.keys(blockedData).length);
+            } else {
+                console.warn('⚠️ Firebase not ready');
+            }
+        }
+        
+        async function clearAllBlockedUsersUI() {
+            if (confirm('⚠️ Clear ALL blocked users from Firebase and localStorage?\n\nThis will allow all users to login again.')) {
+                document.getElementById('debugPanel').style.display = 'block';
+                document.getElementById('debugContent').innerHTML = '';
+                
+                console.log('=== CLEARING ALL BLOCKED USERS ===');
+                
+                // Clear localStorage
+                localStorage.removeItem('blockedUsers');
+                console.log('✅ Cleared localStorage');
+                
+                // Clear Firebase
+                if (typeof firebaseConfig !== 'undefined' && firebaseConfig.isReady()) {
+                    const db = firebaseConfig.getDatabase();
+                    await db.ref('blockedUsers').remove();
+                    console.log('✅ Cleared Firebase blockedUsers');
+                } else {
+                    console.warn('⚠️ Firebase not ready, only cleared localStorage');
+                }
+                
+                console.log('✅ All blocked users cleared!');
+                alert('✅ All blocked users have been cleared!\n\nYou can now try logging in.');
+            }
+        }
+
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', () => {
-            new AdvancedAuthManager();
+            const authManager = new AdvancedAuthManager();
+            
+            console.log('💡 Login page loaded');
+            console.log('💡 Click "Show Debug Panel" to see detailed logs');
         });
     </script>
 </body>
