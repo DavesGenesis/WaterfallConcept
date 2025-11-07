@@ -730,10 +730,19 @@
                 
                 const allSessions = [...firebaseSessions];
                 localSessions.forEach(localSession => {
-                    if (!allSessions.find(s => s.id === localSession.id)) {
-                        allSessions.push(localSession);
-                    }
-                });
+                   localSessions.forEach(localSession => {
+    			// Check if this exact session (same email + device) already exists
+    			const isDuplicate = allSessions.find(s => 
+        			s.email === localSession.email && 
+        			s.deviceFingerprint === localSession.deviceFingerprint
+    			);
+    
+    			if (!isDuplicate) {
+        			allSessions.push(localSession);
+    			} else {
+        			console.log(`🔍 Skipping duplicate session: ${localSession.email} (${localSession.deviceFingerprint?.substring(0, 8)})`);
+    			}
+		});
                 
                 // Update mode indicator
                 const modeIndicator = document.getElementById('modeIndicator');
