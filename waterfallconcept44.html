@@ -1349,6 +1349,9 @@
 
         // Event Listeners
         document.addEventListener('DOMContentLoaded', function () {
+            // ✅ FIX: Initialize session tracker FIRST, before any authentication checks
+            const sessionTracker = new BroadcastSessionTracker();
+            
             // Display user info and setup admin access
             try {
                 const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
@@ -1358,27 +1361,28 @@
                     // Update activity in global session registry
                     updateGlobalSessionActivity(authData);
                     
-                    // ✅ FIX 2: Start session tracking for authenticated users
-                    if (typeof sessionTracker !== 'undefined') {
+                    // ✅ FIX: Start session tracking for authenticated users (sessionTracker now exists)
+                    if (sessionTracker) {
                         if (!sessionTracker.currentSession) {
                             const sessionId = sessionTracker.startSession(authData);
                             
-                            // Show session start confirmation
+                            // Log session start confirmation (non-blocking)
                             setTimeout(() => {
-                                alert('🚀 SESSION STARTED!\n\n' +
-                                      '✅ User: ' + authData.email + '\n' +
-                                      '✅ Session ID: ' + sessionId + '\n' +
-                                      '✅ Firebase: ' + sessionTracker.firebaseEnabled + '\n\n' +
-                                      'Session is now broadcasting to Firebase every 10 seconds.');
+                                console.log('🚀 SESSION STARTED!');
+                                console.log('✅ User:', authData.email);
+                                console.log('✅ Session ID:', sessionId);
+                                console.log('✅ Firebase:', sessionTracker.firebaseEnabled);
+                                console.log('Session is now broadcasting to Firebase every 10 seconds.');
                             }, 2000); // Delay to let Firebase initialize
                         } else {
-                            alert('📡 SESSION ALREADY EXISTS:\n\n' +
-                                  'Email: ' + sessionTracker.currentSession.email + '\n' +
-                                  'ID: ' + sessionTracker.currentSession.id + '\n\n' +
-                                  'Using existing session.');
+                            console.log('📡 SESSION ALREADY EXISTS:');
+                            console.log('Email:', sessionTracker.currentSession.email);
+                            console.log('ID:', sessionTracker.currentSession.id);
+                            console.log('Using existing session.');
                         }
                     } else {
-                        alert('❌ CRITICAL ERROR:\n\nsessionTracker is not defined during page load!\n\nThis means the broadcast-session-tracker.js file is not loading properly.');
+                        console.error('❌ CRITICAL ERROR: sessionTracker failed to initialize!');
+                        console.error('This means the broadcast-session-tracker.js file is not loading properly.');
                     }
                     
                     // Show admin dashboard button for admin/manager roles
@@ -1393,9 +1397,6 @@
             } catch (error) {
                 console.error('Error loading user data:', error);
             }
-
-            // Initialize session tracker
-            const sessionTracker = new BroadcastSessionTracker();
 
             // Function to update global session activity
             async function updateGlobalSessionActivity(authData) {
@@ -1439,10 +1440,10 @@
                         updatedSessions.push(newSession);
                         
                         // Start session tracking if not already started
-                        if (!sessionTracker.currentSession) {
+                        if (sessionTracker && !sessionTracker.currentSession) {
                             console.log('🚀 Starting new Firebase session for:', newSession.email);
                             sessionTracker.startSession(newSession);
-                        } else {
+                        } else if (sessionTracker) {
                             console.log('📡 Session already active for:', sessionTracker.currentSession.email);
                         }
                     }
@@ -1464,6 +1465,11 @@
                     const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
                     if (authData.authenticated) {
                         updateGlobalSessionActivity(authData);
+                        
+                        // Also update session tracker activity
+                        if (sessionTracker && sessionTracker.currentSession) {
+                            sessionTracker.updateActivity();
+                        }
                     }
                 } catch (error) {
                     console.error('Error in activity update:', error);
@@ -1472,7 +1478,7 @@
 
             // ✅ FIX 3: Handle browser close/refresh
             window.addEventListener('beforeunload', function(event) {
-                if (typeof sessionTracker !== 'undefined' && sessionTracker.currentSession) {
+                if (sessionTracker && sessionTracker.currentSession) {
                     console.log('🚪 Browser closing - stopping Firebase session');
                     // Note: beforeunload has limited time, so we use the sync version for immediate cleanup
                     try {
@@ -1494,13 +1500,13 @@
             document.addEventListener('visibilitychange', function() {
                 if (document.hidden) {
                     // Page is hidden (tab switched, minimized, etc.)
-                    if (typeof sessionTracker !== 'undefined' && sessionTracker.currentSession) {
+                    if (sessionTracker && sessionTracker.currentSession) {
                         console.log('👁️ Page hidden - updating session activity');
                         sessionTracker.updateActivity();
                     }
                 } else {
                     // Page is visible again
-                    if (typeof sessionTracker !== 'undefined' && sessionTracker.currentSession) {
+                    if (sessionTracker && sessionTracker.currentSession) {
                         console.log('👁️ Page visible - updating session activity');
                         sessionTracker.updateActivity();
                     }
@@ -1510,7 +1516,7 @@
             // ✅ DEBUG: Add global test function for manual testing
             window.testLogout = async function() {
                 console.log('🧪 Testing manual logout...');
-                if (typeof sessionTracker !== 'undefined') {
+                if (sessionTracker) {
                     console.log('🔍 sessionTracker exists:', !!sessionTracker);
                     console.log('🔍 currentSession exists:', !!sessionTracker.currentSession);
                     if (sessionTracker.currentSession) {
@@ -1530,8 +1536,8 @@
             // ✅ DEBUG: Add global session info function
             window.getSessionInfo = function() {
                 console.log('📊 Session Information:');
-                console.log('- sessionTracker exists:', typeof sessionTracker !== 'undefined');
-                if (typeof sessionTracker !== 'undefined') {
+                console.log('- sessionTracker exists:', !!sessionTracker);
+                if (sessionTracker) {
                     console.log('- Firebase enabled:', sessionTracker.firebaseEnabled);
                     console.log('- Is broadcasting:', sessionTracker.isBroadcasting);
                     console.log('- Current session:', sessionTracker.currentSession);
@@ -1555,53 +1561,44 @@
                         console.error('Error logging logout:', error);
                     }
                     
-                    // ✅ FIX 2: Wait for Firebase session cleanup to complete
-                    if (typeof sessionTracker !== 'undefined') {
-                        let debugInfo = '🛑 LOGOUT DEBUG INFO:\n\n';
-                        debugInfo += '✅ sessionTracker exists: ' + !!sessionTracker + '\n';
-                        debugInfo += '✅ currentSession exists: ' + !!sessionTracker.currentSession + '\n';
-                        debugInfo += '✅ Firebase enabled: ' + sessionTracker.firebaseEnabled + '\n\n';
+                    // ✅ FIX: Clean logout without blocking alerts
+                    if (sessionTracker) {
+                        console.log('� LOGOUT DEBUG BINFO:');
+                        console.log('✅ sessionTracker exists:', !!sessionTracker);
+                        console.log('✅ currentSession exists:', !!sessionTracker.currentSession);
+                        console.log('✅ Firebase enabled:', sessionTracker.firebaseEnabled);
                         
                         if (sessionTracker.currentSession) {
-                            // ✅ FIX: Use new session integrity verification
+                            // Session integrity verification (non-blocking)
                             const integrity = sessionTracker.verifySessionIntegrity();
-                            
-                            debugInfo += '📋 SESSION INTEGRITY CHECK:\n';
-                            debugInfo += '- Valid: ' + integrity.valid + '\n';
+                            console.log('📋 SESSION INTEGRITY CHECK:');
+                            console.log('- Valid:', integrity.valid);
                             
                             if (!integrity.valid) {
-                                debugInfo += '- Missing Fields: ' + integrity.missingFields.join(', ') + '\n';
+                                console.warn('- Missing Fields:', integrity.missingFields.join(', '));
                             }
                             
-                            debugInfo += '- Field Types: ' + JSON.stringify(integrity.fieldTypes, null, 2) + '\n';
-                            debugInfo += '- Available Keys: ' + integrity.sessionKeys.join(', ') + '\n\n';
-                            
-                            debugInfo += '🔍 RAW SESSION DATA:\n';
-                            debugInfo += integrity.rawSession + '\n\n';
+                            console.log('- Field Types:', integrity.fieldTypes);
+                            console.log('- Available Keys:', integrity.sessionKeys.join(', '));
+                            console.log('🔍 RAW SESSION DATA:', integrity.rawSession);
                             
                             if (integrity.valid) {
-                                debugInfo += '✅ Session data is VALID - proceeding with stopSession()...\n\n';
-                                debugInfo += '🛑 Now calling stopSession()...';
+                                console.log('✅ Session data is VALID - proceeding with stopSession()...');
                             } else {
-                                debugInfo += '❌ Session data is CORRUPTED!\n';
-                                debugInfo += 'Missing fields: ' + integrity.missingFields.join(', ') + '\n';
-                                debugInfo += 'This will cause stopSession to fail.';
+                                console.error('❌ Session data is CORRUPTED! Missing fields:', integrity.missingFields.join(', '));
                             }
                         } else {
-                            debugInfo += '⚠️ NO CURRENT SESSION FOUND!\n';
-                            debugInfo += 'This is why logout is not working.';
+                            console.warn('⚠️ NO CURRENT SESSION FOUND!');
                         }
-                        
-                        alert(debugInfo);
                         
                         try {
                             await sessionTracker.stopSession();
-                            alert('✅ SUCCESS: Firebase session cleanup completed!');
+                            console.log('✅ SUCCESS: Firebase session cleanup completed!');
                         } catch (error) {
-                            alert('❌ ERROR during session cleanup:\n' + error.message);
+                            console.error('❌ ERROR during session cleanup:', error.message);
                         }
                     } else {
-                        alert('❌ CRITICAL ERROR:\nsessionTracker is not defined!\nThis means the session tracker failed to initialize.');
+                        console.error('❌ CRITICAL ERROR: sessionTracker is not defined!');
                     }
                     
                     sessionStorage.removeItem('waterfallAuth');
