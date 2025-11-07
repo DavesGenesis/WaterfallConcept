@@ -85,6 +85,13 @@
         .btn:hover {
             background: #4fd1c7;
         }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
         .session-item {
             background: #1e3a5f;
             padding: 15px;
@@ -101,6 +108,11 @@
             color: #8892b0;
             margin-top: 5px;
         }
+        .session-id {
+            font-size: 0.75rem;
+            color: #4a5568;
+            font-family: monospace;
+        }
         .debug-output {
             background: #1e3a5f;
             padding: 15px;
@@ -112,18 +124,42 @@
             max-height: 300px;
             overflow-y: auto;
         }
+        .firebase-mode {
+            background: #10b981;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        .localStorage-mode {
+            background: #f59e0b;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-shield-alt"></i> Security Dashboard</h1>
+            <h1>
+                <i class="fas fa-shield-alt"></i> Security Dashboard
+                <span id="modeIndicator"></span>
+            </h1>
             <div>
                 <button class="btn" onclick="refreshSessions()">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
                 <button class="btn" onclick="debugSessions()">
                     <i class="fas fa-bug"></i> Debug
+                </button>
+                <button class="btn btn-danger" onclick="cleanupExpired()">
+                    <i class="fas fa-trash"></i> Clean Expired
                 </button>
                 <button class="btn" onclick="goBack()">
                     <i class="fas fa-arrow-left"></i> Back to Tool
@@ -134,15 +170,15 @@
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-number" id="activeSessionsCount">0</div>
-                <div class="stat-label">ACTIVE SESSIONS</div>
+                <div class="stat-label">FIREBASE SESSIONS</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number" id="localStorageCount">0</div>
                 <div class="stat-label">LOCALSTORAGE SESSIONS</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number" id="firebaseCount">0</div>
-                <div class="stat-label">FIREBASE SESSIONS</div>
+                <div class="stat-number" id="uniqueUsersCount">0</div>
+                <div class="stat-label">UNIQUE USERS</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number" id="lastUpdate">--:--</div>
@@ -170,25 +206,24 @@
     </div>
 
     <script>
-        let sessionTracker = null;
         let debugMessages = [];
+        let firebaseEnabled = false;
 
         function addDebugMessage(message) {
             const timestamp = new Date().toLocaleTimeString();
             debugMessages.push(`[${timestamp}] ${message}`);
             
-            // Keep only last 20 messages
-            if (debugMessages.length > 20) {
-                debugMessages = debugMessages.slice(-20);
+            if (debugMessages.length > 30) {
+                debugMessages = debugMessages.slice(-30);
             }
             
             document.getElementById('debugOutput').textContent = debugMessages.join('\n');
         }
 
-        function updateStats(localCount, firebaseCount, totalCount) {
-            document.getElementById('activeSessionsCount').textContent = totalCount;
+        function updateStats(firebaseCount, localCount, uniqueUsers) {
+            document.getElementById('activeSessionsCount').textContent = firebaseCount;
             document.getElementById('localStorageCount').textContent = localCount;
-            document.getElementById('firebaseCount').textContent = firebaseCount;
+            document.getElementById('uniqueUsersCount').textContent = uniqueUsers;
             document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
         }
 
@@ -200,21 +235,36 @@
                 return;
             }
 
-            container.innerHTML = sessions.map(session => `
-                <div class="session-item">
-                    <div class="session-email">${session.email}</div>
-                    <div class="session-details">
-                        Role: ${session.role} | 
-                        Browser: ${session.browser || 'Unknown'} | 
-                        Last seen: ${new Date(session.lastSeen).toLocaleString()}
+            container.innerHTML = sessions.map(session => {
+                const lastSeenDate = new Date(session.lastSeen);
+                const ageMinutes = Math.floor((Date.now() - session.lastSeen) / 60000);
+                const ageDisplay = ageMinutes < 1 ? 'Just now' : 
+                                  ageMinutes < 60 ? `${ageMinutes}m ago` : 
+                                  `${Math.floor(ageMinutes / 60)}h ${ageMinutes % 60}m ago`;
+                
+                return `
+                    <div class="session-item">
+                        <div class="session-email">
+                            ${session.email} 
+                            <span style="color: #8892b0; font-size: 0.8rem;">(${session.role || 'Unknown'})</span>
+                        </div>
+                        <div class="session-details">
+                            Device: ${session.deviceName || 'Unknown'} | 
+                            Browser: ${session.browser || 'Unknown'} | 
+                            Last seen: ${ageDisplay}
+                        </div>
+                        <div class="session-id">
+                            ID: ${session.id || 'Unknown'} | 
+                            Fingerprint: ${session.deviceFingerprint || 'Unknown'}
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function getLocalStorageSessions() {
             const sessions = [];
-            const sessionTimeout = 30 * 60 * 1000; // ✅ FIX 3: Changed from 5 minutes to 30 minutes (match broadcast-session-tracker.js)
+            const sessionTimeout = 30 * 60 * 1000; // 30 minutes
             
             try {
                 // Check global session list
@@ -236,8 +286,8 @@
                             const session = JSON.parse(localStorage.getItem(key));
                             if (session && session.lastSeen && 
                                 (Date.now() - session.lastSeen < sessionTimeout)) {
-                                // Avoid duplicates
-                                if (!sessions.find(s => s.email === session.email)) {
+                                // Avoid duplicates by ID
+                                if (!sessions.find(s => s.id === session.id)) {
                                     sessions.push(session);
                                 }
                             }
@@ -253,26 +303,47 @@
             return sessions;
         }
 
+        // ✅ FIXED: Direct Firebase access like firebase-cleanup.html
         async function getFirebaseSessions() {
             try {
-                if (!sessionTracker) {
-                    addDebugMessage('Initializing session tracker...');
-                    sessionTracker = new BroadcastSessionTracker();
-                    
-                    // Wait for initialization
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                }
-                
-                if (sessionTracker.firebaseEnabled) {
-                    const sessions = await sessionTracker.getAllActiveSessions();
-                    addDebugMessage(`Firebase: Retrieved ${sessions.length} sessions`);
-                    return sessions;
-                } else {
-                    addDebugMessage('Firebase not enabled, using localStorage fallback');
+                // ✅ FIX 1: Check if Firebase is ready
+                if (typeof firebaseConfig === 'undefined') {
+                    addDebugMessage('❌ Firebase config not loaded');
                     return [];
                 }
+
+                if (!firebaseConfig.isReady()) {
+                    addDebugMessage('⏳ Firebase not ready, initializing...');
+                    await firebaseConfig.initialize();
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+                // ✅ FIX 2: Direct Firebase access (like firebase-cleanup.html)
+                const db = firebaseConfig.getDatabase();
+                const sessionsRef = db.ref('sessions');
+                const snapshot = await sessionsRef.once('value');
+                const sessionsData = snapshot.val() || {};
+                
+                // ✅ FIX 3: Convert to array and filter active sessions
+                const sessionTimeout = 30 * 60 * 1000; // 30 minutes
+                const sessions = Object.entries(sessionsData)
+                    .map(([id, session]) => ({
+                        ...session,
+                        id: id // Ensure ID is included
+                    }))
+                    .filter(session => {
+                        return session.lastSeen && 
+                               (Date.now() - session.lastSeen < sessionTimeout);
+                    });
+                
+                addDebugMessage(`✅ Firebase: Retrieved ${sessions.length} active sessions`);
+                firebaseEnabled = true;
+                
+                return sessions;
+                
             } catch (error) {
-                addDebugMessage(`Firebase error: ${error.message}`);
+                addDebugMessage(`❌ Firebase error: ${error.message}`);
+                firebaseEnabled = false;
                 return [];
             }
         }
@@ -282,22 +353,36 @@
             
             try {
                 // Get sessions from both sources
-                const localSessions = getLocalStorageSessions();
                 const firebaseSessions = await getFirebaseSessions();
+                const localSessions = getLocalStorageSessions();
                 
-                // Combine and deduplicate
-                const allSessions = [...localSessions];
-                firebaseSessions.forEach(fbSession => {
-                    if (!allSessions.find(s => s.email === fbSession.email)) {
-                        allSessions.push(fbSession);
+                // ✅ FIX 4: Combine WITHOUT deduplication to show ALL sessions
+                const allSessions = [...firebaseSessions];
+                
+                // Add local sessions that aren't in Firebase
+                localSessions.forEach(localSession => {
+                    if (!allSessions.find(s => s.id === localSession.id)) {
+                        allSessions.push(localSession);
                     }
                 });
                 
+                // Count unique users
+                const uniqueUsers = new Set(allSessions.map(s => s.email)).size;
+                
                 // Update display
-                updateStats(localSessions.length, firebaseSessions.length, allSessions.length);
+                updateStats(firebaseSessions.length, localSessions.length, uniqueUsers);
                 displaySessions(allSessions);
                 
-                addDebugMessage(`✅ Found ${allSessions.length} total sessions (${localSessions.length} local, ${firebaseSessions.length} firebase)`);
+                // Update mode indicator
+                const modeIndicator = document.getElementById('modeIndicator');
+                if (firebaseEnabled) {
+                    modeIndicator.innerHTML = '<span class="firebase-mode">Firebase Mode</span>';
+                } else {
+                    modeIndicator.innerHTML = '<span class="localStorage-mode">LocalStorage Mode</span>';
+                }
+                
+                addDebugMessage(`✅ Total: ${allSessions.length} sessions (${firebaseSessions.length} firebase, ${localSessions.length} local)`);
+                addDebugMessage(`✅ Unique users: ${uniqueUsers}`);
                 
             } catch (error) {
                 addDebugMessage(`❌ Refresh failed: ${error.message}`);
@@ -305,7 +390,7 @@
         }
 
         async function debugSessions() {
-            addDebugMessage('🐛 === DEBUG SESSIONS ===');
+            addDebugMessage('🛠️ === DEBUG SESSIONS ===');
             
             try {
                 // Check script loading
@@ -320,10 +405,20 @@
                 // Test localStorage
                 const localSessions = getLocalStorageSessions();
                 addDebugMessage(`LocalStorage sessions: ${localSessions.length}`);
+                if (localSessions.length > 0) {
+                    localSessions.forEach((s, i) => {
+                        addDebugMessage(`  ${i + 1}. ${s.email} (${s.id})`);
+                    });
+                }
                 
                 // Test Firebase
                 const firebaseSessions = await getFirebaseSessions();
                 addDebugMessage(`Firebase sessions: ${firebaseSessions.length}`);
+                if (firebaseSessions.length > 0) {
+                    firebaseSessions.forEach((s, i) => {
+                        addDebugMessage(`  ${i + 1}. ${s.email} (${s.id})`);
+                    });
+                }
                 
                 // Show current authentication
                 const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
@@ -331,11 +426,51 @@
                 
                 addDebugMessage('=== DEBUG COMPLETE ===');
                 
-                // Also refresh the display
+                // Refresh display
                 await refreshSessions();
                 
             } catch (error) {
                 addDebugMessage(`❌ Debug failed: ${error.message}`);
+            }
+        }
+
+        async function cleanupExpired() {
+            if (!confirm('Remove all expired sessions from Firebase?')) {
+                return;
+            }
+            
+            addDebugMessage('🧹 Cleaning expired sessions...');
+            
+            try {
+                if (!firebaseConfig.isReady()) {
+                    await firebaseConfig.initialize();
+                }
+                
+                const db = firebaseConfig.getDatabase();
+                const sessionsRef = db.ref('sessions');
+                const snapshot = await sessionsRef.once('value');
+                const sessionsData = snapshot.val() || {};
+                
+                const now = Date.now();
+                const sessionTimeout = 30 * 60 * 1000;
+                let cleaned = 0;
+                
+                for (const [sessionId, session] of Object.entries(sessionsData)) {
+                    const isExpired = !session.lastSeen || (now - session.lastSeen > sessionTimeout);
+                    
+                    if (isExpired) {
+                        await db.ref(`sessions/${sessionId}`).remove();
+                        addDebugMessage(`🗑️ Removed: ${session.email || 'Unknown'}`);
+                        cleaned++;
+                    }
+                }
+                
+                addDebugMessage(`✅ Cleaned ${cleaned} expired sessions`);
+                
+                setTimeout(refreshSessions, 1000);
+                
+            } catch (error) {
+                addDebugMessage(`❌ Cleanup failed: ${error.message}`);
             }
         }
 
@@ -345,13 +480,13 @@
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            addDebugMessage('🚀 Simple Admin Dashboard loaded');
+            addDebugMessage('🚀 Admin Dashboard loaded');
             
-            // Auto-refresh every 30 seconds
-            setInterval(refreshSessions, 30000);
+            // Auto-refresh every 15 seconds (more frequent than before)
+            setInterval(refreshSessions, 15000);
             
-            // Initial load
-            setTimeout(refreshSessions, 1000);
+            // Initial load with delay
+            setTimeout(refreshSessions, 2000);
         });
     </script>
 </body>
