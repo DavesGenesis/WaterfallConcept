@@ -898,43 +898,8 @@
                 `).join('');
             }
 
-// ✅ REMOVED: Duplicate blockUser method (kept the better version below)
-
-// ✅ REMOVED: Duplicate unblockUser method (kept the better version below)
-
-// ✅ UPDATED: Terminate user sessions (also remove from Firebase)
-async terminateUserSessions(email) {
-    try {
-        // Remove Firebase sessions
-        if (firebaseConfig.isReady()) {
-            const db = firebaseConfig.getDatabase();
-            const sessionsRef = db.ref('sessions');
-            const snapshot = await sessionsRef.once('value');
-            const sessionsData = snapshot.val() || {};
-            
-            for (const [sessionId, session] of Object.entries(sessionsData)) {
-                if (session.email === email) {
-                    await db.ref(`sessions/${sessionId}`).remove();
-                    console.log(`🗑️ Removed Firebase session: ${sessionId}`);
-                }
-            }
-        }
-        
-        // Remove localStorage sessions
-        const allSessions = JSON.parse(localStorage.getItem('sessionHistory') || '[]');
-        const filteredSessions = allSessions.filter(session => session.email !== email);
-        localStorage.setItem('sessionHistory', JSON.stringify(filteredSessions));
-        
-        console.log(`✅ All sessions terminated for: ${email}`);
-        
-    } catch (error) {
-        console.error('Error terminating sessions:', error);
-    }
-}
-
-
-
-            async loadAllSessions() {
+//async loadAllSessions(){
+ async loadAllSessions() {
                 const sessions = await this.getActiveSessions();
                 const container = document.getElementById('sessionsList');
                 
@@ -992,6 +957,64 @@ async terminateUserSessions(email) {
                 `).join('');
             }
 
+
+//--getSecurityLogs()
+getSecurityLogs() {
+                try {
+                    return JSON.parse(localStorage.getItem('securityLogs') || '[]')
+                        .sort((a, b) => b.timestamp - a.timestamp);
+                } catch {
+                    return [];
+                }
+            }
+
+            formatEventType(event) {
+                const eventTypes = {
+                    'CREDENTIAL_SHARING': '🚨 Credential Sharing Detected',
+                    'CONCURRENT_SESSION': '⚠️ Multiple Sessions',
+                    'SUSPICIOUS_LOCATION': '📍 Suspicious Location',
+                    'DEVICE_MISMATCH': '📱 Device Mismatch',
+                    'RAPID_LOGIN_ATTEMPTS': '🔄 Rapid Login Attempts',
+                    'UNUSUAL_PATTERN': '🔍 Unusual Pattern',
+                    'LOGIN_SUCCESS': '✅ Successful Login',
+                    'LOGIN_FAILED': '❌ Failed Login',
+                    'SESSION_TIMEOUT': '⏰ Session Timeout',
+                    'LOGOUT': '🚪 User Logout'
+                };
+                
+                return eventTypes[event] || event;
+            }
+
+            getLogClass(event) {
+                const criticalEvents = ['CREDENTIAL_SHARING', 'CONCURRENT_SESSION', 'SUSPICIOUS_LOCATION'];
+                const warningEvents = ['DEVICE_MISMATCH', 'RAPID_LOGIN_ATTEMPTS', 'UNUSUAL_PATTERN'];
+                
+                if (criticalEvents.includes(event)) return 'critical';
+                if (warningEvents.includes(event)) return 'warning';
+                return 'info';
+            }
+
+            formatLogDetails(log) {
+                let details = '';
+                if (log.details.email) details += `<strong>User:</strong> ${log.details.email}<br>`;
+                if (log.details.location) details += `<strong>Location:</strong> ${log.details.location}<br>`;
+                if (log.details.deviceFingerprint) details += `<strong>Device:</strong> ${log.details.deviceFingerprint.substring(0, 12)}...<br>`;
+                if (log.details.message) details += `<strong>Message:</strong> ${log.details.message}`;
+                
+                return details || 'No additional details';
+            }
+
+            formatTime(timestamp) {
+                return new Date(timestamp).toLocaleString('id-ID', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+
+//-- async blockUser(email)
 // ✅ UPDATED: Block user in Firebase
 async blockUser(email) {
     if (confirm(`Are you sure you want to block access for ${email}?\n\nThis will:\n• Prevent login from ALL devices\n• Terminate active sessions\n• Be stored in Firebase`)) {
@@ -1195,68 +1218,7 @@ sanitizeEmail(email) {
 }
 
 
-            getSecurityLogs() {
-                try {
-                    return JSON.parse(localStorage.getItem('securityLogs') || '[]')
-                        .sort((a, b) => b.timestamp - a.timestamp);
-                } catch {
-                    return [];
-                }
-            }
-
-            formatEventType(event) {
-                const eventTypes = {
-                    'CREDENTIAL_SHARING': '🚨 Credential Sharing Detected',
-                    'CONCURRENT_SESSION': '⚠️ Multiple Sessions',
-                    'SUSPICIOUS_LOCATION': '📍 Suspicious Location',
-                    'DEVICE_MISMATCH': '📱 Device Mismatch',
-                    'RAPID_LOGIN_ATTEMPTS': '🔄 Rapid Login Attempts',
-                    'UNUSUAL_PATTERN': '🔍 Unusual Pattern',
-                    'LOGIN_SUCCESS': '✅ Successful Login',
-                    'LOGIN_FAILED': '❌ Failed Login',
-                    'SESSION_TIMEOUT': '⏰ Session Timeout',
-                    'LOGOUT': '🚪 User Logout'
-                };
-                
-                return eventTypes[event] || event;
-            }
-
-            getLogClass(event) {
-                const criticalEvents = ['CREDENTIAL_SHARING', 'CONCURRENT_SESSION', 'SUSPICIOUS_LOCATION'];
-                const warningEvents = ['DEVICE_MISMATCH', 'RAPID_LOGIN_ATTEMPTS', 'UNUSUAL_PATTERN'];
-                
-                if (criticalEvents.includes(event)) return 'critical';
-                if (warningEvents.includes(event)) return 'warning';
-                return 'info';
-            }
-
-            formatLogDetails(log) {
-                let details = '';
-                if (log.details.email) details += `<strong>User:</strong> ${log.details.email}<br>`;
-                if (log.details.location) details += `<strong>Location:</strong> ${log.details.location}<br>`;
-                if (log.details.deviceFingerprint) details += `<strong>Device:</strong> ${log.details.deviceFingerprint.substring(0, 12)}...<br>`;
-                if (log.details.message) details += `<strong>Message:</strong> ${log.details.message}`;
-                
-                return details || 'No additional details';
-            }
-
-            formatTime(timestamp) {
-                return new Date(timestamp).toLocaleString('id-ID', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            }
-
-            // Update the viewUserDetails method to include unblock option:
-
-// ====================================================================
-// PART 2: REPLACE THE EXISTING viewUserDetails() METHOD
-// Find and replace the entire method (around line 850)
-// ====================================================================
-
+//---async viewUserDetails(email)
 async viewUserDetails(email) {
     const logs = this.getSecurityLogs().filter(log => log.details.email === email);
     const sessions = (await this.getActiveSessions()).filter(session => session.email === email);
@@ -1325,30 +1287,10 @@ async viewUserDetails(email) {
     
     document.getElementById('userModal').style.display = 'flex';
 }
-            blockUser(email) {
-                if (confirm(`Are you sure you want to block access for ${email}?`)) {
-                    const blockedUsers = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
-                    if (!blockedUsers.includes(email)) {
-                        blockedUsers.push(email);
-                        localStorage.setItem('blockedUsers', JSON.stringify(blockedUsers));
-                    }
-                    
-                    if (typeof SecurityUtils !== 'undefined') {
-                        SecurityUtils.logSecurityEvent('USER_BLOCKED', {
-                            email: email,
-                            blockedBy: 'admin',
-                            timestamp: Date.now(),
-                            message: `User ${email} has been blocked by administrator`
-                        });
-                    }
-                    
-                    alert(`User ${email} has been blocked successfully.`);
-                    this.loadDashboardData();
-                    this.closeModal();
-                }
-            }
 
-            async resetUserSessions(email) {
+
+//---async resetUserSessions(email)
+async resetUserSessions(email) {
                 if (confirm(`Reset all active sessions for ${email}?`)) {
                     if (typeof SecurityUtils !== 'undefined') {
                         SecurityUtils.logSecurityEvent('SESSIONS_RESET', {
@@ -1449,493 +1391,9 @@ async viewUserDetails(email) {
             }
         }
 
-        // Global dashboard instance
+//---Global Functions
         let dashboard;
 
-        // ====================================================================
-// FIND THIS SECTION IN YOUR admin-dashboard.html (around line 850-1100)
-// DELETE EVERYTHING from "async function refreshBlockedUsers()" 
-// down to "document.addEventListener('DOMContentLoaded'...)"
-// THEN PASTE THIS ENTIRE FIXED CODE:
-// ====================================================================
-
-// ✅ PART 1: Block System Methods (add to SecurityDashboard class)
-// These should be INSIDE the SecurityDashboard class, after loadRecentActivity()
-
-async blockUser(email) {
-    if (confirm(`Are you sure you want to block access for ${email}?\n\nThis will:\n• Prevent login from ALL devices\n• Terminate active sessions\n• Be stored in Firebase`)) {
-        try {
-            if (typeof firebaseConfig === 'undefined') {
-                alert('❌ Firebase not available. Cannot block user.');
-                return;
-            }
-
-            if (!firebaseConfig.isReady()) {
-                await firebaseConfig.initialize();
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-            
-            const db = firebaseConfig.getDatabase();
-            const sanitizedEmail = this.sanitizeEmail(email);
-            
-            await db.ref(`blockedUsers/${sanitizedEmail}`).set({
-                email: email,
-                blocked: true,
-                blockedBy: 'admin',
-                blockedAt: Date.now(),
-                reason: 'Blocked by administrator'
-            });
-            
-            console.log('✅ User blocked in Firebase:', email);
-            
-            const blockedUsers = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
-            if (!blockedUsers.includes(email)) {
-                blockedUsers.push(email);
-                localStorage.setItem('blockedUsers', JSON.stringify(blockedUsers));
-            }
-            
-            await this.terminateUserSessions(email);
-            
-            if (typeof SecurityUtils !== 'undefined') {
-                SecurityUtils.logSecurityEvent('USER_BLOCKED', {
-                    email: email,
-                    blockedBy: 'admin',
-                    timestamp: Date.now(),
-                    message: `User ${email} has been blocked by administrator`
-                });
-            }
-            
-            alert(`✅ User ${email} has been blocked successfully!\n\n• Blocked in Firebase\n• All sessions terminated\n• Login access denied`);
-            
-            await this.loadDashboardData();
-            this.closeModal();
-            
-        } catch (error) {
-            console.error('Block user failed:', error);
-            alert(`❌ Failed to block user: ${error.message}`);
-        }
-    }
-}
-
-async unblockUser(email) {
-    if (confirm(`Are you sure you want to unblock ${email}?\n\nThis will:\n• Restore login access\n• Remove from Firebase blocklist`)) {
-        try {
-            if (typeof firebaseConfig === 'undefined') {
-                alert('❌ Firebase not available. Cannot unblock user.');
-                return;
-            }
-
-            if (!firebaseConfig.isReady()) {
-                await firebaseConfig.initialize();
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-            
-            const db = firebaseConfig.getDatabase();
-            const sanitizedEmail = this.sanitizeEmail(email);
-            
-            await db.ref(`blockedUsers/${sanitizedEmail}`).remove();
-            
-            console.log('✅ User unblocked in Firebase:', email);
-            
-            const blockedUsers = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
-            const updatedBlocked = blockedUsers.filter(e => e !== email);
-            localStorage.setItem('blockedUsers', JSON.stringify(updatedBlocked));
-            
-            if (typeof SecurityUtils !== 'undefined') {
-                SecurityUtils.logSecurityEvent('USER_UNBLOCKED', {
-                    email: email,
-                    unblockedBy: 'admin',
-                    timestamp: Date.now(),
-                    message: `User ${email} has been unblocked by administrator`
-                });
-            }
-            
-            alert(`✅ User ${email} has been unblocked successfully!\n\n• Removed from Firebase\n• Login access restored`);
-            
-            await this.loadDashboardData();
-            this.closeModal();
-            
-        } catch (error) {
-            console.error('Unblock user failed:', error);
-            alert(`❌ Failed to unblock user: ${error.message}`);
-        }
-    }
-}
-
-async getBlockedUsers() {
-    try {
-        if (typeof firebaseConfig === 'undefined') {
-            console.warn('Firebase not available, using localStorage');
-            const localBlocked = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
-            return localBlocked.map(email => ({ 
-                email, 
-                blocked: true, 
-                blockedAt: Date.now(),
-                reason: 'Blocked (localStorage)'
-            }));
-        }
-
-        if (!firebaseConfig.isReady()) {
-            await firebaseConfig.initialize();
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        
-        const db = firebaseConfig.getDatabase();
-        const blockedRef = db.ref('blockedUsers');
-        const snapshot = await blockedRef.once('value');
-        const blockedData = snapshot.val() || {};
-        
-        const blockedUsers = Object.values(blockedData).filter(user => user.blocked);
-        
-        console.log(`📊 Retrieved ${blockedUsers.length} blocked users from Firebase`);
-        
-        return blockedUsers;
-        
-    } catch (error) {
-        console.error('Error getting blocked users:', error);
-        
-        const localBlocked = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
-        return localBlocked.map(email => ({ 
-            email, 
-            blocked: true,
-            blockedAt: Date.now(),
-            reason: 'Blocked (localStorage fallback)'
-        }));
-    }
-}
-
-async terminateUserSessions(email) {
-    try {
-        console.log(`🔄 Terminating sessions for: ${email}`);
-        
-        if (typeof firebaseConfig !== 'undefined' && firebaseConfig.isReady()) {
-            const db = firebaseConfig.getDatabase();
-            const sessionsRef = db.ref('sessions');
-            const snapshot = await sessionsRef.once('value');
-            const sessionsData = snapshot.val() || {};
-            
-            let removedCount = 0;
-            for (const [sessionId, session] of Object.entries(sessionsData)) {
-                if (session.email === email) {
-                    await db.ref(`sessions/${sessionId}`).remove();
-                    removedCount++;
-                    console.log(`🗑️ Removed Firebase session: ${sessionId}`);
-                }
-            }
-            
-            console.log(`✅ Removed ${removedCount} Firebase sessions for ${email}`);
-        }
-        
-        const allSessions = JSON.parse(localStorage.getItem('sessionHistory') || '[]');
-        const filteredSessions = allSessions.filter(session => session.email !== email);
-        localStorage.setItem('sessionHistory', JSON.stringify(filteredSessions));
-        
-        const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
-        const filteredGlobal = globalSessions.filter(session => session.email !== email);
-        localStorage.setItem('globalSessionRegistry', JSON.stringify(filteredGlobal));
-        
-        console.log(`✅ All sessions terminated for: ${email}`);
-        
-    } catch (error) {
-        console.error('Error terminating sessions:', error);
-    }
-}
-
-sanitizeEmail(email) {
-    return email.replace(/[.#$[\]\/]/g, '_');
-}
-
-async loadAllSessions() {
-    const sessions = await this.getActiveSessions();
-    const container = document.getElementById('sessionsList');
-    
-    if (sessions.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 2rem;">No active sessions found</p>';
-        return;
-    }
-
-    container.innerHTML = sessions.map(session => {
-        const lastSeenDate = new Date(session.lastSeen || session.loginTime);
-        const ageMinutes = Math.floor((Date.now() - (session.lastSeen || session.loginTime)) / 60000);
-        const ageDisplay = ageMinutes < 1 ? 'Just now' : 
-                          ageMinutes < 60 ? `${ageMinutes}m ago` : 
-                          `${Math.floor(ageMinutes / 60)}h ${ageMinutes % 60}m ago`;
-        
-        return `
-            <div class="session-item">
-                <div class="session-email">
-                    ${session.email || 'Unknown'} 
-                    <span style="color: var(--text-muted); font-size: 0.8rem;">(${session.role || 'Unknown'})</span>
-                </div>
-                <div class="session-details">
-                    Device: ${session.deviceName || 'Unknown'} | 
-                    Browser: ${session.browser || 'Unknown'} | 
-                    Last seen: ${ageDisplay}
-                </div>
-                <div class="session-id">
-                    ID: ${session.id || 'Unknown'} | 
-                    Fingerprint: ${session.deviceFingerprint || 'Unknown'}
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-loadRecentActivity() {
-    const logs = this.getSecurityLogs().slice(0, 20);
-    const container = document.getElementById('recentActivity');
-
-    if (logs.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 2rem;">No recent activity</p>';
-        return;
-    }
-
-    container.innerHTML = logs.map(log => `
-        <div class="log-entry ${this.getLogClass(log.event)}">
-            <div class="log-header">
-                <span class="log-type">${this.formatEventType(log.event)}</span>
-                <span class="log-time">${this.formatTime(log.timestamp)}</span>
-            </div>
-            <div class="log-details">
-                ${this.formatLogDetails(log)}
-            </div>
-        </div>
-    `).join('');
-}
-
-getSecurityLogs() {
-    try {
-        return JSON.parse(localStorage.getItem('securityLogs') || '[]')
-            .sort((a, b) => b.timestamp - a.timestamp);
-    } catch {
-        return [];
-    }
-}
-
-formatEventType(event) {
-    const eventTypes = {
-        'CREDENTIAL_SHARING': '🚨 Credential Sharing Detected',
-        'CONCURRENT_SESSION': '⚠️ Multiple Sessions',
-        'SUSPICIOUS_LOCATION': '📍 Suspicious Location',
-        'DEVICE_MISMATCH': '📱 Device Mismatch',
-        'RAPID_LOGIN_ATTEMPTS': '🔄 Rapid Login Attempts',
-        'UNUSUAL_PATTERN': '🔍 Unusual Pattern',
-        'LOGIN_SUCCESS': '✅ Successful Login',
-        'LOGIN_FAILED': '❌ Failed Login',
-        'SESSION_TIMEOUT': '⏰ Session Timeout',
-        'LOGOUT': '🚪 User Logout',
-        'USER_BLOCKED': '🚫 User Blocked',
-        'USER_UNBLOCKED': '✅ User Unblocked',
-        'BLOCKED_LOGIN_ATTEMPT': '🚫 Blocked User Login Attempt'
-    };
-    
-    return eventTypes[event] || event;
-}
-
-getLogClass(event) {
-    const criticalEvents = ['CREDENTIAL_SHARING', 'CONCURRENT_SESSION', 'SUSPICIOUS_LOCATION', 'USER_BLOCKED', 'BLOCKED_LOGIN_ATTEMPT'];
-    const warningEvents = ['DEVICE_MISMATCH', 'RAPID_LOGIN_ATTEMPTS', 'UNUSUAL_PATTERN'];
-    
-    if (criticalEvents.includes(event)) return 'critical';
-    if (warningEvents.includes(event)) return 'warning';
-    return 'info';
-}
-
-formatLogDetails(log) {
-    let details = '';
-    if (log.details.email) details += `<strong>User:</strong> ${log.details.email}<br>`;
-    if (log.details.location) details += `<strong>Location:</strong> ${log.details.location}<br>`;
-    if (log.details.deviceFingerprint) details += `<strong>Device:</strong> ${log.details.deviceFingerprint.substring(0, 12)}...<br>`;
-    if (log.details.message) details += `<strong>Message:</strong> ${log.details.message}`;
-    
-    return details || 'No additional details';
-}
-
-formatTime(timestamp) {
-    return new Date(timestamp).toLocaleString('id-ID', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-async viewUserDetails(email) {
-    const logs = this.getSecurityLogs().filter(log => log.details.email === email);
-    const sessions = (await this.getActiveSessions()).filter(session => session.email === email);
-    const blockedUsers = await this.getBlockedUsers();
-    const isBlocked = blockedUsers.some(user => user.email === email);
-    const blockedInfo = blockedUsers.find(user => user.email === email);
-    
-    const modalContent = document.getElementById('userModalContent');
-    modalContent.innerHTML = `
-        <h4 style="color: var(--accent); margin-bottom: 1rem;">
-            Security Profile: ${email}
-            ${isBlocked ? '<span style="color: var(--danger); margin-left: 1rem; font-size: 0.9rem;">🚫 BLOCKED</span>' : ''}
-        </h4>
-        
-        ${isBlocked ? `
-            <div style="background: rgba(255, 100, 150, 0.1); border: 2px solid var(--danger); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
-                <strong style="color: var(--danger); font-size: 1rem;">⚠️ This user is currently blocked</strong><br>
-                <small style="color: var(--text-secondary);">
-                    Login access denied on all devices<br>
-                    Blocked: ${this.formatTime(blockedInfo?.blockedAt || Date.now())}<br>
-                    Reason: ${blockedInfo?.reason || 'Blocked by administrator'}
-                </small>
-            </div>
-        ` : ''}
-        
-        <h5 style="margin-top: 1.5rem; color: var(--accent); font-size: 1rem;">
-            Active Sessions (${sessions.length})
-        </h5>
-        ${sessions.length > 0 ? sessions.map(session => `
-            <div style="background: var(--bg-card-darker); padding: 1rem; border-radius: 0.5rem; margin: 0.5rem 0; border: 1px solid var(--border-color);">
-                <strong>Device:</strong> ${session.deviceName || 'Unknown'}<br>
-                <strong>Location:</strong> ${session.location || 'Unknown'}<br>
-                <strong>Login Time:</strong> ${this.formatTime(session.loginTime || session.lastSeen)}<br>
-                <strong>Fingerprint:</strong> <span style="font-family: monospace; font-size: 0.85rem;">${session.deviceFingerprint || 'Unknown'}</span>
-            </div>
-        `).join('') : '<p style="color: var(--text-muted); padding: 1rem; text-align: center;">No active sessions</p>'}
-        
-        <h5 style="margin-top: 1.5rem; color: var(--accent); font-size: 1rem;">
-            Recent Security Events (${logs.length})
-        </h5>
-        ${logs.length > 0 ? logs.slice(0, 10).map(log => `
-            <div style="background: var(--bg-card-darker); padding: 1rem; border-radius: 0.5rem; margin: 0.5rem 0; border: 1px solid var(--border-color);">
-                <strong style="color: var(--accent);">${this.formatEventType(log.event)}</strong><br>
-                <small style="color: var(--text-muted);">${this.formatTime(log.timestamp)}</small><br>
-                <div style="margin-top: 0.5rem; font-size: 0.9rem;">
-                    ${this.formatLogDetails(log)}
-                </div>
-            </div>
-        `).join('') : '<p style="color: var(--text-muted); padding: 1rem; text-align: center;">No security events</p>'}
-        
-        <div style="margin-top: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
-            ${isBlocked ? `
-                <button class="btn btn-success" onclick="dashboard.unblockUser('${email}')">
-                    <i class="fas fa-unlock"></i> Unblock User
-                </button>
-            ` : `
-                <button class="btn btn-danger" onclick="dashboard.blockUser('${email}')">
-                    <i class="fas fa-ban"></i> Block User
-                </button>
-            `}
-            <button class="btn btn-warning" onclick="dashboard.resetUserSessions('${email}')">
-                <i class="fas fa-sync"></i> Reset Sessions
-            </button>
-        </div>
-    `;
-    
-    document.getElementById('userModal').style.display = 'flex';
-}
-
-async resetUserSessions(email) {
-    if (confirm(`Reset all active sessions for ${email}?`)) {
-        await this.terminateUserSessions(email);
-        
-        if (typeof SecurityUtils !== 'undefined') {
-            SecurityUtils.logSecurityEvent('SESSIONS_RESET', {
-                email: email,
-                resetBy: 'admin',
-                timestamp: Date.now(),
-                message: `All sessions for ${email} have been reset by administrator`
-            });
-        }
-        
-        alert(`Sessions for ${email} have been reset.`);
-        this.loadDashboardData();
-        this.closeModal();
-    }
-}
-
-showDetailedLogs() {
-    const logs = this.getSecurityLogs();
-    const modalContent = document.getElementById('logsModalContent');
-    
-    modalContent.innerHTML = `
-        <div style="max-height: 400px; overflow-y: auto;">
-            ${logs.map(log => `
-                <div class="log-entry ${this.getLogClass(log.event)}">
-                    <div class="log-header">
-                        <span class="log-type">${this.formatEventType(log.event)}</span>
-                        <span class="log-time">${this.formatTime(log.timestamp)}</span>
-                    </div>
-                    <div class="log-details">
-                        ${this.formatLogDetails(log)}
-                        <br><small style="color: var(--text-muted);"><strong>Raw Data:</strong> ${JSON.stringify(log.details, null, 2)}</small>
-                    </div>
-                </div>
-            `).join('') || '<p style="color: var(--text-muted);">No logs available</p>'}
-        </div>
-    `;
-    
-    document.getElementById('logsModal').style.display = 'flex';
-}
-
-closeModal() {
-    document.getElementById('userModal').style.display = 'none';
-    document.getElementById('logsModal').style.display = 'none';
-    document.getElementById('debugModal').style.display = 'none';
-}
-
-clearCriticalLogs() {
-    if (confirm('Clear all critical security logs? This action cannot be undone.')) {
-        const logs = this.getSecurityLogs();
-        const filteredLogs = logs.filter(log => 
-            !['CREDENTIAL_SHARING', 'CONCURRENT_SESSION', 'SUSPICIOUS_LOCATION', 'DEVICE_MISMATCH'].includes(log.event)
-        );
-        localStorage.setItem('securityLogs', JSON.stringify(filteredLogs));
-        this.loadDashboardData();
-    }
-}
-
-clearAllLogs() {
-    if (confirm('Clear ALL security logs? This action cannot be undone.')) {
-        localStorage.removeItem('securityLogs');
-        localStorage.removeItem('failedLoginAttempts');
-        this.loadDashboardData();
-    }
-}
-
-async exportLogs() {
-    const logs = this.getSecurityLogs();
-    const sessions = await this.getActiveSessions();
-    
-    const exportData = {
-        exportTime: new Date().toISOString(),
-        securityLogs: logs,
-        activeSessions: sessions,
-        firebaseEnabled: this.firebaseEnabled
-    };
-    
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `security-logs-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-startAutoRefresh() {
-    this.refreshInterval = setInterval(() => {
-        this.loadDashboardData();
-    }, 15000);
-}
-
-stopAutoRefresh() {
-    if (this.refreshInterval) {
-        clearInterval(this.refreshInterval);
-    }
-}
-
-        } // ← END OF SecurityDashboard CLASS
-
-        // ✅ PART 2: Global Functions (OUTSIDE the class)
-        let dashboard;
 
         async function refreshData() {
             const indicator = document.getElementById('refreshIndicator');
@@ -2111,7 +1569,9 @@ stopAutoRefresh() {
             }, 3000);
         });
 
-        // Close modal when clicking outside
+
+//----Close Modal
+// Close modal when clicking outside
         window.addEventListener('click', (e) => {
             if (e.target.classList.contains('modal')) {
                 closeModal();
