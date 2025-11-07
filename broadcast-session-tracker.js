@@ -139,8 +139,10 @@ class BroadcastSessionTracker {
             this.currentSession.lastSeen = Date.now();
 
             // ✅ FIX 5: Validate session before broadcasting
-            if (!this.validateSession()) {
-                console.error('❌ Session validation failed, stopping broadcast');
+            const integrity = this.verifySessionIntegrity();
+            if (!integrity.valid) {
+                console.error('❌ Session integrity check failed:', integrity.missingFields.join(', '));
+                console.error('❌ Stopping broadcast due to corrupted session');
                 this.isBroadcasting = false;
                 return;
             }
@@ -279,8 +281,10 @@ class BroadcastSessionTracker {
         }
 
         // ✅ FIX 6: Validate before cleanup
-        if (!this.validateSession()) {
-            console.warn('⚠️ Session invalid, forcing cleanup');
+        const integrity = this.verifySessionIntegrity();
+        if (!integrity.valid) {
+            console.warn('⚠️ Session integrity check failed:', integrity.missingFields.join(', '));
+            console.warn('⚠️ Forcing cleanup of corrupted session');
             // Force cleanup even if invalid
             this.currentSession = null;
             this.isBroadcasting = false;
@@ -375,6 +379,15 @@ class BroadcastSessionTracker {
     // Update activity (keep session alive)
     updateActivity() {
         if (this.currentSession) {
+            // ✅ Proactive integrity check before updating activity
+            const integrity = this.verifySessionIntegrity();
+            if (!integrity.valid) {
+                console.warn('⚠️ Session corrupted during activity update:', integrity.missingFields.join(', '));
+                console.warn('⚠️ Stopping corrupted session');
+                this.stopSession();
+                return;
+            }
+            
             this.currentSession.lastSeen = Date.now();
         }
     }

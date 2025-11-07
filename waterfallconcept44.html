@@ -1441,7 +1441,7 @@
                         
                         // ✅ FIX: Don't start session here - let main authentication code handle it
                         // This prevents double session creation
-                        console.log('� Session tdata prepared for:', newSession.email);
+                        console.log('  Session tdata prepared for:', newSession.email);
                     }
                     
                     // Keep only active sessions (last 8 hours)
@@ -1559,7 +1559,7 @@
                     
                     // ✅ FIX: Clean logout without blocking alerts
                     if (sessionTracker) {
-                        console.log('� LOGOUT DEBUG BINFO:');
+                        console.log('  LOGOUT DEBUG BINFO:');
                         console.log('✅ sessionTracker exists:', !!sessionTracker);
                         console.log('✅ currentSession exists:', !!sessionTracker.currentSession);
                         console.log('✅ Firebase enabled:', sessionTracker.firebaseEnabled);
