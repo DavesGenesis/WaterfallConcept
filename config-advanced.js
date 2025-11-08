@@ -59,7 +59,7 @@ const WaterfallConfig = {
             cannotEdit: true
         },
         'manager@company.com': {
-            password: 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3', // Manager2024!Safe (SHA-256)
+            password: 'e35eaa0f831b2b91feaba4daece2f469aad418b4a802189196047f04806cb05a', // Manager2024!Safe (SHA-256)
             role: 'manager', 
             name: 'System Manager',
             permissions: ['view', 'export'],
@@ -71,7 +71,7 @@ const WaterfallConfig = {
             cannotEdit: true
         },
         'ferry1112@gmail.com': {
-            password: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', // Ferry@Gmail2025 (SHA-256)
+            password: 'fd885674e01b6402a8d72157911061475ae2a25d9e7f8dbdbfdc70069ba05341', // Ferry@Gmail2025 (SHA-256)
             role: 'user',
             name: 'User One',
             permissions: ['view'],
@@ -83,7 +83,7 @@ const WaterfallConfig = {
             cannotEdit: true
         },
         'user2@company.com': {
-            password: '3c9909afec25354d551dae21590bb26e38d53f2173b8d3dc3eee4c047e7ab1c1', // Legacy2024! (SHA-256)
+            password: '2aabc88fc9595cac8c92ce6ae287644fa869080ede39ed0dbceb668942b3034f', // Legacy2024! (SHA-256)
             role: 'user',
             name: 'User Two', 
             permissions: ['view'],
