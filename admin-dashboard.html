@@ -562,6 +562,159 @@
     </div>
 </div>
 
+<!-- User Management Panel -->
+<div class="panel" style="margin-top: 2rem;">
+    <div class="panel-header">
+        <h3 class="panel-title">
+            <i class="fas fa-users-cog"></i>
+            User Management
+        </h3>
+        <button class="btn btn-primary btn-small" onclick="showAddUserModal()">
+            <i class="fas fa-user-plus"></i>
+            Add New User
+        </button>
+    </div>
+    <div class="panel-body">
+        <!-- System Users Section -->
+        <div style="margin-bottom: 2rem;">
+            <h4 style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                <i class="fas fa-lock" style="color: var(--warning);"></i>
+                System Users (Cannot be edited)
+            </h4>
+            <div id="systemUsersList">
+                <p style="color: var(--text-muted); text-align: center;">Loading system users...</p>
+            </div>
+        </div>
+
+        <!-- Dynamic Users Section -->
+        <div>
+            <h4 style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                <i class="fas fa-users" style="color: var(--accent);"></i>
+                Dynamic Users (Managed via Dashboard)
+            </h4>
+            <div id="dynamicUsersList">
+                <p style="color: var(--text-muted); text-align: center;">Loading dynamic users...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Add User Modal -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-user-plus"></i>
+                    Add New User
+                </h3>
+                <button class="close-btn" onclick="closeAddUserModal()">&times;</button>
+            </div>
+            <div style="padding: 1rem;">
+                <form id="addUserForm" onsubmit="handleAddUser(event)">
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500;">
+                            Email Address *
+                        </label>
+                        <input type="email" id="newUserEmail" required 
+                            style="width: 100%; padding: 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-primary); font-family: 'Montserrat', sans-serif;"
+                            placeholder="user@company.com">
+                        <small id="emailValidation" style="display: block; margin-top: 0.25rem; font-size: 0.75rem;"></small>
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500;">
+                            Password *
+                        </label>
+                        <input type="password" id="newUserPassword" required 
+                            style="width: 100%; padding: 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-primary); font-family: 'Montserrat', sans-serif;"
+                            placeholder="Minimum 8 characters">
+                        <small style="display: block; margin-top: 0.25rem; color: var(--text-muted); font-size: 0.75rem;">
+                            Use a strong password with letters, numbers, and symbols
+                        </small>
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500;">
+                            Full Name *
+                        </label>
+                        <input type="text" id="newUserName" required 
+                            style="width: 100%; padding: 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-primary); font-family: 'Montserrat', sans-serif;"
+                            placeholder="John Doe">
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500;">
+                            Role *
+                        </label>
+                        <select id="newUserRole" required 
+                            style="width: 100%; padding: 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-primary); font-family: 'Montserrat', sans-serif;">
+                            <option value="user">User (View only)</option>
+                            <option value="manager">Manager (View + Export)</option>
+                            <option value="admin">Admin (Full access)</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500;">
+                            Maximum Devices
+                        </label>
+                        <input type="number" id="newUserMaxDevices" value="1" min="1" max="5" 
+                            style="width: 100%; padding: 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-primary); font-family: 'Montserrat', sans-serif;">
+                        <small style="display: block; margin-top: 0.25rem; color: var(--text-muted); font-size: 0.75rem;">
+                            Number of devices this user can login from simultaneously
+                        </small>
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500;">
+                            Permissions
+                        </label>
+                        <div style="background: var(--bg-card-darker); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                            <label style="display: flex; align-items: center; margin-bottom: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="permView" checked disabled style="margin-right: 0.5rem;">
+                                <span style="color: var(--text-primary);">View (Always enabled)</span>
+                            </label>
+                            <label style="display: flex; align-items: center; margin-bottom: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="permExport" style="margin-right: 0.5rem;">
+                                <span style="color: var(--text-primary);">Export Data</span>
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="permManageUsers" style="margin-right: 0.5rem;">
+                                <span style="color: var(--text-primary);">Manage Users</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                        <button type="button" class="btn btn-danger" onclick="closeAddUserModal()">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i>
+                            Create User
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-user-edit"></i>
+                    Edit User
+                </h3>
+                <button class="close-btn" onclick="closeEditUserModal()">&times;</button>
+            </div>
+            <div id="editUserContent">
+                <!-- Content will be populated dynamically -->
+            </div>
+        </div>
+    </div>
 
     <!-- User Details Modal -->
     <div id="userModal" class="modal">
@@ -1596,6 +1749,389 @@ async resetUserSessions(email) {
             }, 3000);
         });
 
+// ============================================================================
+// USER MANAGEMENT FUNCTIONS
+// ============================================================================
+
+// Load and display all users (system + Firebase)
+async function loadAllUsers() {
+    console.log('📋 Loading all users...');
+    
+    // Load system users
+    loadSystemUsers();
+    
+    // Load Firebase users
+    await loadDynamicUsers();
+}
+
+// Display system users from config-advanced.js
+function loadSystemUsers() {
+    const container = document.getElementById('systemUsersList');
+    
+    if (typeof WaterfallConfig === 'undefined' || !WaterfallConfig.users) {
+        container.innerHTML = '<p style="color: var(--danger); text-align: center;">Error: Config not loaded</p>';
+        return;
+    }
+    
+    const systemUsers = Object.entries(WaterfallConfig.users);
+    
+    if (systemUsers.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); text-align: center;">No system users found</p>';
+        return;
+    }
+    
+    container.innerHTML = systemUsers.map(([email, user]) => `
+        <div class="user-row" style="border-left: 4px solid var(--warning);">
+            <div class="user-info">
+                <div class="user-name">
+                    <i class="fas fa-lock" style="color: var(--warning); margin-right: 0.5rem;"></i>
+                    ${user.name || 'Unknown'}
+                </div>
+                <div class="user-details">
+                    <strong>Email:</strong> ${email}<br>
+                    <strong>Role:</strong> ${user.role || 'N/A'}<br>
+                    <strong>Max Devices:</strong> ${user.maxDevices || 'N/A'}<br>
+                    <strong>Permissions:</strong> ${(user.permissions || []).join(', ') || 'N/A'}
+                </div>
+            </div>
+            <div class="user-actions">
+                <button class="btn btn-primary btn-small" onclick="viewSystemUser('${email}')" title="View Details">
+                    <i class="fas fa-eye"></i>
+                    View
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Load and display Firebase users
+async function loadDynamicUsers() {
+    const container = document.getElementById('dynamicUsersList');
+    
+    try {
+        // Check Firebase availability
+        if (typeof firebaseConfig === 'undefined' || !firebaseConfig.isReady()) {
+            container.innerHTML = '<p style="color: var(--warning); text-align: center;">⚠️ Firebase not available. Dynamic users cannot be loaded.</p>';
+            return;
+        }
+        
+        const db = firebaseConfig.getDatabase();
+        const usersRef = db.ref('users');
+        const snapshot = await usersRef.once('value');
+        const usersData = snapshot.val();
+        
+        if (!usersData || Object.keys(usersData).length === 0) {
+            container.innerHTML = `
+                <p style="color: var(--text-muted); text-align: center; padding: 2rem;">
+                    No dynamic users yet.<br>
+                    <small>Click "Add New User" to create your first dynamic user.</small>
+                </p>
+            `;
+            return;
+        }
+        
+        const users = Object.entries(usersData);
+        
+        container.innerHTML = users.map(([sanitizedEmail, user]) => `
+            <div class="user-row" style="border-left: 4px solid var(--accent);">
+                <div class="user-info">
+                    <div class="user-name">
+                        <i class="fas fa-user" style="color: var(--accent); margin-right: 0.5rem;"></i>
+                        ${user.name || 'Unknown'}
+                    </div>
+                    <div class="user-details">
+                        <strong>Email:</strong> ${user.email || sanitizedEmail.replace(/_/g, '.')}<br>
+                        <strong>Role:</strong> ${user.role || 'user'}<br>
+                        <strong>Max Devices:</strong> ${user.maxDevices || 1}<br>
+                        <strong>Created:</strong> ${user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                    </div>
+                </div>
+                <div class="user-actions">
+                    <button class="btn btn-primary btn-small" onclick="editUser('${user.email || sanitizedEmail}')" title="Edit User">
+                        <i class="fas fa-edit"></i>
+                        Edit
+                    </button>
+                    <button class="btn btn-warning btn-small" onclick="resetUserPassword('${user.email || sanitizedEmail}')" title="Reset Password">
+                        <i class="fas fa-key"></i>
+                        Reset
+                    </button>
+                    <button class="btn btn-danger btn-small" onclick="deleteUser('${user.email || sanitizedEmail}')" title="Delete User">
+                        <i class="fas fa-trash"></i>
+                        Delete
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+        console.log(`✅ Loaded ${users.length} dynamic users`);
+        
+    } catch (error) {
+        console.error('❌ Error loading dynamic users:', error);
+        container.innerHTML = `<p style="color: var(--danger); text-align: center;">Error loading users: ${error.message}</p>`;
+    }
+}
+
+// Show add user modal
+function showAddUserModal() {
+    document.getElementById('addUserModal').style.display = 'flex';
+    document.getElementById('addUserForm').reset();
+    document.getElementById('emailValidation').textContent = '';
+}
+
+// Close add user modal
+function closeAddUserModal() {
+    document.getElementById('addUserModal').style.display = 'none';
+}
+
+// Validate email in real-time
+document.addEventListener('DOMContentLoaded', () => {
+    const emailInput = document.getElementById('newUserEmail');
+    if (emailInput) {
+        emailInput.addEventListener('input', function() {
+            const email = this.value.toLowerCase().trim();
+            const validation = document.getElementById('emailValidation');
+            
+            if (!email) {
+                validation.textContent = '';
+                validation.style.color = '';
+                return;
+            }
+            
+            // Check if it's a system user email
+            if (WaterfallConfig.users[email]) {
+                validation.textContent = '❌ This email is reserved for system administrators';
+                validation.style.color = 'var(--danger)';
+            } else if (!email.includes('@')) {
+                validation.textContent = '⚠️ Please enter a valid email address';
+                validation.style.color = 'var(--warning)';
+            } else {
+                validation.textContent = '✅ Email available';
+                validation.style.color = 'var(--success)';
+            }
+        });
+    }
+});
+
+// Handle add user form submission
+async function handleAddUser(event) {
+    event.preventDefault();
+    
+    const email = document.getElementById('newUserEmail').value.toLowerCase().trim();
+    const password = document.getElementById('newUserPassword').value;
+    const name = document.getElementById('newUserName').value.trim();
+    const role = document.getElementById('newUserRole').value;
+    const maxDevices = parseInt(document.getElementById('newUserMaxDevices').value);
+    
+    // Get permissions
+    const permissions = ['view']; // Always include view
+    if (document.getElementById('permExport').checked) permissions.push('export');
+    if (document.getElementById('permManageUsers').checked) permissions.push('manage_users');
+    
+    console.log('➕ Adding new user:', email);
+    
+    // Validation
+    if (WaterfallConfig.users[email]) {
+        alert('❌ Cannot add user: This email is reserved for system administrators');
+        return;
+    }
+    
+    if (password.length < 8) {
+        alert('❌ Password must be at least 8 characters long');
+        return;
+    }
+    
+    try {
+        // Check Firebase availability
+        if (typeof firebaseConfig === 'undefined' || !firebaseConfig.isReady()) {
+            alert('❌ Firebase not available. Cannot add user.');
+            return;
+        }
+        
+        const db = firebaseConfig.getDatabase();
+        const sanitizedEmail = email.replace(/[.#$[\]\/]/g, '_');
+        
+        // Check if user already exists in Firebase
+        const userRef = db.ref(`users/${sanitizedEmail}`);
+        const snapshot = await userRef.once('value');
+        
+        if (snapshot.exists()) {
+            alert('❌ User already exists in Firebase');
+            return;
+        }
+        
+        // Get current admin info
+        const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+        
+        // Create user data
+        const userData = {
+            email: email,
+            password: password, // TODO: Hash in production
+            name: name,
+            role: role,
+            permissions: permissions,
+            maxDevices: maxDevices,
+            allowedCountries: ['ID'],
+            sessionTimeout: role === 'admin' ? 12 * 60 * 60 * 1000 : 
+                           role === 'manager' ? 8 * 60 * 60 * 1000 : 
+                           4 * 60 * 60 * 1000,
+            isSystemUser: false,
+            createdBy: authData.email || 'unknown',
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        };
+        
+        // Save to Firebase
+        await userRef.set(userData);
+        
+        console.log('✅ User added successfully');
+        
+        // Log security event
+        if (typeof SecurityUtils !== 'undefined') {
+            SecurityUtils.logSecurityEvent('USER_CREATED', {
+                email: email,
+                role: role,
+                createdBy: authData.email,
+                timestamp: Date.now()
+            });
+        }
+        
+        alert(`✅ User "${name}" added successfully!`);
+        
+        // Close modal and refresh list
+        closeAddUserModal();
+        await loadDynamicUsers();
+        
+    } catch (error) {
+        console.error('❌ Error adding user:', error);
+        alert(`❌ Error adding user: ${error.message}`);
+    }
+}
+
+// View system user details
+function viewSystemUser(email) {
+    const user = WaterfallConfig.users[email];
+    if (!user) return;
+    
+    const content = `
+        <div style="padding: 1rem;">
+            <div style="background: var(--bg-card-darker); padding: 1rem; border-radius: 0.5rem; border: 2px solid var(--warning); margin-bottom: 1rem;">
+                <strong style="color: var(--warning); font-size: 1rem;">
+                    <i class="fas fa-lock"></i>
+                    System User (Cannot be edited)
+                </strong>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <strong style="color: var(--text-secondary);">Email:</strong><br>
+                <span style="color: var(--text-primary);">${email}</span>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <strong style="color: var(--text-secondary);">Name:</strong><br>
+                <span style="color: var(--text-primary);">${user.name || 'N/A'}</span>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <strong style="color: var(--text-secondary);">Role:</strong><br>
+                <span style="color: var(--accent);">${user.role || 'N/A'}</span>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <strong style="color: var(--text-secondary);">Permissions:</strong><br>
+                <span style="color: var(--text-primary);">${(user.permissions || []).join(', ') || 'N/A'}</span>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <strong style="color: var(--text-secondary);">Max Devices:</strong><br>
+                <span style="color: var(--text-primary);">${user.maxDevices || 'N/A'}</span>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <strong style="color: var(--text-secondary);">Session Timeout:</strong><br>
+                <span style="color: var(--text-primary);">${user.sessionTimeout ? (user.sessionTimeout / (60 * 60 * 1000)) + ' hours' : 'N/A'}</span>
+            </div>
+            
+            <div style="text-align: right; margin-top: 1.5rem;">
+                <button class="btn btn-primary" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                    Close
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('userModalContent').innerHTML = content;
+    document.getElementById('userModal').style.display = 'flex';
+}
+
+// Edit user (placeholder for now)
+function editUser(email) {
+    alert(`Edit user functionality coming in next update!\n\nUser: ${email}`);
+    // TODO: Implement edit user modal
+}
+
+// Reset user password (placeholder for now)
+function resetUserPassword(email) {
+    const newPassword = prompt(`Enter new password for ${email}:`);
+    if (!newPassword) return;
+    
+    if (newPassword.length < 8) {
+        alert('❌ Password must be at least 8 characters long');
+        return;
+    }
+    
+    alert(`Password reset functionality coming in next update!\n\nUser: ${email}\nNew password: ${newPassword}`);
+    // TODO: Implement password reset
+}
+
+// Delete user
+async function deleteUser(email) {
+    if (!confirm(`⚠️ Are you sure you want to delete user "${email}"?\n\nThis action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        // Check Firebase availability
+        if (typeof firebaseConfig === 'undefined' || !firebaseConfig.isReady()) {
+            alert('❌ Firebase not available. Cannot delete user.');
+            return;
+        }
+        
+        const db = firebaseConfig.getDatabase();
+        const sanitizedEmail = email.replace(/[.#$[\]\/]/g, '_');
+        const userRef = db.ref(`users/${sanitizedEmail}`);
+        
+        // Delete from Firebase
+        await userRef.remove();
+        
+        console.log('✅ User deleted successfully');
+        
+        // Log security event
+        const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+        if (typeof SecurityUtils !== 'undefined') {
+            SecurityUtils.logSecurityEvent('USER_DELETED', {
+                email: email,
+                deletedBy: authData.email,
+                timestamp: Date.now()
+            });
+        }
+        
+        alert(`✅ User "${email}" deleted successfully!`);
+        
+        // Refresh list
+        await loadDynamicUsers();
+        
+    } catch (error) {
+        console.error('❌ Error deleting user:', error);
+        alert(`❌ Error deleting user: ${error.message}`);
+    }
+}
+
+// Close edit user modal
+function closeEditUserModal() {
+    document.getElementById('editUserModal').style.display = 'none';
+}
+
 
 //----Close Modal
 // Close modal when clicking outside
@@ -1603,6 +2139,14 @@ async resetUserSessions(email) {
             if (e.target.classList.contains('modal')) {
                 closeModal();
             }
+        });
+        
+        // ✅ Initialize user management on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                console.log('📋 Loading user management...');
+                loadAllUsers();
+            }, 3500); // Load after blocked users (3 seconds + 500ms)
         });
     </script>
 </body>

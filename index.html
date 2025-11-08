@@ -502,30 +502,75 @@
 
 // Replace the validateCredentials and handleSuccessfulLogin methods with these:
 
+// ============================================================================
+// DUAL-SOURCE AUTHENTICATION (System Users + Firebase Users)
+// ============================================================================
+// Priority: config-advanced.js (System Users) → Firebase (Dynamic Users)
+// This prevents conflicts and ensures system admins always have access
+// ============================================================================
+
 async validateCredentials(email, password) {
     try {
         console.log('🔐 Validating credentials for:', email);
         console.log('🔐 Password provided:', password ? '***' : 'EMPTY');
         
-        // ✅ STEP 1: Check credentials FIRST (to see if this is the issue)
-        const user = WaterfallConfig.users[email];
-        console.log('👤 User found in config:', !!user);
+        // ============================================================
+        // STEP 1: Check SYSTEM USERS first (config-advanced.js)
+        // ============================================================
+        const systemUser = WaterfallConfig.users[email];
         
-        if (!user) {
-            console.error('❌ User not found in WaterfallConfig.users');
+        if (systemUser) {
+            console.log('🔒 SYSTEM USER found in config-advanced.js');
+            console.log('   Role:', systemUser.role);
+            console.log('   Name:', systemUser.name);
+            
+            // Validate password
+            const passwordMatch = systemUser.password === password;
+            console.log('🔑 Password match:', passwordMatch);
+            
+            if (!passwordMatch) {
+                console.error('❌ Password does not match for system user');
+                return false;
+            }
+            
+            // System users cannot be blocked (they have priority)
+            console.log('✅ System user authenticated successfully');
+            
+            // Store user data for handleSuccessfulLogin
+            this.currentUserData = systemUser;
+            this.currentUserData.email = email;
+            this.currentUserData.isSystemUser = true;
+            
+            return true;
+        }
+        
+        // ============================================================
+        // STEP 2: Check FIREBASE USERS (dynamic users)
+        // ============================================================
+        console.log('👤 Not a system user, checking Firebase...');
+        
+        const firebaseUser = await this.getFirebaseUser(email);
+        
+        if (!firebaseUser) {
+            console.error('❌ User not found in config or Firebase');
             return false;
         }
         
-        const passwordMatch = user.password === password;
+        console.log('📱 Firebase user found');
+        console.log('   Role:', firebaseUser.role);
+        console.log('   Name:', firebaseUser.name);
+        
+        // Validate password
+        const passwordMatch = firebaseUser.password === password;
         console.log('🔑 Password match:', passwordMatch);
         
         if (!passwordMatch) {
-            console.error('❌ Password does not match');
+            console.error('❌ Password does not match for Firebase user');
             return false;
         }
         
-        // ✅ STEP 2: Check if user is blocked in Firebase
-        console.log('✅ Credentials valid, now checking if blocked...');
+        // Check if Firebase user is blocked
+        console.log('✅ Credentials valid, checking if blocked...');
         const isBlocked = await this.checkIfUserBlocked(email);
         
         if (isBlocked) {
@@ -547,15 +592,61 @@ async validateCredentials(email, password) {
             return false;
         }
         
-        console.log('✅ User is NOT blocked, login allowed');
+        console.log('✅ Firebase user authenticated successfully');
+        
+        // Store user data for handleSuccessfulLogin
+        this.currentUserData = firebaseUser;
+        this.currentUserData.email = email;
+        this.currentUserData.isSystemUser = false;
+        
         return true;
         
     } catch (error) {
         console.error('❌ Error in validateCredentials:', error);
         console.error('Error stack:', error.stack);
-        // On error, still try to validate credentials (fail-open for login)
+        
+        // Fallback: Try system user only (fail-safe)
         const user = WaterfallConfig.users[email];
-        return user && user.password === password;
+        if (user && user.password === password) {
+            console.warn('⚠️ Fallback to system user due to error');
+            this.currentUserData = user;
+            this.currentUserData.email = email;
+            this.currentUserData.isSystemUser = true;
+            return true;
+        }
+        
+        return false;
+    }
+}
+
+// ============================================================================
+// GET FIREBASE USER
+// ============================================================================
+async getFirebaseUser(email) {
+    try {
+        // Check if Firebase is available
+        if (typeof firebaseConfig === 'undefined' || !firebaseConfig.isReady()) {
+            console.warn('⚠️ Firebase not available, skipping Firebase user check');
+            return null;
+        }
+        
+        const db = firebaseConfig.getDatabase();
+        const sanitizedEmail = this.sanitizeEmail(email);
+        const userRef = db.ref(`users/${sanitizedEmail}`);
+        
+        const snapshot = await userRef.once('value');
+        const userData = snapshot.val();
+        
+        if (!userData) {
+            console.log('📱 No Firebase user found for:', email);
+            return null;
+        }
+        
+        return userData;
+        
+    } catch (error) {
+        console.error('❌ Error getting Firebase user:', error);
+        return null;
     }
 }                
 
@@ -625,7 +716,17 @@ sanitizeEmail(email) {
 }
 
 async handleSuccessfulLogin(email, deviceName) {
-                const user = WaterfallConfig.users[email];
+                // Use the stored user data from validateCredentials
+                const user = this.currentUserData || WaterfallConfig.users[email];
+                
+                if (!user) {
+                    console.error('❌ No user data available for successful login');
+                    this.showMessage('error', 'Login error: User data not found');
+                    return;
+                }
+                
+                console.log('✅ Handling successful login for:', email);
+                console.log('   User type:', user.isSystemUser ? 'System User' : 'Firebase User');
                 
                 // Get existing sessions for this user
                 const allSessions = this.getStoredSessions();

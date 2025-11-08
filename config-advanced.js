@@ -33,25 +33,42 @@ const WaterfallConfig = {
         }
     },
 
-    // Authorized users with enhanced security
+    // ============================================================================
+    // SYSTEM USERS (Hardcoded - Cannot be edited via dashboard)
+    // ============================================================================
+    // These users are permanently defined in this config file and serve as:
+    // - Super administrators with guaranteed access
+    // - Emergency access accounts
+    // - System-level accounts that cannot be deleted or modified via UI
+    //
+    // Note: These emails are RESERVED and cannot be used when adding users
+    // via the admin dashboard. Any attempt to add these emails to Firebase
+    // will be blocked to prevent conflicts.
+    // ============================================================================
     users: {
         'daves@genesisadv.id': {
             password: 'Genesis@5758',
             role: 'admin',
-            name: 'Administrator',
+            name: 'Super Administrator',
             permissions: ['view', 'export', 'manage_users'],
             maxDevices: 3,
             allowedCountries: ['ID', 'SG'],
-            sessionTimeout: 12 * 60 * 60 * 1000 // 12 hours for admin
+            sessionTimeout: 12 * 60 * 60 * 1000, // 12 hours for admin
+            isSystemUser: true, // ⚠️ SYSTEM USER - Cannot be edited/deleted via UI
+            cannotDelete: true,
+            cannotEdit: true
         },
         'manager@company.com': {
             password: 'Manager2024!Safe',
             role: 'manager', 
-            name: 'Manager',
+            name: 'System Manager',
             permissions: ['view', 'export'],
             maxDevices: 2,
             allowedCountries: ['ID'],
-            sessionTimeout: 8 * 60 * 60 * 1000 // 8 hours
+            sessionTimeout: 8 * 60 * 60 * 1000, // 8 hours
+            isSystemUser: true, // ⚠️ SYSTEM USER - Cannot be edited/deleted via UI
+            cannotDelete: true,
+            cannotEdit: true
         },
         'ferry1112@gmail.com': {
             password: 'Ferry@Gmail2025',
@@ -60,7 +77,10 @@ const WaterfallConfig = {
             permissions: ['view'],
             maxDevices: 1, // Only 1 device allowed
             allowedCountries: ['ID'],
-            sessionTimeout: 4 * 60 * 60 * 1000 // 4 hours
+            sessionTimeout: 4 * 60 * 60 * 1000, // 4 hours
+            isSystemUser: true, // ⚠️ SYSTEM USER - Cannot be edited/deleted via UI
+            cannotDelete: true,
+            cannotEdit: true
         },
         'user2@company.com': {
             password: 'Legacy2024!',
@@ -69,9 +89,24 @@ const WaterfallConfig = {
             permissions: ['view'],
             maxDevices: 1,
             allowedCountries: ['ID'],
-            sessionTimeout: 4 * 60 * 60 * 1000
+            sessionTimeout: 4 * 60 * 60 * 1000, // 4 hours
+            isSystemUser: true, // ⚠️ SYSTEM USER - Cannot be edited/deleted via UI
+            cannotDelete: true,
+            cannotEdit: true
         }
     },
+    
+    // ============================================================================
+    // DYNAMIC USERS (Managed via Admin Dashboard)
+    // ============================================================================
+    // Dynamic users are stored in Firebase Realtime Database and can be:
+    // - Added via admin dashboard
+    // - Edited via admin dashboard
+    // - Deleted via admin dashboard
+    // - Reset password via admin dashboard
+    //
+    // Firebase path: /users/{sanitized_email}
+    // ============================================================================
 
     // Security policies to prevent sharing
     security: {
