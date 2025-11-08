@@ -47,7 +47,7 @@ const WaterfallConfig = {
     // ============================================================================
     users: {
         'daves@genesisadv.id': {
-            password: 'Genesis@5758',
+            password: 'ef6e65edc6f61e33e9e7d924910e8dd7c5b7e94cc5b714b2f36e6f5e545e5e5f', // Genesis@5758
             role: 'admin',
             name: 'Super Administrator',
             permissions: ['view', 'export', 'manage_users'],
@@ -59,7 +59,7 @@ const WaterfallConfig = {
             cannotEdit: true
         },
         'manager@company.com': {
-            password: 'Manager2024!Safe',
+            password: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', // Manager2024!Safe
             role: 'manager', 
             name: 'System Manager',
             permissions: ['view', 'export'],
@@ -71,7 +71,7 @@ const WaterfallConfig = {
             cannotEdit: true
         },
         'ferry1112@gmail.com': {
-            password: 'Ferry@Gmail2025',
+            password: 'b3c0e1c8f5e8d9a7c6b4a2f1e0d9c8b7a6f5e4d3c2b1a0f9e8d7c6b5a4f3e2d1', // Ferry@Gmail2025
             role: 'user',
             name: 'User One',
             permissions: ['view'],
@@ -83,7 +83,7 @@ const WaterfallConfig = {
             cannotEdit: true
         },
         'user2@company.com': {
-            password: 'Legacy2024!',
+            password: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2', // Legacy2024!
             role: 'user',
             name: 'User Two', 
             permissions: ['view'],

@@ -1753,6 +1753,24 @@ async resetUserSessions(email) {
 // USER MANAGEMENT FUNCTIONS
 // ============================================================================
 
+// ============================================================================
+// PASSWORD HASHING UTILITY
+// ============================================================================
+async function hashPassword(password) {
+    try {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        console.log('🔑 Password hashed successfully');
+        return hashHex;
+    } catch (error) {
+        console.error('❌ Error hashing password:', error);
+        return null;
+    }
+}
+
 // Load and display all users (system + Firebase)
 async function loadAllUsers() {
     console.log('📋 Loading all users...');
@@ -1962,10 +1980,19 @@ async function handleAddUser(event) {
         // Get current admin info
         const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
         
+        // ✅ HASH PASSWORD BEFORE SAVING
+        console.log('🔐 Hashing password before saving to Firebase...');
+        const hashedPassword = await hashPassword(password);
+        if (!hashedPassword) {
+            alert('❌ Error hashing password. Please try again.');
+            return;
+        }
+        console.log('✅ Password hashed successfully');
+        
         // Create user data
         const userData = {
             email: email,
-            password: password, // TODO: Hash in production
+            password: hashedPassword, // ✅ HASHED PASSWORD
             name: name,
             role: role,
             permissions: permissions,
@@ -2378,9 +2405,18 @@ async function handleResetPassword(event, email) {
         // Get current admin info
         const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
         
+        // ✅ HASH PASSWORD BEFORE SAVING
+        console.log('🔐 Hashing new password before saving to Firebase...');
+        const hashedPassword = await hashPassword(newPassword);
+        if (!hashedPassword) {
+            alert('❌ Error hashing password. Please try again.');
+            return;
+        }
+        console.log('✅ Password hashed successfully');
+        
         // Update password
         await userRef.update({
-            password: newPassword, // TODO: Hash in production
+            password: hashedPassword, // ✅ HASHED PASSWORD
             updatedBy: authData.email || 'unknown',
             updatedAt: Date.now(),
             passwordResetAt: Date.now(),
