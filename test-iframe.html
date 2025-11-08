@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iframe Compatibility Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a192f;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+
+        .test-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .test-header {
+            background: #172a46;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px solid #64ffda;
+        }
+
+        .test-header h1 {
+            color: #64ffda;
+            margin-bottom: 10px;
+        }
+
+        .test-header p {
+            color: #a8b2c1;
+            line-height: 1.6;
+        }
+
+        .status-box {
+            background: #172a46;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .status-box h3 {
+            color: #f59e0b;
+            margin-bottom: 10px;
+        }
+
+        .status-box ul {
+            margin-left: 20px;
+            color: #a8b2c1;
+        }
+
+        .status-box li {
+            margin: 5px 0;
+        }
+
+        .iframe-container {
+            background: #172a46;
+            padding: 10px;
+            border-radius: 10px;
+            border: 2px solid #64ffda;
+            height: calc(100vh - 300px);
+            min-height: 600px;
+            position: relative;
+        }
+
+        .loading-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #64ffda;
+            font-size: 18px;
+        }
+
+        .spinner {
+            border: 4px solid #172a46;
+            border-top: 4px solid #64ffda;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .result-box {
+            background: #172a46;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 2px solid #64ffda;
+        }
+
+        .result-box h3 {
+            color: #64ffda;
+            margin-bottom: 15px;
+        }
+
+        .success {
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #ff6496;
+            font-weight: bold;
+        }
+
+        .warning {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+
+        .code-block {
+            background: #0a192f;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            border: 1px solid #2d3748;
+        }
+
+        .instruction {
+            background: #1d3555;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #64ffda;
+        }
+
+        .instruction strong {
+            color: #64ffda;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <!-- Header -->
+        <div class="test-header">
+            <h1>🧪 Iframe Compatibility Test</h1>
+            <p>Testing if Legacy Planner can be embedded in an iframe</p>
+            <p style="margin-top: 10px; font-size: 14px;">
+                <strong>URL:</strong> https://legacy-planner-eobsx7wb5-davesgenesis-projects.vercel.app
+            </p>
+        </div>
+
+        <!-- Instructions -->
+        <div class="status-box">
+            <h3>📋 What to Check:</h3>
+            <ul>
+                <li><strong>If you see the Legacy Planner app below:</strong> ✅ Iframe embedding works!</li>
+                <li><strong>If you see a blank space or error:</strong> ❌ Iframe is blocked</li>
+                <li><strong>Check browser console (F12):</strong> Look for error messages</li>
+            </ul>
+        </div>
+
+        <!-- Iframe Container -->
+        <div class="iframe-container">
+            <div class="loading-message" id="loadingMessage">
+                <div class="spinner"></div>
+                <div>Loading Legacy Planner...</div>
+                <div style="font-size: 14px; margin-top: 10px; color: #a8b2c1;">
+                    This may take a few seconds
+                </div>
+            </div>
+            <iframe 
+                id="testIframe"
+                src="https://legacy-planner-eobsx7wb5-davesgenesis-projects.vercel.app"
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
+                onload="handleIframeLoad()"
+                onerror="handleIframeError()">
+            </iframe>
+        </div>
+
+        <!-- Results -->
+        <div class="result-box">
+            <h3>🔍 Test Results:</h3>
+            <div id="results">
+                <p class="warning">⏳ Testing in progress... Please wait.</p>
+            </div>
+
+            <div class="instruction" style="margin-top: 20px;">
+                <strong>📝 Instructions:</strong>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li>Wait for the iframe to load (or fail)</li>
+                    <li>Open browser console (Press F12)</li>
+                    <li>Look for any error messages</li>
+                    <li>Take a screenshot of this page</li>
+                    <li>Report back what you see</li>
+                </ol>
+            </div>
+
+            <div class="instruction" style="margin-top: 15px;">
+                <strong>🔍 Common Error Messages:</strong>
+                <div class="code-block">
+❌ "Refused to display in a frame because it set 'X-Frame-Options' to 'deny'"
+   → Iframe is BLOCKED by the server
+
+❌ "Refused to display in a frame because an ancestor violates CSP"
+   → Iframe is BLOCKED by Content Security Policy
+
+✅ No errors in console + app visible
+   → Iframe embedding WORKS!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let iframeLoaded = false;
+        let loadTimeout;
+
+        // Set timeout to detect if iframe never loads
+        loadTimeout = setTimeout(function() {
+            if (!iframeLoaded) {
+                showResult('error', 
+                    '⏱️ Iframe loading timeout (30 seconds)',
+                    'The iframe did not load within 30 seconds. This might indicate it is blocked or the site is slow.'
+                );
+            }
+        }, 30000);
+
+        function handleIframeLoad() {
+            clearTimeout(loadTimeout);
+            iframeLoaded = true;
+            
+            // Hide loading message
+            document.getElementById('loadingMessage').style.display = 'none';
+            
+            // Try to detect if iframe actually loaded content
+            setTimeout(function() {
+                const iframe = document.getElementById('testIframe');
+                try {
+                    // Try to access iframe content (will fail if blocked by CORS)
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    
+                    if (iframeDoc.body && iframeDoc.body.innerHTML.length > 0) {
+                        showResult('success', 
+                            '✅ SUCCESS! Iframe loaded successfully!',
+                            'The Legacy Planner can be embedded in an iframe. You should see the app above.'
+                        );
+                    } else {
+                        showResult('warning', 
+                            '⚠️ Iframe loaded but content might be blocked',
+                            'The iframe element loaded, but we cannot verify the content. Check if you see the app above.'
+                        );
+                    }
+                } catch (e) {
+                    // CORS prevents access, but iframe might still work
+                    showResult('warning', 
+                        '⚠️ Iframe loaded (CORS prevents verification)',
+                        'The iframe loaded, but cross-origin security prevents us from checking the content. If you can see the Legacy Planner app above, it works! If you see a blank space, it is blocked.'
+                    );
+                }
+            }, 2000);
+        }
+
+        function handleIframeError() {
+            clearTimeout(loadTimeout);
+            showResult('error', 
+                '❌ FAILED! Iframe failed to load',
+                'The iframe could not load the Legacy Planner. It is likely blocked by X-Frame-Options or CSP headers.'
+            );
+        }
+
+        function showResult(type, title, message) {
+            const resultsDiv = document.getElementById('results');
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'warning';
+            
+            resultsDiv.innerHTML = `
+                <p class="${className}">${title}</p>
+                <p style="margin-top: 10px; color: #a8b2c1;">${message}</p>
+                <div class="instruction" style="margin-top: 15px;">
+                    <strong>Next Steps:</strong>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        ${type === 'success' ? `
+                            <li>✅ Iframe embedding works!</li>
+                            <li>We can create a wrapper page for the Legacy Planner</li>
+                            <li>This will allow session control (closes when user logs out)</li>
+                        ` : type === 'error' ? `
+                            <li>❌ Iframe embedding is blocked</li>
+                            <li>We'll need to use alternative approach</li>
+                            <li>Options: Keep new tab with warning, or request Vercel app changes</li>
+                        ` : `
+                            <li>⚠️ Check if you can see the Legacy Planner app above</li>
+                            <li>If YES: Iframe works! We can proceed</li>
+                            <li>If NO: Iframe is blocked, we need alternative</li>
+                        `}
+                    </ul>
+                </div>
+            `;
+        }
+
+        // Also listen for console errors
+        window.addEventListener('error', function(e) {
+            if (e.message && e.message.includes('frame')) {
+                showResult('error', 
+                    '❌ Frame Error Detected',
+                    'Browser detected a frame-related error: ' + e.message
+                );
+            }
+        });
+
+        // Check console for X-Frame-Options errors
+        console.log('%c🧪 Iframe Compatibility Test Started', 'color: #64ffda; font-size: 16px; font-weight: bold;');
+        console.log('%cWatch for errors like "Refused to display in a frame"', 'color: #a8b2c1;');
+        console.log('%cIf you see such errors, iframe embedding is blocked.', 'color: #a8b2c1;');
+    </script>
+</body>
+</html>
