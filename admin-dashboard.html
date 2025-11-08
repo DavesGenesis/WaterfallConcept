@@ -2064,24 +2064,349 @@ function viewSystemUser(email) {
     document.getElementById('userModal').style.display = 'flex';
 }
 
-// Edit user (placeholder for now)
-function editUser(email) {
-    alert(`Edit user functionality coming in next update!\n\nUser: ${email}`);
-    // TODO: Implement edit user modal
+// ============================================================================
+// EDIT USER
+// ============================================================================
+async function editUser(email) {
+    try {
+        console.log('✏️ Editing user:', email);
+        
+        // Check Firebase availability
+        if (typeof firebaseConfig === 'undefined' || !firebaseConfig.isReady()) {
+            alert('❌ Firebase not available. Cannot edit user.');
+            return;
+        }
+        
+        const db = firebaseConfig.getDatabase();
+        const sanitizedEmail = email.replace(/[.#$[\]\/]/g, '_');
+        const userRef = db.ref(`users/${sanitizedEmail}`);
+        
+        // Get user data
+        const snapshot = await userRef.once('value');
+        const userData = snapshot.val();
+        
+        if (!userData) {
+            alert('❌ User not found');
+            return;
+        }
+        
+        // Build edit form
+        const content = `
+            <div style="padding: 1rem;">
+                <form id="editUserForm" onsubmit="handleEditUser(event, '${email}')">
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500;">
+                            Email Address
+                        </label>
+                        <input type="text" value="${userData.email || email}" disabled
+                            style="width: 100%; padding: 0.75rem; background: var(--bg-card-darker); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-muted); font-family: 'Montserrat', sans-serif;">
+                        <small style="display: block; margin-top: 0.25rem; color: var(--text-muted); font-size: 0.75rem;">
+                            Email cannot be changed
+                        </small>
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500;">
+                            Full Name *
+                        </label>
+                        <input type="text" id="editUserName" value="${userData.name || ''}" required 
+                            style="width: 100%; padding: 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-primary); font-family: 'Montserrat', sans-serif;">
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500;">
+                            Role *
+                        </label>
+                        <select id="editUserRole" required 
+                            style="width: 100%; padding: 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-primary); font-family: 'Montserrat', sans-serif;">
+                            <option value="user" ${userData.role === 'user' ? 'selected' : ''}>User (View only)</option>
+                            <option value="manager" ${userData.role === 'manager' ? 'selected' : ''}>Manager (View + Export)</option>
+                            <option value="admin" ${userData.role === 'admin' ? 'selected' : ''}>Admin (Full access)</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500;">
+                            Maximum Devices
+                        </label>
+                        <input type="number" id="editUserMaxDevices" value="${userData.maxDevices || 1}" min="1" max="5" 
+                            style="width: 100%; padding: 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-primary); font-family: 'Montserrat', sans-serif;">
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500;">
+                            Permissions
+                        </label>
+                        <div style="background: var(--bg-card-darker); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                            <label style="display: flex; align-items: center; margin-bottom: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="editPermView" checked disabled style="margin-right: 0.5rem;">
+                                <span style="color: var(--text-primary);">View (Always enabled)</span>
+                            </label>
+                            <label style="display: flex; align-items: center; margin-bottom: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="editPermExport" ${(userData.permissions || []).includes('export') ? 'checked' : ''} style="margin-right: 0.5rem;">
+                                <span style="color: var(--text-primary);">Export Data</span>
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="editPermManageUsers" ${(userData.permissions || []).includes('manage_users') ? 'checked' : ''} style="margin-right: 0.5rem;">
+                                <span style="color: var(--text-primary);">Manage Users</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--bg-card-darker); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+                        <small style="color: var(--text-muted); font-size: 0.75rem;">
+                            <strong>Created:</strong> ${userData.createdAt ? new Date(userData.createdAt).toLocaleString() : 'N/A'}<br>
+                            <strong>Created By:</strong> ${userData.createdBy || 'N/A'}<br>
+                            <strong>Last Updated:</strong> ${userData.updatedAt ? new Date(userData.updatedAt).toLocaleString() : 'N/A'}
+                        </small>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                        <button type="button" class="btn btn-danger" onclick="closeEditUserModal()">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
+        
+        document.getElementById('editUserContent').innerHTML = content;
+        document.getElementById('editUserModal').style.display = 'flex';
+        
+    } catch (error) {
+        console.error('❌ Error loading user for edit:', error);
+        alert(`❌ Error loading user: ${error.message}`);
+    }
 }
 
-// Reset user password (placeholder for now)
-function resetUserPassword(email) {
-    const newPassword = prompt(`Enter new password for ${email}:`);
-    if (!newPassword) return;
+// Handle edit user form submission
+async function handleEditUser(event, email) {
+    event.preventDefault();
+    
+    const name = document.getElementById('editUserName').value.trim();
+    const role = document.getElementById('editUserRole').value;
+    const maxDevices = parseInt(document.getElementById('editUserMaxDevices').value);
+    
+    // Get permissions
+    const permissions = ['view']; // Always include view
+    if (document.getElementById('editPermExport').checked) permissions.push('export');
+    if (document.getElementById('editPermManageUsers').checked) permissions.push('manage_users');
+    
+    console.log('💾 Saving user changes:', email);
+    
+    try {
+        // Check Firebase availability
+        if (typeof firebaseConfig === 'undefined' || !firebaseConfig.isReady()) {
+            alert('❌ Firebase not available. Cannot update user.');
+            return;
+        }
+        
+        const db = firebaseConfig.getDatabase();
+        const sanitizedEmail = email.replace(/[.#$[\]\/]/g, '_');
+        const userRef = db.ref(`users/${sanitizedEmail}`);
+        
+        // Get current user data
+        const snapshot = await userRef.once('value');
+        const currentData = snapshot.val();
+        
+        if (!currentData) {
+            alert('❌ User not found');
+            return;
+        }
+        
+        // Get current admin info
+        const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+        
+        // Update user data (preserve password and other fields)
+        const updatedData = {
+            ...currentData,
+            name: name,
+            role: role,
+            permissions: permissions,
+            maxDevices: maxDevices,
+            sessionTimeout: role === 'admin' ? 12 * 60 * 60 * 1000 : 
+                           role === 'manager' ? 8 * 60 * 60 * 1000 : 
+                           4 * 60 * 60 * 1000,
+            updatedBy: authData.email || 'unknown',
+            updatedAt: Date.now()
+        };
+        
+        // Save to Firebase
+        await userRef.update(updatedData);
+        
+        console.log('✅ User updated successfully');
+        
+        // Log security event
+        if (typeof SecurityUtils !== 'undefined') {
+            SecurityUtils.logSecurityEvent('USER_UPDATED', {
+                email: email,
+                updatedBy: authData.email,
+                changes: { name, role, permissions, maxDevices },
+                timestamp: Date.now()
+            });
+        }
+        
+        alert(`✅ User "${name}" updated successfully!`);
+        
+        // Close modal and refresh list
+        closeEditUserModal();
+        await loadDynamicUsers();
+        
+    } catch (error) {
+        console.error('❌ Error updating user:', error);
+        alert(`❌ Error updating user: ${error.message}`);
+    }
+}
+
+// ============================================================================
+// RESET USER PASSWORD
+// ============================================================================
+async function resetUserPassword(email) {
+    console.log('🔑 Resetting password for:', email);
+    
+    // Show password reset modal
+    const content = `
+        <div style="padding: 1rem;">
+            <div style="background: var(--bg-card-darker); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--warning); margin-bottom: 1.5rem;">
+                <strong style="color: var(--warning);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Password Reset
+                </strong>
+                <p style="color: var(--text-secondary); margin-top: 0.5rem; font-size: 0.9rem;">
+                    You are about to reset the password for:<br>
+                    <strong style="color: var(--text-primary);">${email}</strong>
+                </p>
+            </div>
+            
+            <form id="resetPasswordForm" onsubmit="handleResetPassword(event, '${email}')">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500;">
+                        New Password *
+                    </label>
+                    <input type="password" id="resetNewPassword" required minlength="8"
+                        style="width: 100%; padding: 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-primary); font-family: 'Montserrat', sans-serif;"
+                        placeholder="Minimum 8 characters">
+                    <small style="display: block; margin-top: 0.25rem; color: var(--text-muted); font-size: 0.75rem;">
+                        Use a strong password with letters, numbers, and symbols
+                    </small>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500;">
+                        Confirm New Password *
+                    </label>
+                    <input type="password" id="resetConfirmPassword" required minlength="8"
+                        style="width: 100%; padding: 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-primary); font-family: 'Montserrat', sans-serif;"
+                        placeholder="Re-enter password">
+                    <small id="passwordMatch" style="display: block; margin-top: 0.25rem; font-size: 0.75rem;"></small>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-danger" onclick="closeModal()">
+                        <i class="fas fa-times"></i>
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-key"></i>
+                        Reset Password
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    document.getElementById('userModalContent').innerHTML = content;
+    document.getElementById('userModal').style.display = 'flex';
+    
+    // Add real-time password match validation
+    const confirmInput = document.getElementById('resetConfirmPassword');
+    const newPasswordInput = document.getElementById('resetNewPassword');
+    
+    confirmInput.addEventListener('input', function() {
+        const matchIndicator = document.getElementById('passwordMatch');
+        if (this.value === '') {
+            matchIndicator.textContent = '';
+            return;
+        }
+        
+        if (this.value === newPasswordInput.value) {
+            matchIndicator.textContent = '✅ Passwords match';
+            matchIndicator.style.color = 'var(--success)';
+        } else {
+            matchIndicator.textContent = '❌ Passwords do not match';
+            matchIndicator.style.color = 'var(--danger)';
+        }
+    });
+}
+
+// Handle password reset form submission
+async function handleResetPassword(event, email) {
+    event.preventDefault();
+    
+    const newPassword = document.getElementById('resetNewPassword').value;
+    const confirmPassword = document.getElementById('resetConfirmPassword').value;
+    
+    // Validate passwords match
+    if (newPassword !== confirmPassword) {
+        alert('❌ Passwords do not match');
+        return;
+    }
     
     if (newPassword.length < 8) {
         alert('❌ Password must be at least 8 characters long');
         return;
     }
     
-    alert(`Password reset functionality coming in next update!\n\nUser: ${email}\nNew password: ${newPassword}`);
-    // TODO: Implement password reset
+    console.log('🔑 Resetting password for:', email);
+    
+    try {
+        // Check Firebase availability
+        if (typeof firebaseConfig === 'undefined' || !firebaseConfig.isReady()) {
+            alert('❌ Firebase not available. Cannot reset password.');
+            return;
+        }
+        
+        const db = firebaseConfig.getDatabase();
+        const sanitizedEmail = email.replace(/[.#$[\]\/]/g, '_');
+        const userRef = db.ref(`users/${sanitizedEmail}`);
+        
+        // Get current admin info
+        const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+        
+        // Update password
+        await userRef.update({
+            password: newPassword, // TODO: Hash in production
+            updatedBy: authData.email || 'unknown',
+            updatedAt: Date.now(),
+            passwordResetAt: Date.now(),
+            passwordResetBy: authData.email || 'unknown'
+        });
+        
+        console.log('✅ Password reset successfully');
+        
+        // Log security event
+        if (typeof SecurityUtils !== 'undefined') {
+            SecurityUtils.logSecurityEvent('PASSWORD_RESET', {
+                email: email,
+                resetBy: authData.email,
+                timestamp: Date.now()
+            });
+        }
+        
+        alert(`✅ Password reset successfully for "${email}"!`);
+        
+        // Close modal
+        closeModal();
+        
+    } catch (error) {
+        console.error('❌ Error resetting password:', error);
+        alert(`❌ Error resetting password: ${error.message}`);
+    }
 }
 
 // Delete user
