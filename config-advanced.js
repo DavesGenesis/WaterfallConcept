@@ -47,7 +47,7 @@ const WaterfallConfig = {
     // ============================================================================
     users: {
         'daves@genesisadv.id': {
-            password: 'ef6e65edc6f61e33e9e7d924910e8dd7c5b7e94cc5b714b2f36e6f5e545e5e5f', // Genesis@5758
+            password: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', // Genesis@5758 (SHA-256)
             role: 'admin',
             name: 'Super Administrator',
             permissions: ['view', 'export', 'manage_users'],
@@ -59,7 +59,7 @@ const WaterfallConfig = {
             cannotEdit: true
         },
         'manager@company.com': {
-            password: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', // Manager2024!Safe
+            password: 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3', // Manager2024!Safe (SHA-256)
             role: 'manager', 
             name: 'System Manager',
             permissions: ['view', 'export'],
@@ -71,7 +71,7 @@ const WaterfallConfig = {
             cannotEdit: true
         },
         'ferry1112@gmail.com': {
-            password: 'b3c0e1c8f5e8d9a7c6b4a2f1e0d9c8b7a6f5e4d3c2b1a0f9e8d7c6b5a4f3e2d1', // Ferry@Gmail2025
+            password: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', // Ferry@Gmail2025 (SHA-256)
             role: 'user',
             name: 'User One',
             permissions: ['view'],
@@ -83,7 +83,7 @@ const WaterfallConfig = {
             cannotEdit: true
         },
         'user2@company.com': {
-            password: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2', // Legacy2024!
+            password: '3c9909afec25354d551dae21590bb26e38d53f2173b8d3dc3eee4c047e7ab1c1', // Legacy2024! (SHA-256)
             role: 'user',
             name: 'User Two', 
             permissions: ['view'],
