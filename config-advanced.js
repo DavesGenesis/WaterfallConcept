@@ -47,7 +47,7 @@ const WaterfallConfig = {
     // ============================================================================
     users: {
         'daves@genesisadv.id': {
-            password: '233f28586a7c1ca261d2b3bff775b5ad14ebaccb107d9080c5626e683d526558', // Genesis@5758 (SHA-256)
+            password: '233f28586a7c1ca261d2b3bff775b5ad14ebaccb107d9080c5626e683d526558',
             role: 'admin',
             name: 'Super Administrator',
             permissions: ['view', 'export', 'manage_users'],
