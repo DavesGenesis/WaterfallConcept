@@ -1557,6 +1557,33 @@ async resetUserSessions(email) {
             dashboard.clearAllLogs();
         }
 
+        // ✅ SAME-TAB LOGOUT BROADCAST: Listen for logout events from other tabs
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'logoutBroadcast') {
+                console.log('🔔 Logout broadcast received from another tab');
+                
+                try {
+                    const logoutData = JSON.parse(e.newValue || '{}');
+                    const currentAuth = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                    
+                    // Only logout if it's the same user
+                    if (logoutData.email === currentAuth.email) {
+                        console.log('🚪 Logging out this tab (same user)');
+                        
+                        // Clear session data
+                        sessionStorage.removeItem('waterfallAuth');
+                        localStorage.removeItem('waterfallActiveSession');
+                        
+                        // Show message and redirect
+                        alert('🚪 You have been logged out from another tab.');
+                        window.location.href = 'index.html';
+                    }
+                } catch (error) {
+                    console.error('Error processing logout broadcast:', error);
+                }
+            }
+        });
+
         // ✅ SINGLE DOMContentLoaded - Initialize everything
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🚀 Admin Dashboard initializing...');
