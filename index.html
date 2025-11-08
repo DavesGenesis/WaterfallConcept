@@ -15,8 +15,12 @@
     <script src="config-advanced.js"></script>
     <script src="broadcast-session-tracker.js"></script>
     
-    <!-- Protection Scripts -->
+    <!-- Protection Scripts - TEMPORARILY DISABLED FOR DEBUGGING -->
     <script>
+        // ⚠️ PROTECTION DISABLED FOR DEBUGGING
+        // TODO: Re-enable after fixing login issue
+        
+        /*
         // Disable right-click context menu
         document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
@@ -65,6 +69,7 @@
             e.preventDefault();
             return false;
         });
+        */
     </script>
     
     <style>
@@ -604,6 +609,7 @@ async validateCredentials(email, password) {
             return false;
         }
         console.log('🔑 Password hashed for comparison');
+        console.log('🔍 Generated hash:', hashedPassword);
         
         // ============================================================
         // STEP 1: Check SYSTEM USERS first (config-advanced.js)
@@ -614,10 +620,15 @@ async validateCredentials(email, password) {
             console.log('🔒 SYSTEM USER found in config-advanced.js');
             console.log('   Role:', systemUser.role);
             console.log('   Name:', systemUser.name);
+            console.log('🔍 Stored hash:', systemUser.password);
             
             // Compare hashed password with stored hash
             const passwordMatch = systemUser.password === hashedPassword;
             console.log('🔑 Password match:', passwordMatch);
+            console.log('🔍 Hash comparison:');
+            console.log('   Input hash:  ', hashedPassword);
+            console.log('   Stored hash: ', systemUser.password);
+            console.log('   Are equal?   ', hashedPassword === systemUser.password);
             
             if (!passwordMatch) {
                 console.error('❌ Password does not match for system user');

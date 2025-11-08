@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hash Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        input, button {
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        input {
+            width: 300px;
+        }
+        .result {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #00ff00;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <h1>SHA-256 Hash Tester</h1>
+    <p>Test if your password generates the correct hash</p>
+    
+    <div>
+        <label>Enter Password:</label><br>
+        <input type="text" id="password" value="Genesis@5758" placeholder="Enter password">
+    </div>
+    
+    <button onclick="testHash()">Generate Hash</button>
+    
+    <div class="result" id="result"></div>
+    
+    <h3>Expected Hashes:</h3>
+    <div class="result">
+        <strong>Genesis@5758</strong><br>
+        Expected: 233f28586a7c1ca261d2b3bff775b5ad14ebaccb107d9080c5626e683d526558
+    </div>
+    
+    <script>
+        async function testHash() {
+            const password = document.getElementById('password').value;
+            
+            // Generate hash
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            // Display result
+            const result = document.getElementById('result');
+            result.innerHTML = `
+                <strong>Password:</strong> "${password}"<br>
+                <strong>Length:</strong> ${password.length} characters<br>
+                <strong>Generated Hash:</strong><br>
+                ${hashHex}<br><br>
+                <strong>Expected Hash (Genesis@5758):</strong><br>
+                233f28586a7c1ca261d2b3bff775b5ad14ebaccb107d9080c5626e683d526558<br><br>
+                <strong>Match:</strong> ${hashHex === '233f28586a7c1ca261d2b3bff775b5ad14ebaccb107d9080c5626e683d526558' ? '✅ YES' : '❌ NO'}
+            `;
+        }
+        
+        // Auto-test on load
+        window.onload = () => testHash();
+    </script>
+</body>
+</html>
