@@ -694,10 +694,10 @@
                         <div class="hidden lg:flex items-center gap-3 text-sm" style="color: var(--text-secondary);">
                             <i class="fas fa-user h-4 w-4"></i>
                             <span id="userEmail"></span>
-                            <button id="adminDashboardBtn" class="p-2 rounded hover:bg-blue-600 transition-colors" 
-                                style="color: var(--accent); background: var(--bg-card-darker); display: none;" 
-                                title="Admin Dashboard">
-                                <i class="fas fa-shield-alt h-4 w-4"></i>
+                            <button onclick="window.location.href='dashboard.html'" class="p-2 rounded hover:bg-blue-600 transition-colors" 
+                                style="color: var(--accent); background: var(--bg-card-darker);" 
+                                title="Back to Dashboard">
+                                <i class="fas fa-home h-4 w-4"></i>
                             </button>
                             <button id="logoutBtn" class="p-2 rounded hover:bg-red-600 transition-colors" 
                                 style="color: var(--danger); background: var(--bg-card-darker);" 
@@ -1444,14 +1444,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.error('❌ Session initialization failed:', error);
             });
             
-            // Show admin dashboard button for admin/manager roles
-            if (['admin', 'manager'].includes(authData.role)) {
-                const adminBtn = document.getElementById('adminDashboardBtn');
-                adminBtn.style.display = 'block';
-                adminBtn.addEventListener('click', function() {
-                    window.open('admin-dashboard.html', '_blank');
-                });
-            }
+            // Admin dashboard access moved to dashboard.html
         }
     } catch (error) {
         console.error('Error loading user data:', error);

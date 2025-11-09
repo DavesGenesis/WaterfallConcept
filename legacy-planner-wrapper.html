@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legacy Planner - Genesis Advisory</title>
+    
+    <!-- Firebase SDK Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="config-advanced.js"></script>
+    <script src="broadcast-session-tracker.js"></script>
+    
+    <!-- Authentication Check -->
+    <script>
+        try {
+            const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+            if (!authData.authenticated) {
+                window.location.href = 'index.html';
+            }
+        } catch (error) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    
+    <!-- Protection Scripts -->
+    <script>
+        // Disable right-click context menu
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        // Disable keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Prevent F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U, Ctrl+S
+            if (e.keyCode === 123 || // F12
+                (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
+                (e.ctrlKey && e.shiftKey && e.keyCode === 74) || // Ctrl+Shift+J
+                (e.ctrlKey && e.shiftKey && e.keyCode === 67) || // Ctrl+Shift+C
+                (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
+                (e.ctrlKey && e.keyCode === 83)) { // Ctrl+S
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Detect DevTools opening
+        (function() {
+            const threshold = 160;
+            let devtools = {open: false};
+            
+            setInterval(function() {
+                if (window.outerWidth - window.innerWidth > threshold || 
+                    window.outerHeight - window.innerHeight > threshold) {
+                    if (!devtools.open) {
+                        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a192f;color:#64ffda;font-family:Montserrat,sans-serif;font-size:24px;text-align:center;padding:20px;">⚠️ Developer Tools detected. Please close it to continue.</div>';
+                    }
+                    devtools.open = true;
+                } else {
+                    devtools.open = false;
+                }
+            }, 500);
+        })();
+
+        // Disable text selection and copy
+        document.addEventListener('selectstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        document.addEventListener('copy', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    </script>
+    
+    <style>
+        :root {
+            --bg-primary: #0a192f;
+            --bg-card: #172a46;
+            --bg-card-darker: #111e35;
+            --accent: #64ffda;
+            --text-primary: #e2e8f0;
+            --text-secondary: #a8b2c1;
+            --danger: #ff6496;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        * {
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
+        }
+
+        .wrapper-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-card-darker) 100%);
+            border-bottom: 2px solid var(--accent);
+            padding: 1rem 2rem;
+            flex-shrink: 0;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .header-title .highlight {
+            color: var(--accent);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-card-darker);
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .user-info i {
+            color: var(--accent);
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .iframe-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: opacity 0.3s;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .spinner {
+            border: 4px solid var(--bg-card);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--accent);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .loading-subtext {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .header-title h1 {
+                font-size: 1.2rem;
+            }
+
+            .user-info {
+                font-size: 0.8rem;
+                padding: 0.4rem 0.8rem;
+            }
+
+            .btn {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-title">
+                    <div style="font-size: 2rem;">📊</div>
+                    <div>
+                        <h1><span class="highlight">Legacy Planner</span></h1>
+                        <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.25rem;">
+                            Estate Planning Tool
+                        </p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <div class="user-info">
+                        <i class="fas fa-user"></i>
+                        <span id="userEmail"></span>
+                    </div>
+                    <button class="btn btn-primary" onclick="window.location.href='dashboard.html'">
+                        <i class="fas fa-home"></i>
+                        Dashboard
+                    </button>
+                    <button class="btn btn-danger" onclick="handleLogout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Iframe Container -->
+        <div class="iframe-container">
+            <!-- Loading Overlay -->
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="spinner"></div>
+                <div class="loading-text">Loading Legacy Planner...</div>
+                <div class="loading-subtext">Please wait a moment</div>
+            </div>
+
+            <!-- Legacy Planner Iframe -->
+            <iframe 
+                id="legacyPlannerFrame"
+                src="https://legacy-planner.vercel.app"
+                allow="clipboard-write; clipboard-read"
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads"
+                onload="handleIframeLoad()">
+            </iframe>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // INITIALIZATION
+        // ============================================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserInfo();
+            setupSessionMonitoring();
+        });
+
+        // Load user information
+        function loadUserInfo() {
+            try {
+                const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                
+                if (!authData.authenticated) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                document.getElementById('userEmail').textContent = authData.email || 'Unknown';
+
+                // Log tool access
+                if (typeof SecurityUtils !== 'undefined') {
+                    SecurityUtils.logSecurityEvent('TOOL_ACCESSED', {
+                        email: authData.email,
+                        tool: 'legacy-planner',
+                        type: 'embedded',
+                        timestamp: Date.now()
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading user info:', error);
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Handle iframe load
+        function handleIframeLoad() {
+            // Hide loading overlay after a short delay
+            setTimeout(function() {
+                const overlay = document.getElementById('loadingOverlay');
+                overlay.classList.add('hidden');
+            }, 500);
+        }
+
+        // Setup session monitoring
+        function setupSessionMonitoring() {
+            // Listen for logout broadcast from other tabs
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'logoutBroadcast') {
+                    try {
+                        const logoutData = JSON.parse(e.newValue || '{}');
+                        const currentAuth = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                        
+                        if (logoutData.email === currentAuth.email) {
+                            sessionStorage.removeItem('waterfallAuth');
+                            localStorage.removeItem('waterfallActiveSession');
+                            alert('🚪 You have been logged out from another tab.');
+                            window.location.href = 'index.html';
+                        }
+                    } catch (error) {
+                        console.error('Error processing logout broadcast:', error);
+                    }
+                }
+            });
+
+            // Periodic session check
+            setInterval(function() {
+                try {
+                    const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                    if (!authData.authenticated) {
+                        window.location.href = 'index.html';
+                    }
+                } catch (error) {
+                    window.location.href = 'index.html';
+                }
+            }, 5000); // Check every 5 seconds
+        }
+
+        // ============================================================================
+        // LOGOUT
+        // ============================================================================
+
+        async function handleLogout() {
+            if (!confirm('Are you sure you want to logout?')) {
+                return;
+            }
+
+            try {
+                const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                
+                // Broadcast logout to other tabs
+                localStorage.setItem('logoutBroadcast', JSON.stringify({
+                    email: authData.email,
+                    timestamp: Date.now()
+                }));
+                
+                setTimeout(() => {
+                    localStorage.removeItem('logoutBroadcast');
+                }, 1000);
+                
+                // Log logout event
+                if (typeof SecurityUtils !== 'undefined') {
+                    SecurityUtils.logSecurityEvent('LOGOUT', {
+                        email: authData.email,
+                        message: 'User logged out from Legacy Planner',
+                        timestamp: Date.now()
+                    });
+                }
+
+                // Clean up session
+                if (window.sessionTracker) {
+                    await window.sessionTracker.stopSession();
+                }
+            } catch (error) {
+                console.error('Error during logout:', error);
+            }
+
+            // Clear session data
+            sessionStorage.removeItem('waterfallAuth');
+            localStorage.removeItem('waterfallActiveSession');
+            
+            // Redirect to login
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

@@ -943,7 +943,7 @@ async handleSuccessfulLogin(email, deviceName) {
                 this.showMessage('success', `Welcome ${user.name}! Secure session established...`);
                 
                 setTimeout(() => {
-                    window.location.href = 'waterfallconcept44.html';
+                    window.location.href = 'dashboard.html';
                 }, 2000);
             }
 
@@ -1191,7 +1191,7 @@ async handleSuccessfulLogin(email, deviceName) {
                         const sessionAge = Date.now() - authData.loginTime;
                         
                         if (sessionAge < 24 * 60 * 60 * 1000) { // 24 hours
-                            window.location.href = 'waterfallconcept44.html';
+                            window.location.href = 'dashboard.html';
                         } else {
                             sessionStorage.removeItem('waterfallAuth');
                             this.showMessage('warning', 'Previous session expired. Please login again.');
