@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Term Life Insurance Calculator - Genesis Advisory</title>
+    
+    <!-- Firebase SDK Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="broadcast-session-tracker.js"></script>
+    
+    <!-- Authentication Check -->
+    <script>
+        try {
+            const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+            if (!authData.authenticated) {
+                window.location.href = 'index.html';
+            }
+        } catch (error) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    
+    <!-- Protection Scripts -->
+    <script>
+        // Disable right-click context menu
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        // Disable keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Prevent F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U, Ctrl+S
+            if (e.keyCode === 123 || // F12
+                (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
+                (e.ctrlKey && e.shiftKey && e.keyCode === 74) || // Ctrl+Shift+J
+                (e.ctrlKey && e.shiftKey && e.keyCode === 67) || // Ctrl+Shift+C
+                (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
+                (e.ctrlKey && e.keyCode === 83)) { // Ctrl+S
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Detect DevTools opening
+        (function() {
+            const threshold = 160;
+            let devtools = {open: false};
+            
+            setInterval(function() {
+                if (window.outerWidth - window.innerWidth > threshold || 
+                    window.outerHeight - window.innerHeight > threshold) {
+                    if (!devtools.open) {
+                        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a192f;color:#64ffda;font-family:Montserrat,sans-serif;font-size:24px;text-align:center;padding:20px;">⚠️ Developer Tools detected. Please close it to continue.</div>';
+                    }
+                    devtools.open = true;
+                } else {
+                    devtools.open = false;
+                }
+            }, 500);
+        })();
+
+        // Disable text selection and copy
+        document.addEventListener('selectstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        document.addEventListener('copy', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    </script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a192f;
+            --bg-card: #172a46;
+            --bg-card-darker: #111e35;
+            --bg-card-lighter: #1d3555;
+            --accent: #64ffda;
+            --accent-darker: #4ecdb8;
+            --text-primary: #e2e8f0;
+            --text-secondary: #a8b2c1;
+            --text-muted: #718096;
+            --border-color: #2d3748;
+            --danger: #ff6496;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        * {
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
+        }
+
+        .highlight {
+            color: var(--accent);
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+        }
+
+        .card-header {
+            padding: 1.5rem 2rem 1rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+
+        .card-title {
+            color: var(--text-primary);
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .input-field, select {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            color: var(--text-primary);
+            width: 100%;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1rem;
+        }
+
+        .input-field:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+
+        .summary-box {
+            background: var(--bg-card-darker);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border: 2px solid var(--accent);
+            margin-bottom: 2rem;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .summary-value {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: var(--bg-primary);
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--accent-darker);
+            transform: translateY(-2px);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-card-darker) 100%);
+            border-bottom: 2px solid var(--accent);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .header-title {
+            font-size: 2rem;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .header-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .kpi-card {
+            background: var(--bg-card-darker);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .kpi-title {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+        }
+
+        .kpi-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+            
+            .chart-container {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h1 class="header-title">
+                    <i class="fas fa-shield-alt"></i> Term Life Insurance <span class="highlight">Calculator</span>
+                </h1>
+                <p class="header-subtitle">Calculate your term life insurance premium and coverage</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1.25rem; background: var(--bg-card-darker); border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                    <i class="fas fa-user" style="color: var(--accent);"></i>
+                    <div>
+                        <div id="userEmail" style="color: var(--text-secondary); font-size: 0.9rem;"></div>
+                    </div>
+                </div>
+                <button onclick="window.location.href='dashboard.html'" style="padding: 0.75rem 1.25rem; background: var(--accent); color: var(--bg-primary); border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-family: 'Montserrat', sans-serif;" title="Back to Dashboard">
+                    <i class="fas fa-home"></i> Dashboard
+                </button>
+                <button id="logoutBtn" style="padding: 0.75rem 1.25rem; background: var(--danger); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-family: 'Montserrat', sans-serif;" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-user-edit"></i> Client Information</h2>
+            </div>
+            <div class="card-body">
+                <div class="grid grid-2">
+                    <div class="input-group">
+                        <label class="input-label">Client Name</label>
+                        <input type="text" id="clientName" class="input-field" placeholder="Enter client name">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-label">Date of Birth</label>
+                        <input type="date" id="dob" class="input-field" placeholder="dd/mm/yyyy">
+                    </div>
+                </div>
+
+                <div class="grid grid-3">
+                    <div class="input-group">
+                        <label class="input-label">Gender</label>
+                        <select id="gender" class="input-field">
+                            <option value="">Select Gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">Smoking Status</label>
+                        <select id="smoking" class="input-field">
+                            <option value="">Select Status</option>
+                            <option value="no">Non-Smoker</option>
+                            <option value="yes">Smoker</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">Currency</label>
+                        <select id="currency" class="input-field">
+                            <option value="SGD">SGD</option>
+                            <option value="USD">USD</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Sum Assured (UP Jiwa)</label>
+                    <select id="sumAssured" class="input-field">
+                        <option value="">Select Sum Assured</option>
+                        <option value="500000">$500,000</option>
+                        <option value="1000000">$1,000,000</option>
+                        <option value="2000000">$2,000,000</option>
+                    </select>
+                </div>
+
+                <div style="text-align: center; margin-top: 1.5rem;">
+                    <button class="btn" onclick="calculate()">
+                        <i class="fas fa-calculator"></i> Calculate Premium
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultsSection" style="display: none;">
+            <div class="card">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2 class="card-title"><i class="fas fa-chart-line"></i> Insurance Summary</h2>
+                    <button class="btn" onclick="downloadPDF()" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-file-pdf"></i> Download PDF Report
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="grid grid-3" style="margin-bottom: 2rem;">
+                        <div class="kpi-card">
+                            <div class="kpi-title">Current Age</div>
+                            <div class="kpi-value" id="displayAge">-</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-title">Annual Premium</div>
+                            <div class="kpi-value" id="displayPremium">-</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-title">Term of Payment</div>
+                            <div class="kpi-value" id="displayTerm">-</div>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3 style="color: var(--accent); margin-bottom: 1rem; font-size: 1.25rem;">
+                            <i class="fas fa-user"></i> Client Details
+                        </h3>
+                        <div class="summary-item">
+                            <span class="summary-label">Name:</span>
+                            <span class="summary-value" id="summaryName">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Age:</span>
+                            <span class="summary-value" id="summaryAge">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Gender:</span>
+                            <span class="summary-value" id="summaryGender">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Smoking Status:</span>
+                            <span class="summary-value" id="summarySmoking">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Sum Assured:</span>
+                            <span class="summary-value" id="summarySA">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Annual Premium:</span>
+                            <span class="summary-value" id="summaryPremium">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Payment Term:</span>
+                            <span class="summary-value" id="summaryPaymentTerm">-</span>
+                        </div>
+                        <div class="summary-item" style="border-top: 2px solid var(--accent); margin-top: 1rem; padding-top: 1rem;">
+                            <span class="summary-label" style="font-size: 1.1rem; font-weight: 700;">Total Premium Paid (till 85):</span>
+                            <span class="summary-value" style="font-size: 1.3rem;" id="summaryTotalPremium">-</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3 style="color: var(--accent); margin-bottom: 1rem; font-size: 1.25rem;">
+                            <i class="fas fa-exchange-alt"></i> Exchange Rate (to IDR)
+                        </h3>
+                        <div class="summary-item">
+                            <span class="summary-label">Exchange Rate:</span>
+                            <span class="summary-value" id="exchangeRate">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Sum Assured (IDR):</span>
+                            <span class="summary-value" id="saIDR">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Annual Premium (IDR):</span>
+                            <span class="summary-value" id="premiumIDR">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Total Premium Paid (IDR):</span>
+                            <span class="summary-value" id="totalPremiumIDR">-</span>
+                        </div>
+                    </div>
+
+                    <div class="card" style="background: var(--bg-card-darker); border: 2px solid var(--accent);">
+                        <div class="card-header" style="background: transparent;">
+                            <h3 style="color: var(--accent); font-size: 1.25rem;">
+                                <i class="fas fa-chart-area"></i> Coverage vs Premium Paid
+                            </h3>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
+                                Protection coverage and cumulative premium from age <span id="chartAgeRange">-</span>
+                            </p>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="coverageChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Multiplication Factor Comparison -->
+                    <div class="card" style="background: var(--bg-card-darker); border: 2px solid var(--success);">
+                        <div class="card-header" style="background: transparent;">
+                            <h3 style="color: var(--success); font-size: 1.5rem; text-align: center;">
+                                <i class="fas fa-trophy"></i> Protection Multiplication Factor
+                            </h3>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem; text-align: center;">
+                                See how much protection you get for every dollar you pay
+                            </p>
+                        </div>
+                        <div class="card-body">
+                            <div class="grid grid-2" style="gap: 2rem;">
+                                <!-- First Year Comparison -->
+                                <div style="background: var(--bg-card); padding: 2rem; border-radius: 0.5rem; border: 2px solid var(--accent);">
+                                    <h4 style="color: var(--accent); font-size: 1.1rem; text-align: center; margin-bottom: 1.5rem;">
+                                        <i class="fas fa-calendar-day"></i> First Year Protection
+                                    </h4>
+                                    <div style="position: relative; height: 300px;">
+                                        <canvas id="firstYearChart"></canvas>
+                                    </div>
+                                    <div style="text-align: center; margin-top: 1.5rem; padding: 1rem; background: var(--bg-card-darker); border-radius: 0.5rem;">
+                                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Multiplication Factor</p>
+                                        <p id="firstYearMultiplier" style="color: var(--accent); font-size: 2rem; font-weight: 700;">-</p>
+                                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;">
+                                            Pay <span id="firstYearPremiumText" style="color: var(--text-primary); font-weight: 600;">-</span>, 
+                                            Get <span id="firstYearCoverageText" style="color: var(--accent); font-weight: 600;">-</span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Total Payment Comparison -->
+                                <div style="background: var(--bg-card); padding: 2rem; border-radius: 0.5rem; border: 2px solid var(--success);">
+                                    <h4 style="color: var(--success); font-size: 1.1rem; text-align: center; margin-bottom: 1.5rem;">
+                                        <i class="fas fa-calendar-check"></i> Total Max Premium Paid
+                                    </h4>
+                                    <div style="position: relative; height: 300px;">
+                                        <canvas id="totalPaymentChart"></canvas>
+                                    </div>
+                                    <div style="text-align: center; margin-top: 1.5rem; padding: 1rem; background: var(--bg-card-darker); border-radius: 0.5rem;">
+                                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Multiplication Factor</p>
+                                        <p id="totalPaymentMultiplier" style="color: var(--success); font-size: 2rem; font-weight: 700;">-</p>
+                                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;">
+                                            Pay <span id="totalPaymentPremiumText" style="color: var(--text-primary); font-weight: 600;">-</span> over <span id="totalYearsText" style="color: var(--text-primary); font-weight: 600;">-</span> years, 
+                                            Get <span id="totalPaymentCoverageText" style="color: var(--success); font-weight: 600;">-</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Premium table data - embedded directly to avoid CORS issues
+        const premiumTable = {
+            "500000": {
+                "male": {
+                    "24": 474.15, "25": 499.15, "26": 526.45, "27": 556.50, "28": 589.70, "29": 604.25,
+                    "30": 643.85, "31": 687.55, "32": 743.85, "33": 759.85, "34": 814.95, "35": 875.00,
+                    "36": 909.10, "37": 977.35, "38": 1018.30, "39": 1095.65, "40": 1144.35, "41": 1233.55,
+                    "42": 1291.30, "43": 1393.70, "44": 1504.25, "45": 1578.40, "46": 1704.90, "47": 1840.95,
+                    "48": 1931.05, "49": 2083.45, "50": 2184.95, "51": 2356.90, "52": 2542.10, "53": 2742.30,
+                    "54": 2875.60, "55": 3106.75, "56": 3310.60, "57": 3580.40, "58": 3877.65, "59": 3913.50,
+                    "60": 4118.25, "61": 4474.50, "62": 4868.05, "63": 5302.60, "64": 5781.25
+                },
+                "female": {
+                    "24": 381.75, "25": 401.35, "26": 423.15, "27": 447.30, "28": 474.60, "29": 486.40,
+                    "30": 518.70, "31": 554.20, "32": 592.45, "33": 612.90, "34": 656.60, "35": 704.80,
+                    "36": 731.20, "37": 785.35, "38": 816.75, "39": 877.70, "40": 912.75, "41": 979.65,
+                    "42": 1019.70, "43": 1094.30, "44": 1174.85, "45": 1224.45, "46": 1314.50, "47": 1411.45,
+                    "48": 1471.95, "49": 1581.15, "50": 1652.15, "51": 1776.35, "52": 1909.65, "53": 2053.45,
+                    "54": 2146.25, "55": 2310.05, "56": 2452.45, "57": 2643.10, "58": 2852.85, "59": 2877.00,
+                    "60": 3027.60, "61": 3296.05, "62": 3600.45, "63": 3943.95, "64": 4330.70
+                }
+            },
+            "1000000": {
+                "male": {
+                    "24": 729.40, "25": 767.90, "26": 809.90, "27": 856.10, "28": 907.20, "29": 929.60,
+                    "30": 990.50, "31": 1057.70, "32": 1130.50, "33": 1169.00, "34": 1253.70, "35": 1346.10,
+                    "36": 1398.60, "37": 1503.60, "38": 1566.60, "39": 1685.60, "40": 1760.50, "41": 1897.70,
+                    "42": 1986.60, "43": 2144.10, "44": 2314.20, "45": 2428.30, "46": 2622.90, "47": 2832.20,
+                    "48": 2970.80, "49": 3205.30, "50": 3361.40, "51": 3626.00, "52": 3910.90, "53": 4218.90,
+                    "54": 4424.00, "55": 4779.60, "56": 5093.20, "57": 5508.30, "58": 5965.40, "59": 6020.70,
+                    "60": 6335.70, "61": 6883.80, "62": 7489.30, "63": 8157.80, "64": 8894.20
+                },
+                "female": {
+                    "24": 587.30, "25": 617.40, "26": 651.00, "27": 688.10, "28": 730.10, "29": 748.30,
+                    "30": 798.00, "31": 852.60, "32": 911.40, "33": 942.90, "34": 1010.10, "35": 1084.30,
+                    "36": 1124.90, "37": 1208.20, "38": 1256.50, "39": 1350.30, "40": 1404.20, "41": 1507.10,
+                    "42": 1568.70, "43": 1683.50, "44": 1807.40, "45": 1883.70, "46": 2022.30, "47": 2171.40,
+                    "48": 2264.50, "49": 2432.50, "50": 2541.70, "51": 2732.80, "52": 2937.90, "53": 3159.10,
+                    "54": 3301.90, "55": 3553.90, "56": 3773.00, "57": 4066.30, "58": 4389.00, "59": 4426.10,
+                    "60": 4657.80, "61": 5070.80, "62": 5539.10, "63": 6067.60, "64": 6662.60
+                }
+            },
+            "2000000": {
+                "male": {
+                    "24": 1312.95, "25": 1382.25, "26": 1457.85, "27": 1541.00, "28": 1633.00, "29": 1673.30,
+                    "30": 1782.90, "31": 1903.90, "32": 2034.90, "33": 2104.20, "34": 2256.70, "35": 2423.00,
+                    "36": 2517.50, "37": 2706.50, "38": 2819.90, "39": 3034.10, "40": 3168.90, "41": 3415.90,
+                    "42": 3575.90, "43": 3859.40, "44": 4165.40, "45": 4370.95, "46": 4721.25, "47": 5098.00,
+                    "48": 5347.45, "49": 5769.55, "50": 6050.55, "51": 6526.80, "52": 7039.65, "53": 7594.05,
+                    "54": 7963.20, "55": 8603.30, "56": 9167.80, "57": 9914.95, "58": 10737.75, "59": 10837.30,
+                    "60": 11404.30, "61": 12390.85, "62": 13480.75, "63": 14684.05, "64": 16009.60
+                },
+                "female": {
+                    "24": 1057.15, "25": 1111.35, "26": 1171.80, "27": 1283.60, "28": 1314.20, "29": 1346.95,
+                    "30": 1436.40, "31": 1534.70, "32": 1640.55, "33": 1697.25, "34": 1818.20, "35": 1951.75,
+                    "36": 2024.85, "37": 2174.80, "38": 2261.70, "39": 2430.55, "40": 2527.60, "41": 2712.80,
+                    "42": 2823.70, "43": 3030.30, "44": 3253.35, "45": 3390.70, "46": 3640.15, "47": 3908.55,
+                    "48": 4076.10, "49": 4378.50, "50": 4575.10, "51": 4919.05, "52": 5288.25, "53": 5686.40,
+                    "54": 5945.45, "55": 6397.05, "56": 6791.40, "57": 7319.35, "58": 7900.20, "59": 7967.00,
+                    "60": 8384.05, "61": 9127.45, "62": 9970.40, "63": 10921.70, "64": 11992.70
+                }
+            }
+        };
+
+        // Exchange rates (approximate - you can update these)
+        const exchangeRates = {
+            SGD: 11500,  // 1 SGD = 11,500 IDR
+            USD: 15800   // 1 USD = 15,800 IDR
+        };
+
+        let chartInstance = null;
+
+        function calculateAge(dob) {
+            const today = new Date();
+            const birthDate = new Date(dob);
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            
+            return age;
+        }
+
+        function formatCurrency(amount, currency) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: currency,
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function formatIDR(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function getPremium(age, gender, sumAssured, smoking) {
+            // Convert to strings for lookup
+            const saKey = String(sumAssured);
+            const ageKey = String(age);
+            
+            // Check if premium exists for this combination
+            if (!premiumTable[saKey]) {
+                console.error('Sum Assured not found:', saKey);
+                return null;
+            }
+            
+            if (!premiumTable[saKey][gender]) {
+                console.error('Gender not found:', gender);
+                return null;
+            }
+            
+            if (!premiumTable[saKey][gender][ageKey]) {
+                console.error('Age not found:', ageKey, 'Available ages:', Object.keys(premiumTable[saKey][gender]));
+                return null;
+            }
+            
+            let premium = premiumTable[saKey][gender][ageKey];
+            
+            // If smoker, increase premium by 50% (adjust as needed)
+            if (smoking === 'yes') {
+                premium = premium * 1.5;
+            }
+            
+            // Round to nearest dollar
+            return Math.round(premium);
+        }
+
+        function calculate() {
+            // Get input values
+            const clientName = document.getElementById('clientName').value;
+            const dob = document.getElementById('dob').value;
+            const gender = document.getElementById('gender').value;
+            const smoking = document.getElementById('smoking').value;
+            const sumAssured = parseInt(document.getElementById('sumAssured').value);
+            const currency = document.getElementById('currency').value;
+
+            // Validation
+            if (!clientName || !dob || !gender || !smoking || !sumAssured) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            const age = calculateAge(dob);
+
+            if (age < 24 || age > 64) {
+                alert('Age must be between 24 and 64 years old');
+                return;
+            }
+
+            // Get premium
+            const premium = getPremium(age, gender, sumAssured, smoking);
+
+            if (!premium) {
+                alert('Premium not available for this age/gender combination');
+                return;
+            }
+
+            // Calculate term (till age 85)
+            const term = 85 - age;
+            const totalPremium = premium * term;
+
+            // Exchange rate calculations
+            const rate = exchangeRates[currency];
+            const saIDR = sumAssured * rate;
+            const premiumIDRValue = premium * rate;
+            const totalPremiumIDRValue = totalPremium * rate;
+
+            // Display results
+            document.getElementById('displayAge').textContent = age + ' years';
+            document.getElementById('displayPremium').textContent = formatCurrency(premium, currency);
+            document.getElementById('displayTerm').textContent = term + ' years';
+
+            document.getElementById('summaryName').textContent = clientName;
+            document.getElementById('summaryAge').textContent = age + ' years old';
+            document.getElementById('summaryGender').textContent = gender.charAt(0).toUpperCase() + gender.slice(1);
+            document.getElementById('summarySmoking').textContent = smoking === 'yes' ? 'Smoker' : 'Non-Smoker';
+            document.getElementById('summarySA').textContent = formatCurrency(sumAssured, currency);
+            document.getElementById('summaryPremium').textContent = formatCurrency(premium, currency);
+            document.getElementById('summaryPaymentTerm').textContent = term + ' years (till age 85)';
+            document.getElementById('summaryTotalPremium').textContent = formatCurrency(totalPremium, currency);
+
+            document.getElementById('exchangeRate').textContent = `1 ${currency} = ${formatIDR(rate).replace('IDR', 'Rp')}`;
+            document.getElementById('saIDR').textContent = formatIDR(saIDR);
+            document.getElementById('premiumIDR').textContent = formatIDR(premiumIDRValue);
+            document.getElementById('totalPremiumIDR').textContent = formatIDR(totalPremiumIDRValue);
+
+            document.getElementById('chartAgeRange').textContent = `${age} to 100`;
+
+            // Show results section
+            document.getElementById('resultsSection').style.display = 'block';
+
+            // Create chart
+            createChart(age, premium, sumAssured);
+
+            // Create multiplication comparison charts
+            createMultiplicationCharts(premium, totalPremium, sumAssured, term, currency);
+
+            // Store data for PDF generation
+            calculationData = {
+                clientName: clientName,
+                age: age,
+                gender: gender,
+                smoking: smoking,
+                sumAssured: sumAssured,
+                sumAssuredText: formatCurrency(sumAssured, currency),
+                premium: premium,
+                premiumText: formatCurrency(premium, currency),
+                term: term,
+                totalPremium: totalPremium,
+                totalPremiumText: formatCurrency(totalPremium, currency),
+                currency: currency,
+                rate: rate,
+                saIDR: formatIDR(saIDR),
+                premiumIDR: formatIDR(premiumIDRValue),
+                totalPremiumIDR: formatIDR(totalPremiumIDRValue),
+                firstYearMultiplier: (sumAssured / premium).toFixed(1),
+                totalPaymentMultiplier: (sumAssured / totalPremium).toFixed(1)
+            };
+
+            // Scroll to results
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function createChart(currentAge, annualPremium, sumAssured) {
+            const ctx = document.getElementById('coverageChart').getContext('2d');
+
+            // Destroy existing chart if it exists
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            // Prepare data
+            const ages = [];
+            const coverageData = [];
+            const premiumData = [];
+
+            for (let age = currentAge; age <= 100; age++) {
+                ages.push(age);
+                
+                // Coverage is flat at sumAssured until age 85, then stops
+                if (age <= 85) {
+                    coverageData.push(sumAssured);
+                } else {
+                    coverageData.push(null);
+                }
+                
+                // Cumulative premium paid - stops at age 85
+                if (age <= 85) {
+                    const yearsPaid = age - currentAge + 1;
+                    premiumData.push(annualPremium * yearsPaid);
+                } else {
+                    // After 85, no more data (null to break the line)
+                    premiumData.push(null);
+                }
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ages,
+                    datasets: [
+                        {
+                            label: 'Sum Assured Coverage',
+                            data: coverageData,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                            fill: true,
+                            tension: 0.1,
+                            borderWidth: 3,
+                            spanGaps: false
+                        },
+                        {
+                            label: 'Cumulative Premium Paid',
+                            data: premiumData,
+                            borderColor: '#ff6496',
+                            backgroundColor: 'rgba(255, 100, 150, 0.2)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 3,
+                            spanGaps: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: '#e2e8f0',
+                                font: {
+                                    size: 12,
+                                    family: 'Montserrat'
+                                },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#172a46',
+                            titleColor: '#64ffda',
+                            bodyColor: '#e2e8f0',
+                            borderColor: '#64ffda',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += '$' + context.parsed.y.toLocaleString();
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Age',
+                                color: '#a8b2c1',
+                                font: {
+                                    size: 14,
+                                    family: 'Montserrat',
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                color: '#a8b2c1',
+                                font: {
+                                    family: 'Montserrat'
+                                }
+                            },
+                            grid: {
+                                color: '#2d3748'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Amount ($)',
+                                color: '#a8b2c1',
+                                font: {
+                                    size: 14,
+                                    family: 'Montserrat',
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                color: '#a8b2c1',
+                                font: {
+                                    family: 'Montserrat'
+                                },
+                                callback: function(value) {
+                                    return '$' + (value / 1000000).toFixed(1) + 'M';
+                                }
+                            },
+                            grid: {
+                                color: '#2d3748'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        let firstYearChartInstance = null;
+        let totalPaymentChartInstance = null;
+
+        function createMultiplicationCharts(annualPremium, totalPremium, sumAssured, term, currency) {
+            // Calculate multiplication factors
+            const firstYearMultiplier = (sumAssured / annualPremium).toFixed(1);
+            const totalPaymentMultiplier = (sumAssured / totalPremium).toFixed(1);
+
+            // Update text displays
+            document.getElementById('firstYearMultiplier').textContent = firstYearMultiplier + 'x';
+            document.getElementById('totalPaymentMultiplier').textContent = totalPaymentMultiplier + 'x';
+            
+            document.getElementById('firstYearPremiumText').textContent = formatCurrency(annualPremium, currency);
+            document.getElementById('firstYearCoverageText').textContent = formatCurrency(sumAssured, currency);
+            
+            document.getElementById('totalPaymentPremiumText').textContent = formatCurrency(totalPremium, currency);
+            document.getElementById('totalPaymentCoverageText').textContent = formatCurrency(sumAssured, currency);
+            document.getElementById('totalYearsText').textContent = term;
+
+            // Create First Year Chart
+            const ctx1 = document.getElementById('firstYearChart').getContext('2d');
+            if (firstYearChartInstance) {
+                firstYearChartInstance.destroy();
+            }
+
+            firstYearChartInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Annual Premium', 'Sum Assured'],
+                    datasets: [{
+                        label: 'Amount',
+                        data: [annualPremium, sumAssured],
+                        backgroundColor: [
+                            'rgba(255, 100, 150, 0.8)',
+                            'rgba(100, 255, 218, 0.8)'
+                        ],
+                        borderColor: [
+                            '#ff6496',
+                            '#64ffda'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#172a46',
+                            titleColor: '#64ffda',
+                            bodyColor: '#e2e8f0',
+                            borderColor: '#64ffda',
+                            borderWidth: 1,
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return formatCurrency(context.parsed.y, currency);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#a8b2c1',
+                                font: {
+                                    family: 'Montserrat',
+                                    size: 11,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#a8b2c1',
+                                font: {
+                                    family: 'Montserrat'
+                                },
+                                callback: function(value) {
+                                    if (value >= 1000000) {
+                                        return '$' + (value / 1000000).toFixed(1) + 'M';
+                                    } else if (value >= 1000) {
+                                        return '$' + (value / 1000).toFixed(0) + 'K';
+                                    }
+                                    return '$' + value;
+                                }
+                            },
+                            grid: {
+                                color: '#2d3748'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Create Total Payment Chart
+            const ctx2 = document.getElementById('totalPaymentChart').getContext('2d');
+            if (totalPaymentChartInstance) {
+                totalPaymentChartInstance.destroy();
+            }
+
+            totalPaymentChartInstance = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['Total Premium Paid', 'Sum Assured'],
+                    datasets: [{
+                        label: 'Amount',
+                        data: [totalPremium, sumAssured],
+                        backgroundColor: [
+                            'rgba(255, 100, 150, 0.8)',
+                            'rgba(16, 185, 129, 0.8)'
+                        ],
+                        borderColor: [
+                            '#ff6496',
+                            '#10b981'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#172a46',
+                            titleColor: '#10b981',
+                            bodyColor: '#e2e8f0',
+                            borderColor: '#10b981',
+                            borderWidth: 1,
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return formatCurrency(context.parsed.y, currency);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#a8b2c1',
+                                font: {
+                                    family: 'Montserrat',
+                                    size: 11,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#a8b2c1',
+                                font: {
+                                    family: 'Montserrat'
+                                },
+                                callback: function(value) {
+                                    if (value >= 1000000) {
+                                        return '$' + (value / 1000000).toFixed(1) + 'M';
+                                    } else if (value >= 1000) {
+                                        return '$' + (value / 1000).toFixed(0) + 'K';
+                                    }
+                                    return '$' + value;
+                                }
+                            },
+                            grid: {
+                                color: '#2d3748'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Store calculation data for PDF generation
+        let calculationData = null;
+
+        function downloadPDF() {
+            if (!calculationData) {
+                alert('Please calculate premium first before downloading PDF');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Professional Color Scheme - Navy Blue & Gold
+            const navyBlue = [25, 55, 109];      // Primary - Navy Blue
+            const gold = [212, 175, 55];          // Accent - Gold
+            const lightGold = [255, 235, 180];    // Light Gold background
+            const darkText = [40, 40, 40];        // Dark text
+            const lightGray = [245, 245, 245];    // Light gray background
+            const white = [255, 255, 255];        // White
+
+            // Page setup
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 20;
+
+            // Header with Navy Blue background
+            doc.setFillColor(...navyBlue);
+            doc.rect(0, 0, pageWidth, 45, 'F');
+            
+            // Gold accent line
+            doc.setFillColor(...gold);
+            doc.rect(0, 45, pageWidth, 2, 'F');
+            
+            doc.setTextColor(...white);
+            doc.setFontSize(24);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Term Life Insurance Report', pageWidth / 2, 22, { align: 'center' });
+            
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Protection Coverage Summary', pageWidth / 2, 35, { align: 'center' });
+
+            let yPos = 57;
+
+            // Client Information Section
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 45, 3, 3, 'F');
+            
+            // Section header with gold accent
+            doc.setFillColor(...gold);
+            doc.rect(margin, yPos, 4, 45, 'F');
+            
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Client Information', margin + 8, yPos + 10);
+
+            doc.setTextColor(...darkText);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            
+            const clientInfo = [
+                ['Name:', calculationData.clientName],
+                ['Age:', calculationData.age + ' years old'],
+                ['Gender:', calculationData.gender.charAt(0).toUpperCase() + calculationData.gender.slice(1)],
+                ['Smoking Status:', calculationData.smoking === 'yes' ? 'Smoker' : 'Non-Smoker']
+            ];
+
+            let infoY = yPos + 22;
+            clientInfo.forEach(([label, value]) => {
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...navyBlue);
+                doc.text(label, margin + 10, infoY);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(...darkText);
+                doc.text(value, margin + 55, infoY);
+                infoY += 7;
+            });
+
+            yPos += 52;
+
+            // Premium Details Section
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 52, 3, 3, 'F');
+            
+            // Section header with gold accent
+            doc.setFillColor(...gold);
+            doc.rect(margin, yPos, 4, 52, 'F');
+            
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Premium Details', margin + 8, yPos + 10);
+
+            doc.setTextColor(...darkText);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            
+            const premiumInfo = [
+                ['Sum Assured:', calculationData.sumAssuredText],
+                ['Annual Premium:', calculationData.premiumText],
+                ['Payment Term:', calculationData.term + ' years (till age 85)'],
+                ['Total Premium Paid:', calculationData.totalPremiumText],
+                ['Currency:', calculationData.currency]
+            ];
+
+            let premY = yPos + 22;
+            premiumInfo.forEach(([label, value]) => {
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...navyBlue);
+                doc.text(label, margin + 10, premY);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(...darkText);
+                doc.text(value, margin + 65, premY);
+                premY += 8;
+            });
+
+            yPos += 59;
+
+            // Multiplication Factor Highlights
+            const boxWidth = (pageWidth - 2 * margin - 5) / 2;
+            
+            // First Year Box - Navy Blue with Gold border
+            doc.setFillColor(...navyBlue);
+            doc.roundedRect(margin, yPos, boxWidth, 38, 3, 3, 'F');
+            doc.setDrawColor(...gold);
+            doc.setLineWidth(2);
+            doc.roundedRect(margin, yPos, boxWidth, 38, 3, 3, 'S');
+            
+            // Total Payment Box - Light Gold with Navy border
+            doc.setFillColor(...lightGold);
+            doc.roundedRect(margin + boxWidth + 5, yPos, boxWidth, 38, 3, 3, 'F');
+            doc.setDrawColor(...navyBlue);
+            doc.setLineWidth(2);
+            doc.roundedRect(margin + boxWidth + 5, yPos, boxWidth, 38, 3, 3, 'S');
+
+            // First Year Box Content
+            doc.setTextColor(...white);
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.text('First Year Protection', margin + boxWidth / 2, yPos + 10, { align: 'center' });
+            
+            doc.setTextColor(...gold);
+            doc.setFontSize(22);
+            doc.text(calculationData.firstYearMultiplier + 'x', margin + boxWidth / 2, yPos + 24, { align: 'center' });
+            
+            doc.setTextColor(...white);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Pay ' + calculationData.premiumText, margin + boxWidth / 2, yPos + 32, { align: 'center' });
+
+            // Total Payment Box Content
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Total Max Premium Paid', margin + boxWidth + 5 + boxWidth / 2, yPos + 10, { align: 'center' });
+            
+            doc.setTextColor(...gold);
+            doc.setFontSize(22);
+            doc.text(calculationData.totalPaymentMultiplier + 'x', margin + boxWidth + 5 + boxWidth / 2, yPos + 24, { align: 'center' });
+            
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            const totalText = 'Pay ' + calculationData.totalPremiumText + ' over ' + calculationData.term + ' years';
+            doc.text(totalText, margin + boxWidth + 5 + boxWidth / 2, yPos + 32, { align: 'center' });
+
+            yPos += 46;
+
+            // Exchange Rate Section
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 32, 3, 3, 'F');
+            
+            // Section header with gold accent
+            doc.setFillColor(...gold);
+            doc.rect(margin, yPos, 4, 32, 'F');
+            
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('IDR Conversion', margin + 8, yPos + 10);
+
+            doc.setTextColor(...darkText);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            
+            const rate = exchangeRates[calculationData.currency];
+            doc.text('Exchange Rate: 1 ' + calculationData.currency + ' = Rp ' + rate.toLocaleString('id-ID'), margin + 10, yPos + 20);
+            doc.text('Sum Assured (IDR): ' + calculationData.saIDR, margin + 10, yPos + 27);
+
+            yPos += 37;
+
+            // Footer with gold line
+            doc.setDrawColor(...gold);
+            doc.setLineWidth(1);
+            doc.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
+            
+            doc.setFontSize(8);
+            doc.setTextColor(120, 120, 120);
+            doc.setFont('helvetica', 'italic');
+            doc.text('Generated on: ' + new Date().toLocaleDateString('en-US', { 
+                year: 'numeric', month: 'long', day: 'numeric', 
+                hour: '2-digit', minute: '2-digit' 
+            }), pageWidth / 2, pageHeight - 12, { align: 'center' });
+
+            // Save PDF
+            const fileName = 'Term_Life_Insurance_' + calculationData.clientName.replace(/\s+/g, '_') + '_' + 
+                new Date().toISOString().split('T')[0] + '.pdf';
+            doc.save(fileName);
+        }
+
+        // Load user information and setup logout
+        window.addEventListener('DOMContentLoaded', function() {
+            // Date field starts empty, showing the placeholder "dd/mm/yyyy"
+            
+            // Load user info
+            try {
+                const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                
+                if (!authData.authenticated) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                document.getElementById('userEmail').textContent = authData.email || 'Unknown';
+            } catch (error) {
+                console.error('Error loading user info:', error);
+                window.location.href = 'index.html';
+            }
+        });
+
+        // Logout functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('logoutBtn').addEventListener('click', async function() {
+                if (!confirm('Are you sure you want to logout?')) {
+                    return;
+                }
+
+                try {
+                    const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                    
+                    // Broadcast logout to other tabs
+                    localStorage.setItem('logoutBroadcast', JSON.stringify({
+                        email: authData.email,
+                        timestamp: Date.now()
+                    }));
+                    
+                    setTimeout(() => {
+                        localStorage.removeItem('logoutBroadcast');
+                    }, 1000);
+                    
+                    // Log logout event
+                    if (typeof SecurityUtils !== 'undefined') {
+                        SecurityUtils.logSecurityEvent('LOGOUT', {
+                            email: authData.email,
+                            message: 'User logged out from Term Life Calculator',
+                            timestamp: Date.now()
+                        });
+                    }
+
+                    // Clean up session
+                    if (window.sessionTracker) {
+                        await window.sessionTracker.stopSession();
+                    }
+                } catch (error) {
+                    console.error('Error during logout:', error);
+                }
+
+                // Clear session data
+                sessionStorage.removeItem('waterfallAuth');
+                localStorage.removeItem('waterfallActiveSession');
+                
+                // Redirect to login
+                window.location.href = 'index.html';
+            });
+        });
+
+        // Listen for logout broadcast from other tabs
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'logoutBroadcast') {
+                try {
+                    const logoutData = JSON.parse(e.newValue || '{}');
+                    const currentAuth = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                    
+                    if (logoutData.email === currentAuth.email) {
+                        sessionStorage.removeItem('waterfallAuth');
+                        localStorage.removeItem('waterfallActiveSession');
+                        alert('🚪 You have been logged out from another tab.');
+                        window.location.href = 'index.html';
+                    }
+                } catch (error) {
+                    console.error('Error processing logout broadcast:', error);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -239,9 +239,21 @@
 
         .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
             gap: 2rem;
             margin-bottom: 3rem;
+        }
+
+        @media (min-width: 1400px) {
+            .tools-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (min-width: 1000px) and (max-width: 1399px) {
+            .tools-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
         .tool-card {
@@ -647,6 +659,58 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Term Life Insurance Calculator Tool -->
+            <div class="tool-card">
+                <div class="tool-header">
+                    <div class="tool-icon">🛡️</div>
+                    <h3 class="tool-name">Term Life Insurance Calculator</h3>
+                    <p class="tool-description">
+                        Professional term life insurance premium calculator with coverage analysis, multiplication factors, and comprehensive PDF reports
+                    </p>
+                </div>
+                <div class="tool-body">
+                    <!-- Learn Section -->
+                    <div class="section-title">
+                        <i class="fas fa-graduation-cap"></i>
+                        Learn the Concept
+                    </div>
+                    <div class="resource-buttons">
+                        <div class="resource-btn" onclick="openSlides('termlife')">
+                            <i class="fas fa-presentation"></i>
+                            <div class="title">Presentation Slides</div>
+                            <div class="meta">Interactive slides</div>
+                        </div>
+                        <div class="resource-btn" onclick="openPDF('termlife')">
+                            <i class="fas fa-file-pdf"></i>
+                            <div class="title">PDF Guide</div>
+                            <div class="meta">Downloadable guide</div>
+                        </div>
+                    </div>
+
+                    <!-- Tool Section -->
+                    <div class="section-title" style="margin-top: 1.5rem;">
+                        <i class="fas fa-calculator"></i>
+                        Use the Tool
+                    </div>
+                    <div class="launch-section">
+                        <button class="launch-btn" onclick="window.location.href='termlife-tools.html'">
+                            <i class="fas fa-rocket"></i>
+                            Launch Term Life Calculator
+                        </button>
+                    </div>
+
+                    <!-- Metadata -->
+                    <div class="tool-meta">
+                        <div class="tool-meta-item">
+                            <i class="fas fa-clock"></i> Last updated: Jan 2025
+                        </div>
+                        <div class="status-badge status-active">
+                            <i class="fas fa-check-circle"></i> Active
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -696,6 +760,11 @@
                 slides: 'https://drive.google.com/file/d/1z-ZXjcnhiF_WWbV29L1FznOG7h9wchDz/preview',
                 pdf: 'https://drive.google.com/file/d/1cHWM979UXm3u11imZ9BfYjljnAC5CioR/preview',
                 tool: 'legacy-planner-wrapper.html'
+            },
+            termlife: {
+                slides: 'PASTE_YOUR_GOOGLE_DRIVE_SLIDES_LINK_HERE/preview',
+                pdf: 'PASTE_YOUR_GOOGLE_DRIVE_PDF_LINK_HERE/preview',
+                tool: 'termlife-tools.html'
             }
         };
 
@@ -744,9 +813,16 @@
             }
 
             document.getElementById('slidesFrame').src = config.slides;
+            
+            const toolNames = {
+                'waterfall': 'Waterfall Concept',
+                'legacy': 'Legacy Planner',
+                'termlife': 'Term Life Insurance Calculator'
+            };
+            
             document.getElementById('slidesTitle').innerHTML = `
                 <i class="fas fa-presentation"></i>
-                ${toolId === 'waterfall' ? 'Waterfall Concept' : 'Legacy Planner'} - Presentation
+                ${toolNames[toolId] || 'Tool'} - Presentation
             `;
             document.getElementById('slidesModal').classList.add('show');
         }
@@ -761,9 +837,16 @@
             }
 
             document.getElementById('pdfFrame').src = config.pdf;
+            
+            const toolNames = {
+                'waterfall': 'Waterfall Concept',
+                'legacy': 'Legacy Planner',
+                'termlife': 'Term Life Insurance Calculator'
+            };
+            
             document.getElementById('pdfTitle').innerHTML = `
                 <i class="fas fa-file-pdf"></i>
-                ${toolId === 'waterfall' ? 'Waterfall Concept' : 'Legacy Planner'} - Guide
+                ${toolNames[toolId] || 'Tool'} - Guide
             `;
             document.getElementById('pdfModal').classList.add('show');
         }
@@ -894,4 +977,3 @@
     </script>
 </body>
 </html>
-
