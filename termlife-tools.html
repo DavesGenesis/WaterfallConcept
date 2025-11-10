@@ -347,6 +347,9 @@
                     <div class="input-group">
                         <label class="input-label">Date of Birth</label>
                         <input type="date" id="dob" class="input-field" placeholder="dd/mm/yyyy">
+                        <p style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-muted);">
+                            <i class="fas fa-info-circle"></i> Eligible age: 24 - 64 years old
+                        </p>
                     </div>
                 </div>
 
@@ -375,6 +378,9 @@
                             <option value="SGD">SGD</option>
                             <option value="USD">USD</option>
                         </select>
+                        <p id="exchangeRateStatus" style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-muted);">
+                            <i class="fas fa-sync fa-spin"></i> Loading exchange rates...
+                        </p>
                     </div>
                 </div>
 
@@ -549,6 +555,21 @@
                 </div>
             </div>
         </div>
+
+        <!-- Disclaimer Section -->
+        <div class="card" style="background: var(--bg-card-darker); border: 2px solid var(--warning); margin-top: 2rem;">
+            <div class="card-body" style="padding: 1.5rem;">
+                <h3 style="color: var(--warning); font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-exclamation-triangle"></i> Important Disclaimer
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; text-align: justify;">
+                    This infographic provides a summary based on illustrations / premium table provided by the respective insurance companies. 
+                    Please note that this is not an insurance contract. All rights, obligations, terms, conditions, and exclusions are governed 
+                    solely by the official Policy document issued by each provider. Clients are strongly advised to carefully review the original 
+                    illustration and independently verify all figures and information.
+                </p>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -616,13 +637,60 @@
             }
         };
 
-        // Exchange rates (approximate - you can update these)
-        const exchangeRates = {
-            SGD: 11500,  // 1 SGD = 11,500 IDR
-            USD: 15800   // 1 USD = 15,800 IDR
+        // Exchange rates - will be fetched from API
+        let exchangeRates = {
+            SGD: 11500,  // Fallback rate
+            USD: 15800   // Fallback rate
         };
 
         let chartInstance = null;
+        let ratesLoaded = false;
+
+        // Fetch real-time exchange rates
+        async function fetchExchangeRates() {
+            try {
+                // Using exchangerate-api.com (free tier: 1,500 requests/month)
+                const response = await fetch('https://api.exchangerate-api.com/v4/latest/IDR');
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch exchange rates');
+                }
+                
+                const data = await response.json();
+                
+                // Convert to IDR base (API gives rates FROM IDR)
+                // We need rates TO IDR, so we invert
+                if (data.rates.SGD && data.rates.USD) {
+                    exchangeRates.SGD = Math.round(1 / data.rates.SGD);
+                    exchangeRates.USD = Math.round(1 / data.rates.USD);
+                    ratesLoaded = true;
+                    
+                    console.log('✅ Exchange rates updated:', exchangeRates);
+                    
+                    // Update display if rates are shown
+                    updateExchangeRateDisplay();
+                } else {
+                    console.warn('⚠️ Exchange rate data incomplete, using fallback rates');
+                }
+            } catch (error) {
+                console.error('❌ Error fetching exchange rates:', error);
+                console.log('Using fallback exchange rates:', exchangeRates);
+            }
+        }
+
+        // Update exchange rate display on page
+        function updateExchangeRateDisplay() {
+            const rateDisplay = document.getElementById('exchangeRateStatus');
+            if (rateDisplay) {
+                if (ratesLoaded) {
+                    rateDisplay.innerHTML = '<i class="fas fa-check-circle" style="color: var(--success);"></i> Live rates loaded';
+                    rateDisplay.style.color = 'var(--success)';
+                } else {
+                    rateDisplay.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i> Using approximate rates';
+                    rateDisplay.style.color = 'var(--warning)';
+                }
+            }
+        }
 
         function calculateAge(dob) {
             const today = new Date();
@@ -678,9 +746,9 @@
             
             let premium = premiumTable[saKey][gender][ageKey];
             
-            // If smoker, increase premium by 50% (adjust as needed)
+            // If smoker, increase premium by 30%
             if (smoking === 'yes') {
-                premium = premium * 1.5;
+                premium = premium * 1.3;
             }
             
             // Round to nearest dollar
@@ -705,7 +773,7 @@
             const age = calculateAge(dob);
 
             if (age < 24 || age > 64) {
-                alert('Age must be between 24 and 64 years old');
+                alert('⚠️ Age Requirement Not Met\n\nEligible age range: 24 - 64 years old\nYour current age: ' + age + ' years old\n\nPlease enter a valid date of birth.');
                 return;
             }
 
@@ -1310,18 +1378,41 @@
 
             yPos += 37;
 
+            // Disclaimer Section
+            doc.setFillColor(255, 250, 230);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 35, 3, 3, 'F');
+            doc.setDrawColor(...gold);
+            doc.setLineWidth(1);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 35, 3, 3, 'S');
+            
+            doc.setTextColor(...gold);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.text('⚠ Important Disclaimer', margin + 5, yPos + 8);
+            
+            doc.setTextColor(80, 80, 80);
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
+            
+            const disclaimerText = 'This infographic provides a summary based on illustrations / premium table provided by the respective insurance companies. Please note that this is not an insurance contract. All rights, obligations, terms, conditions, and exclusions are governed solely by the official Policy document issued by each provider. Clients are strongly advised to carefully review the original illustration and independently verify all figures and information.';
+            
+            const splitDisclaimer = doc.splitTextToSize(disclaimerText, pageWidth - 2 * margin - 10);
+            doc.text(splitDisclaimer, margin + 5, yPos + 15);
+
+            yPos += 40;
+
             // Footer with gold line
             doc.setDrawColor(...gold);
             doc.setLineWidth(1);
-            doc.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
+            doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
             
-            doc.setFontSize(8);
+            doc.setFontSize(7);
             doc.setTextColor(120, 120, 120);
             doc.setFont('helvetica', 'italic');
             doc.text('Generated on: ' + new Date().toLocaleDateString('en-US', { 
                 year: 'numeric', month: 'long', day: 'numeric', 
                 hour: '2-digit', minute: '2-digit' 
-            }), pageWidth / 2, pageHeight - 12, { align: 'center' });
+            }), pageWidth / 2, pageHeight - 8, { align: 'center' });
 
             // Save PDF
             const fileName = 'Term_Life_Insurance_' + calculationData.clientName.replace(/\s+/g, '_') + '_' + 
@@ -1347,6 +1438,9 @@
                 console.error('Error loading user info:', error);
                 window.location.href = 'index.html';
             }
+            
+            // Fetch real-time exchange rates
+            fetchExchangeRates();
         });
 
         // Logout functionality
