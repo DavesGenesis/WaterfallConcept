@@ -346,9 +346,9 @@
                     
                     <div class="input-group">
                         <label class="input-label">Date of Birth</label>
-                        <input type="date" id="dob" class="input-field" placeholder="dd/mm/yyyy">
+                        <input type="text" id="dob" class="input-field" placeholder="dd/mm/yyyy" maxlength="10">
                         <p style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-muted);">
-                            <i class="fas fa-info-circle"></i> Eligible age: 24 - 64 years old
+                            <i class="fas fa-info-circle"></i> Eligible age: 24 - 64 years old. Format: DD/MM/YYYY
                         </p>
                     </div>
                 </div>
@@ -705,6 +705,44 @@
             return age;
         }
 
+        // Parse DD/MM/YYYY format to Date object
+        function parseDDMMYYYY(dateString) {
+            const parts = dateString.split('/');
+            if (parts.length !== 3) return null;
+            
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+            const year = parseInt(parts[2], 10);
+            
+            if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+            if (day < 1 || day > 31) return null;
+            if (month < 0 || month > 11) return null;
+            if (year < 1900 || year > new Date().getFullYear()) return null;
+            
+            const date = new Date(year, month, day);
+            
+            // Check if date is valid (e.g., not 31/02/2020)
+            if (date.getDate() !== day || date.getMonth() !== month || date.getFullYear() !== year) {
+                return null;
+            }
+            
+            return date;
+        }
+
+        // Auto-format date input as user types
+        function formatDateInput(input) {
+            let value = input.value.replace(/\D/g, ''); // Remove non-digits
+            
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + '/' + value.substring(2);
+            }
+            if (value.length >= 5) {
+                value = value.substring(0, 5) + '/' + value.substring(5, 9);
+            }
+            
+            input.value = value;
+        }
+
         function formatCurrency(amount, currency) {
             return new Intl.NumberFormat('en-US', {
                 style: 'currency',
@@ -758,19 +796,26 @@
         function calculate() {
             // Get input values
             const clientName = document.getElementById('clientName').value;
-            const dob = document.getElementById('dob').value;
+            const dobInput = document.getElementById('dob').value;
             const gender = document.getElementById('gender').value;
             const smoking = document.getElementById('smoking').value;
             const sumAssured = parseInt(document.getElementById('sumAssured').value);
             const currency = document.getElementById('currency').value;
 
             // Validation
-            if (!clientName || !dob || !gender || !smoking || !sumAssured) {
+            if (!clientName || !dobInput || !gender || !smoking || !sumAssured) {
                 alert('Please fill in all fields');
                 return;
             }
 
-            const age = calculateAge(dob);
+            // Parse and validate date
+            const birthDate = parseDDMMYYYY(dobInput);
+            if (!birthDate) {
+                alert('⚠️ Invalid Date Format\n\nPlease enter date in DD/MM/YYYY format.\nExample: 15/06/1978');
+                return;
+            }
+
+            const age = calculateAge(birthDate);
 
             if (age < 24 || age > 64) {
                 alert('⚠️ Age Requirement Not Met\n\nEligible age range: 24 - 64 years old\nYour current age: ' + age + ' years old\n\nPlease enter a valid date of birth.');
@@ -1388,7 +1433,7 @@
             doc.setTextColor(...gold);
             doc.setFontSize(9);
             doc.setFont('helvetica', 'bold');
-            doc.text('Important Disclaimer !!!', margin + 5, yPos + 8);
+            doc.text('⚠ Important Disclaimer', margin + 5, yPos + 8);
             
             doc.setTextColor(80, 80, 80);
             doc.setFontSize(7);
@@ -1441,6 +1486,20 @@
             
             // Fetch real-time exchange rates
             fetchExchangeRates();
+            
+            // Setup date input auto-formatting
+            const dobInput = document.getElementById('dob');
+            dobInput.addEventListener('input', function(e) {
+                formatDateInput(e.target);
+            });
+            
+            // Prevent non-numeric input except slashes
+            dobInput.addEventListener('keypress', function(e) {
+                const char = String.fromCharCode(e.which);
+                if (!/[0-9\/]/.test(char)) {
+                    e.preventDefault();
+                }
+            });
         });
 
         // Logout functionality
@@ -1510,4 +1569,3 @@
     </script>
 </body>
 </html>
-
