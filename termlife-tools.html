@@ -563,10 +563,10 @@
                     <i class="fas fa-exclamation-triangle"></i> Important Disclaimer
                 </h3>
                 <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; text-align: justify;">
-                    This infographic provides a summary based on illustrations / premium table provided by the respective insurance companies. 
-                    Please note that this is not an insurance contract. All rights, obligations, terms, conditions, and exclusions are governed 
-                    solely by the official Policy document issued by each provider. Clients are strongly advised to carefully review the original 
-                    illustration and independently verify all figures and information.
+                    Informasi dan angka-angka yang disajikan dalam alat ini, termasuk tabel premi dan ilustrasi, <strong>HANYA BERTUJUAN UNTUK MEMBERIKAN ESTIMASI (PERKIRAAN) JUMLAH PREMI</strong> dan gambaran umum produk. 
+                    Angka-angka ini <strong>BUKANLAH kutipan atau tawaran yang mengikat secara resmi (formal quotation)</strong> dari penyedia asuransi mana pun dan tidak boleh dianggap sebagai dasar untuk pengambilan keputusan akhir. 
+                    Untuk mendapatkan rincian biaya yang akurat, lengkap, dan mengikat, Anda <strong>WAJIB meminta quotation dan illustration resmi</strong> dari perusahaan asuransi terkait. 
+                    Semua hak, kewajiban, syarat, ketentuan, dan pengecualian sepenuhnya diatur oleh Dokumen Polis resmi (official Policy document) yang dikeluarkan oleh masing-masing penyedia. Klien disarankan untuk meninjau secara cermat ilustrasi asli dan memverifikasi semua angka dan informasi secara independen.
                 </p>
             </div>
         </div>
@@ -1433,13 +1433,13 @@
             doc.setTextColor(...gold);
             doc.setFontSize(9);
             doc.setFont('helvetica', 'bold');
-            doc.text('⚠ Important Disclaimer', margin + 5, yPos + 8);
+            doc.text('! Important Disclaimer', margin + 5, yPos + 8);
             
             doc.setTextColor(80, 80, 80);
             doc.setFontSize(7);
             doc.setFont('helvetica', 'normal');
             
-            const disclaimerText = 'This infographic provides a summary based on illustrations / premium table provided by the respective insurance companies. Please note that this is not an insurance contract. All rights, obligations, terms, conditions, and exclusions are governed solely by the official Policy document issued by each provider. Clients are strongly advised to carefully review the original illustration and independently verify all figures and information.';
+            const disclaimerText = 'Informasi dan angka-angka yang disajikan dalam alat ini, termasuk tabel premi dan ilustrasi, HANYA BERTUJUAN UNTUK MEMBERIKAN ESTIMASI (PERKIRAAN) JUMLAH PREMI dan gambaran umum produk. Angka-angka ini BUKANLAH kutipan atau tawaran yang mengikat secara resmi (formal quotation) dari penyedia asuransi mana pun dan tidak boleh dianggap sebagai dasar untuk pengambilan keputusan akhir. Untuk mendapatkan rincian biaya yang akurat, lengkap, dan mengikat, Anda WAJIB meminta quotation dan illustration resmi dari perusahaan asuransi terkait. Semua hak, kewajiban, syarat, ketentuan, dan pengecualian sepenuhnya diatur oleh Dokumen Polis resmi (official Policy document) yang dikeluarkan oleh masing-masing penyedia. Klien disarankan untuk meninjau secara cermat ilustrasi asli dan memverifikasi semua angka dan informasi secara independen.';
             
             const splitDisclaimer = doc.splitTextToSize(disclaimerText, pageWidth - 2 * margin - 10);
             doc.text(splitDisclaimer, margin + 5, yPos + 15);

@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IUL Calculator - Genesis Advisory</title>
+    
+    <!-- Firebase SDK Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="broadcast-session-tracker.js"></script>
+    
+    <!-- Authentication Check -->
+    <script>
+        try {
+            const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+            if (!authData.authenticated) {
+                window.location.href = 'index.html';
+            }
+        } catch (error) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    
+    <!-- Protection Scripts -->
+    <script>
+        // Disable right-click context menu
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        // Disable keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Prevent F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U, Ctrl+S
+            if (e.keyCode === 123 || // F12
+                (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
+                (e.ctrlKey && e.shiftKey && e.keyCode === 74) || // Ctrl+Shift+J
+                (e.ctrlKey && e.shiftKey && e.keyCode === 67) || // Ctrl+Shift+C
+                (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
+                (e.ctrlKey && e.keyCode === 83)) { // Ctrl+S
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Detect DevTools opening
+        (function() {
+            const threshold = 160;
+            let devtools = {open: false};
+            
+            setInterval(function() {
+                if (window.outerWidth - window.innerWidth > threshold || 
+                    window.outerHeight - window.innerHeight > threshold) {
+                    if (!devtools.open) {
+                        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a192f;color:#64ffda;font-family:Montserrat,sans-serif;font-size:24px;text-align:center;padding:20px;">⚠️ Developer Tools detected. Please close it to continue.</div>';
+                    }
+                    devtools.open = true;
+                } else {
+                    devtools.open = false;
+                }
+            }, 500);
+        })();
+
+        // Disable text selection and copy
+        document.addEventListener('selectstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        document.addEventListener('copy', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    </script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a192f;
+            --bg-card: #172a46;
+            --bg-card-darker: #111e35;
+            --bg-card-lighter: #1d3555;
+            --accent: #64ffda;
+            --accent-darker: #4ecdb8;
+            --text-primary: #e2e8f0;
+            --text-secondary: #a8b2c1;
+            --text-muted: #718096;
+            --border-color: #2d3748;
+            --danger: #ff6496;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        * {
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
+        }
+
+        .highlight {
+            color: var(--accent);
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+        }
+
+        .card-header {
+            padding: 1.5rem 2rem 1rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+
+        .card-title {
+            color: var(--text-primary);
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .input-field, select {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            color: var(--text-primary);
+            width: 100%;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1rem;
+        }
+
+        .input-field:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+
+        .summary-box {
+            background: var(--bg-card-darker);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border: 2px solid var(--accent);
+            margin-bottom: 2rem;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .summary-value {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: var(--bg-primary);
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--accent-darker);
+            transform: translateY(-2px);
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-card-darker) 100%);
+            border-bottom: 2px solid var(--accent);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .header-title {
+            font-size: 2rem;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .header-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .kpi-card {
+            background: var(--bg-card-darker);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .kpi-title {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+        }
+
+        .kpi-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+            
+            .chart-container {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h1 class="header-title">
+                    <i class="fas fa-chart-line"></i> IUL <span class="highlight">Calculator</span>
+                </h1>
+                <p class="header-subtitle">Index Universal Life Insurance Premium Calculator</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1.25rem; background: var(--bg-card-darker); border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                    <i class="fas fa-user" style="color: var(--accent);"></i>
+                    <div>
+                        <div id="userEmail" style="color: var(--text-secondary); font-size: 0.9rem;"></div>
+                    </div>
+                </div>
+                <button onclick="window.location.href='dashboard.html'" style="padding: 0.75rem 1.25rem; background: var(--accent); color: var(--bg-primary); border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-family: 'Montserrat', sans-serif;" title="Back to Dashboard">
+                    <i class="fas fa-home"></i> Dashboard
+                </button>
+                <button id="logoutBtn" style="padding: 0.75rem 1.25rem; background: var(--danger); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-family: 'Montserrat', sans-serif;" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-user-edit"></i> Client Information</h2>
+            </div>
+            <div class="card-body">
+                <div class="grid grid-2">
+                    <div class="input-group">
+                        <label class="input-label">Client Name</label>
+                        <input type="text" id="clientName" class="input-field" placeholder="Enter client name">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-label">Date of Birth</label>
+                        <input type="text" id="dob" class="input-field" placeholder="dd/mm/yyyy" maxlength="10">
+                        <p style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-muted);">
+                            <i class="fas fa-info-circle"></i> Eligible age: 35 - 70 years old. Format: DD/MM/YYYY
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-2">
+                    <div class="input-group">
+                        <label class="input-label">Gender</label>
+                        <select id="gender" class="input-field">
+                            <option value="">Select Gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">Smoking Status</label>
+                        <select id="smoking" class="input-field">
+                            <option value="">Select Status</option>
+                            <option value="no">Non-Smoker</option>
+                            <option value="yes">Smoker</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Sum Assured (Coverage Amount)</label>
+                    <select id="sumAssured" class="input-field">
+                        <option value="">Select Sum Assured</option>
+                        <option value="250000">$250,000</option>
+                        <option value="500000">$500,000</option>
+                        <option value="1000000">$1,000,000</option>
+                        <option value="2000000">$2,000,000</option>
+                    </select>
+                    <p style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-muted);">
+                        <i class="fas fa-info-circle"></i> All payment options (PAY 1, PAY 5, PAY 10) will be calculated automatically
+                    </p>
+                </div>
+
+                <div style="text-align: center; margin-top: 1.5rem;">
+                    <button class="btn" onclick="calculate()">
+                        <i class="fas fa-calculator"></i> Calculate Premium
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultsSection" style="display: none;">
+            <div class="card">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2 class="card-title"><i class="fas fa-chart-line"></i> IUL Insurance Summary</h2>
+                    <button class="btn" onclick="downloadPDF()" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-file-pdf"></i> Download PDF Report
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Client Summary Header -->
+                    <div style="background: var(--bg-card-darker); padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 2rem; border-left: 4px solid var(--accent);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                            <div>
+                                <h3 style="color: var(--accent); margin-bottom: 0.5rem; font-size: 1.1rem;">
+                                    <i class="fas fa-user-circle"></i> <span id="summaryNameHeader">-</span>
+                                </h3>
+                                <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">
+                                    Age: <span id="summaryAgeHeader" style="color: var(--text-primary); font-weight: 600;">-</span> | 
+                                    Gender: <span id="summaryGenderHeader" style="color: var(--text-primary); font-weight: 600;">-</span> | 
+                                    <span id="summarySmokingHeader" style="color: var(--text-primary); font-weight: 600;">-</span>
+                                </p>
+                            </div>
+                            <div style="text-align: right;">
+                                <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0;">Sum Assured</p>
+                                <p id="summarySAHeader" style="color: var(--accent); font-size: 1.5rem; font-weight: 700; margin: 0;">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Options Title -->
+                    <h3 style="color: var(--text-primary); margin-bottom: 1.5rem; font-size: 1.3rem; text-align: center;">
+                        <i class="fas fa-credit-card"></i> Payment Options Comparison
+                    </h3>
+
+                    <!-- 3 Payment Option Cards -->
+                    <div class="grid grid-3" style="margin-bottom: 2rem;">
+                        <!-- PAY 1 Card -->
+                        <div class="kpi-card" style="border: 2px solid #f59e0b; background: linear-gradient(135deg, var(--bg-card-darker) 0%, #1a1410 100%);">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1rem;">
+                                <i class="fas fa-star" style="color: #f59e0b; font-size: 1.2rem;"></i>
+                                <div class="kpi-title" style="color: #f59e0b; margin: 0;">PAY 1</div>
+                            </div>
+                            <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.5rem;">Single Premium</p>
+                            <div class="kpi-value" style="color: #f59e0b; font-size: 1.5rem;" id="premium1">-</div>
+                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                                <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.25rem;">Total Paid</p>
+                                <p style="color: var(--text-primary); font-size: 1rem; font-weight: 600;" id="total1">-</p>
+                            </div>
+                            <div style="margin-top: 0.75rem;">
+                                <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.25rem;">Protection Multiplier</p>
+                                <p style="color: #f59e0b; font-size: 1.3rem; font-weight: 700;" id="multiplier1">-</p>
+                            </div>
+                        </div>
+
+                        <!-- PAY 5 Card -->
+                        <div class="kpi-card" style="border: 2px solid #64ffda; background: linear-gradient(135deg, var(--bg-card-darker) 0%, #0a1a18 100%);">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1rem;">
+                                <i class="fas fa-calendar-alt" style="color: #64ffda; font-size: 1.2rem;"></i>
+                                <div class="kpi-title" style="color: #64ffda; margin: 0;">PAY 5</div>
+                            </div>
+                            <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.5rem;">Annual Premium (5 Years)</p>
+                            <div class="kpi-value" style="color: #64ffda; font-size: 1.5rem;" id="premium5">-</div>
+                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                                <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.25rem;">Total Paid</p>
+                                <p style="color: var(--text-primary); font-size: 1rem; font-weight: 600;" id="total5">-</p>
+                            </div>
+                            <div style="margin-top: 0.75rem;">
+                                <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.25rem;">Protection Multiplier</p>
+                                <p style="color: #64ffda; font-size: 1.3rem; font-weight: 700;" id="multiplier5">-</p>
+                            </div>
+                        </div>
+
+                        <!-- PAY 10 Card -->
+                        <div class="kpi-card" style="border: 2px solid #a78bfa; background: linear-gradient(135deg, var(--bg-card-darker) 0%, #1a0f1f 100%);">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1rem;">
+                                <i class="fas fa-calendar-check" style="color: #a78bfa; font-size: 1.2rem;"></i>
+                                <div class="kpi-title" style="color: #a78bfa; margin: 0;">PAY 10</div>
+                            </div>
+                            <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.5rem;">Annual Premium (10 Years)</p>
+                            <div class="kpi-value" style="color: #a78bfa; font-size: 1.5rem;" id="premium10">-</div>
+                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                                <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.25rem;">Total Paid</p>
+                                <p style="color: var(--text-primary); font-size: 1rem; font-weight: 600;" id="total10">-</p>
+                            </div>
+                            <div style="margin-top: 0.75rem;">
+                                <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.25rem;">Protection Multiplier</p>
+                                <p style="color: #a78bfa; font-size: 1.3rem; font-weight: 700;" id="multiplier10">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- IDR Conversion Table -->
+                    <div class="summary-box" style="border: 2px solid var(--warning);">
+                        <h3 style="color: var(--warning); margin-bottom: 1.5rem; font-size: 1.25rem; text-align: center;">
+                            <i class="fas fa-exchange-alt"></i> IDR Conversion
+                        </h3>
+                        <p style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                            Exchange Rate: <span id="exchangeRate" style="color: var(--warning); font-weight: 600;">-</span>
+                        </p>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: var(--bg-card-darker);">
+                                        <th style="padding: 1rem; text-align: left; color: var(--text-secondary); font-size: 0.85rem; border-bottom: 2px solid var(--border-color);"></th>
+                                        <th style="padding: 1rem; text-align: center; color: #f59e0b; font-size: 0.85rem; border-bottom: 2px solid var(--border-color);">PAY 1</th>
+                                        <th style="padding: 1rem; text-align: center; color: #64ffda; font-size: 0.85rem; border-bottom: 2px solid var(--border-color);">PAY 5</th>
+                                        <th style="padding: 1rem; text-align: center; color: #a78bfa; font-size: 0.85rem; border-bottom: 2px solid var(--border-color);">PAY 10</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="background: linear-gradient(135deg, rgba(100, 255, 218, 0.1) 0%, rgba(100, 255, 218, 0.05) 100%);">
+                                        <td colspan="4" style="padding: 1.25rem; text-align: center; border-bottom: 2px solid var(--accent);">
+                                            <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+                                                <i class="fas fa-shield-alt" style="color: var(--accent); font-size: 1.2rem;"></i>
+                                                <div>
+                                                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin: 0; text-transform: uppercase; letter-spacing: 0.05em;">Sum Assured (Coverage for All Payment Options)</p>
+                                                    <p style="color: var(--accent); font-size: 1.4rem; font-weight: 700; margin: 0.25rem 0 0 0;" id="saIDR">-</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 1rem; color: var(--text-secondary); font-size: 0.9rem; border-bottom: 1px solid var(--border-color);">Premium</td>
+                                        <td style="padding: 1rem; text-align: center; color: var(--text-primary); font-weight: 600; border-bottom: 1px solid var(--border-color);" id="premiumIDR1">-</td>
+                                        <td style="padding: 1rem; text-align: center; color: var(--text-primary); font-weight: 600; border-bottom: 1px solid var(--border-color);" id="premiumIDR5">-</td>
+                                        <td style="padding: 1rem; text-align: center; color: var(--text-primary); font-weight: 600; border-bottom: 1px solid var(--border-color);" id="premiumIDR10">-</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 1rem; color: var(--text-secondary); font-size: 0.9rem;">Total Paid</td>
+                                        <td style="padding: 1rem; text-align: center; color: var(--text-primary); font-weight: 700;" id="totalPremiumIDR1">-</td>
+                                        <td style="padding: 1rem; text-align: center; color: var(--text-primary); font-weight: 700;" id="totalPremiumIDR5">-</td>
+                                        <td style="padding: 1rem; text-align: center; color: var(--text-primary); font-weight: 700;" id="totalPremiumIDR10">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card" style="background: var(--bg-card-darker); border: 2px solid var(--accent);">
+                        <div class="card-header" style="background: transparent;">
+                            <h3 style="color: var(--accent); font-size: 1.25rem;">
+                                <i class="fas fa-chart-bar"></i> Total Premium Paid vs Coverage Amount
+                            </h3>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
+                                Compare what you pay versus what you get - Coverage valid until age 100
+                            </p>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="coverageChart"></canvas>
+                            </div>
+                            <div style="text-align: center; margin-top: 1rem; padding: 1rem; background: var(--bg-card); border-radius: 0.5rem;">
+                                <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0;">
+                                    <i class="fas fa-info-circle" style="color: var(--accent);"></i> 
+                                    The multiplier shows how many times your coverage exceeds your total premium paid
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disclaimer Section -->
+        <div class="card" style="background: var(--bg-card-darker); border: 2px solid var(--warning); margin-top: 2rem;">
+            <div class="card-body" style="padding: 1.5rem;">
+                <h3 style="color: var(--warning); font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-exclamation-triangle"></i> Important Disclaimer
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; text-align: justify;">
+                    Informasi dan angka-angka yang disajikan dalam alat ini, termasuk tabel premi dan ilustrasi, <strong>HANYA BERTUJUAN UNTUK MEMBERIKAN ESTIMASI (PERKIRAAN) JUMLAH PREMI</strong> dan gambaran umum produk. 
+                    Angka-angka ini <strong>BUKANLAH kutipan atau tawaran yang mengikat secara resmi (formal quotation)</strong> dari penyedia asuransi mana pun dan tidak boleh dianggap sebagai dasar untuk pengambilan keputusan akhir. 
+                    Untuk mendapatkan rincian biaya yang akurat, lengkap, dan mengikat, Anda <strong>WAJIB meminta quotation dan illustration resmi</strong> dari perusahaan asuransi terkait. 
+                    Semua hak, kewajiban, syarat, ketentuan, dan pengecualian sepenuhnya diatur oleh Dokumen Polis resmi (official Policy document) yang dikeluarkan oleh masing-masing penyedia. Klien disarankan untuk meninjau secara cermat ilustrasi asli dan memverifikasi semua angka dan informasi secara independen.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Premium table data - SA 250,000
+        const premiumTable = {
+            "250000": {
+                "male": {
+                    "1": { 
+                        "35": 21999.60, "36": 23031.54, "37": 24063.48, "38": 25095.42, "39": 26127.36,
+                        "40": 27159.30, "41": 28527.39, "42": 29895.48, "43": 31263.57, "44": 32631.66,
+                        "45": 33999.75, "46": 35784.18, "47": 37568.61, "48": 39353.04, "49": 41137.47,
+                        "50": 42921.90, "51": 45237.29, "52": 47552.67, "53": 49868.06, "54": 52183.44,
+                        "55": 54498.83, "56": 57504.33, "57": 60509.84, "58": 63515.34, "59": 66520.85,
+                        "60": 69526.35, "61": 73367.37, "62": 77208.39, "63": 81049.41, "64": 84890.43,
+                        "65": 88731.45, "66": 93819.06, "67": 98906.67, "68": 103994.28, "69": 109081.89, "70": 114169.50
+                    },
+                    "5": { 
+                        "35": 4888.80, "36": 5118.12, "37": 5347.44, "38": 5576.76, "39": 5806.08,
+                        "40": 6035.40, "41": 6339.42, "42": 6643.44, "43": 6947.46, "44": 7251.48,
+                        "45": 7555.50, "46": 7952.04, "47": 8348.58, "48": 8745.12, "49": 9141.66,
+                        "50": 9538.20, "51": 10052.73, "52": 10567.26, "53": 11081.79, "54": 11596.32,
+                        "55": 12110.85, "56": 12778.74, "57": 13446.63, "58": 14114.52, "59": 14782.41,
+                        "60": 15450.30, "61": 16303.86, "62": 17157.42, "63": 18010.98, "64": 18864.54,
+                        "65": 19718.10, "66": 20848.68, "67": 21979.26, "68": 23109.84, "69": 24240.42, "70": 25371.00
+                    },
+                    "10": { 
+                        "35": 2716.00, "36": 2843.40, "37": 2970.80, "38": 3098.20, "39": 3225.60,
+                        "40": 3353.00, "41": 3521.90, "42": 3690.80, "43": 3859.70, "44": 4028.60,
+                        "45": 4197.50, "46": 4417.80, "47": 4638.10, "48": 4858.40, "49": 5078.70,
+                        "50": 5299.00, "51": 5584.85, "52": 5870.70, "53": 6156.55, "54": 6442.40,
+                        "55": 6728.25, "56": 7099.30, "57": 7470.35, "58": 7841.40, "59": 8212.45,
+                        "60": 8583.50, "61": 9057.70, "62": 9531.90, "63": 10006.10, "64": 10480.30,
+                        "65": 10954.50, "66": 11582.60, "67": 12210.70, "68": 12838.80, "69": 13466.90, "70": 14095.00
+                    }
+                },
+                "female": {
+                    "1": { 
+                        "35": 19614.15, "36": 20490.57, "37": 21366.99, "38": 22243.41, "39": 23119.83,
+                        "40": 23996.25, "41": 25149.29, "42": 26302.32, "43": 27455.36, "44": 28608.39,
+                        "45": 29761.43, "46": 31272.48, "47": 32783.54, "48": 34294.59, "49": 35805.65,
+                        "50": 37316.70, "51": 39281.76, "52": 41246.82, "53": 43211.88, "54": 45176.94,
+                        "55": 47142.00, "56": 49702.82, "57": 52263.63, "58": 54824.45, "59": 57385.26,
+                        "60": 59946.08, "61": 63332.28, "62": 66718.49, "63": 70104.69, "64": 73490.90,
+                        "65": 76877.10, "66": 81402.57, "67": 85928.04, "68": 90453.51, "69": 94978.98, "70": 99504.45
+                    },
+                    "5": { 
+                        "35": 4358.70, "36": 4553.46, "37": 4748.22, "38": 4942.98, "39": 5137.74,
+                        "40": 5332.50, "41": 5588.73, "42": 5844.96, "43": 6101.19, "44": 6357.42,
+                        "45": 6613.65, "46": 6949.44, "47": 7285.23, "48": 7621.02, "49": 7956.81,
+                        "50": 8292.60, "51": 8729.28, "52": 9165.96, "53": 9602.64, "54": 10039.32,
+                        "55": 10476.00, "56": 11045.07, "57": 11614.14, "58": 12183.21, "59": 12752.28,
+                        "60": 13321.35, "61": 14073.84, "62": 14826.33, "63": 15578.82, "64": 16331.31,
+                        "65": 17083.80, "66": 18089.46, "67": 19095.12, "68": 20100.78, "69": 21106.44, "70": 22112.10
+                    },
+                    "10": { 
+                        "35": 2421.50, "36": 2529.70, "37": 2637.90, "38": 2746.10, "39": 2854.30,
+                        "40": 2962.50, "41": 3104.85, "42": 3247.20, "43": 3389.55, "44": 3531.90,
+                        "45": 3674.25, "46": 3860.80, "47": 4047.35, "48": 4233.90, "49": 4420.45,
+                        "50": 4607.00, "51": 4849.60, "52": 5092.20, "53": 5334.80, "54": 5577.40,
+                        "55": 5820.00, "56": 6136.15, "57": 6452.30, "58": 6768.45, "59": 7084.60,
+                        "60": 7400.75, "61": 7818.80, "62": 8236.85, "63": 8654.90, "64": 9072.95,
+                        "65": 9491.00, "66": 10049.70, "67": 10608.40, "68": 11167.10, "69": 11725.80, "70": 12284.50
+                    }
+                }
+            },
+            "500000": {
+                "male": {
+                    "1": { 
+                        "35": 43999.20, "36": 46063.08, "37": 48126.96, "38": 50190.84, "39": 52254.72,
+                        "40": 54318.60, "41": 57054.78, "42": 59790.96, "43": 62527.14, "44": 65263.32,
+                        "45": 67999.50, "46": 71568.36, "47": 75137.22, "48": 78706.08, "49": 82274.94,
+                        "50": 85843.80, "51": 90474.57, "52": 95105.34, "53": 99736.11, "54": 104366.88,
+                        "55": 108997.65, "56": 115008.66, "57": 121019.67, "58": 127030.68, "59": 133041.69,
+                        "60": 139052.70, "61": 146734.74, "62": 154416.78, "63": 162098.82, "64": 169780.86,
+                        "65": 177462.90, "66": 187638.12, "67": 197813.34, "68": 207988.56, "69": 218163.78, "70": 228339.00
+                    },
+                    "5": { 
+                        "35": 9777.60, "36": 10236.24, "37": 10694.88, "38": 11153.52, "39": 11612.16,
+                        "40": 12070.80, "41": 12678.84, "42": 13286.88, "43": 13894.92, "44": 14502.96,
+                        "45": 15111.00, "46": 15904.08, "47": 16697.16, "48": 17490.24, "49": 18283.32,
+                        "50": 19076.40, "51": 20105.46, "52": 21134.52, "53": 22163.58, "54": 23192.64,
+                        "55": 24221.70, "56": 25557.48, "57": 26893.26, "58": 28229.04, "59": 29564.82,
+                        "60": 30900.60, "61": 32607.72, "62": 34314.84, "63": 36021.96, "64": 37729.08,
+                        "65": 39436.20, "66": 41697.36, "67": 43958.52, "68": 46219.68, "69": 48480.84, "70": 50742.00
+                    },
+                    "10": { 
+                        "35": 5432.00, "36": 5686.80, "37": 5941.60, "38": 6196.40, "39": 6451.20,
+                        "40": 6706.00, "41": 7043.80, "42": 7381.60, "43": 7719.40, "44": 8057.20,
+                        "45": 8395.00, "46": 8835.60, "47": 9276.20, "48": 9716.80, "49": 10157.40,
+                        "50": 10598.00, "51": 11169.70, "52": 11741.40, "53": 12313.10, "54": 12884.80,
+                        "55": 13456.50, "56": 14198.60, "57": 14940.70, "58": 15682.80, "59": 16424.90,
+                        "60": 17167.00, "61": 18115.40, "62": 19063.80, "63": 20012.20, "64": 20960.60,
+                        "65": 21909.00, "66": 23165.20, "67": 24421.40, "68": 25677.60, "69": 26933.80, "70": 28190.00
+                    }
+                },
+                "female": {
+                    "1": { 
+                        "35": 39228.30, "36": 40981.14, "37": 42733.98, "38": 44486.82, "39": 46239.66,
+                        "40": 47992.50, "41": 50298.57, "42": 52604.64, "43": 54910.71, "44": 57216.78,
+                        "45": 59522.85, "46": 62544.96, "47": 65567.07, "48": 68589.18, "49": 71611.29,
+                        "50": 74633.40, "51": 78563.52, "52": 82493.64, "53": 86423.76, "54": 90353.88,
+                        "55": 94284.00, "56": 99405.63, "57": 104527.26, "58": 109648.89, "59": 114770.52,
+                        "60": 119892.15, "61": 126664.56, "62": 133436.97, "63": 140209.38, "64": 146981.79,
+                        "65": 153754.20, "66": 162805.14, "67": 171856.08, "68": 180907.02, "69": 189957.96, "70": 199008.90
+                    },
+                    "5": { 
+                        "35": 8717.40, "36": 9106.92, "37": 9496.44, "38": 9885.96, "39": 10275.48,
+                        "40": 10665.00, "41": 11177.46, "42": 11689.92, "43": 12202.38, "44": 12714.84,
+                        "45": 13227.30, "46": 13898.88, "47": 14570.46, "48": 15242.04, "49": 15913.62,
+                        "50": 16585.20, "51": 17458.56, "52": 18331.92, "53": 19205.28, "54": 20078.64,
+                        "55": 20952.00, "56": 22090.14, "57": 23228.28, "58": 24366.42, "59": 25504.56,
+                        "60": 26642.70, "61": 28147.68, "62": 29652.66, "63": 31157.64, "64": 32662.62,
+                        "65": 34167.60, "66": 36178.92, "67": 38190.24, "68": 40201.56, "69": 42212.88, "70": 44224.20
+                    },
+                    "10": { 
+                        "35": 4843.00, "36": 5059.40, "37": 5275.80, "38": 5492.20, "39": 5708.60,
+                        "40": 5925.00, "41": 6209.70, "42": 6494.40, "43": 6779.10, "44": 7063.80,
+                        "45": 7348.50, "46": 7721.60, "47": 8094.70, "48": 8467.80, "49": 8840.90,
+                        "50": 9214.00, "51": 9699.20, "52": 10184.40, "53": 10669.60, "54": 11154.80,
+                        "55": 11640.00, "56": 12272.30, "57": 12904.60, "58": 13536.90, "59": 14169.20,
+                        "60": 14801.50, "61": 15637.60, "62": 16473.70, "63": 17309.80, "64": 18145.90,
+                        "65": 18982.00, "66": 20099.40, "67": 21216.80, "68": 22334.20, "69": 23451.60, "70": 24569.00
+                    }
+                }
+            },
+            "1000000": {
+                "male": {
+                    "1": { 
+                        "35": 87998.40, "36": 92126.16, "37": 96253.92, "38": 100381.68, "39": 104509.44,
+                        "40": 108637.20, "41": 114109.56, "42": 119581.92, "43": 125054.28, "44": 130526.64,
+                        "45": 135999.00, "46": 143136.72, "47": 150274.44, "48": 157412.16, "49": 164549.88,
+                        "50": 171687.60, "51": 180949.14, "52": 190210.68, "53": 199472.22, "54": 208733.76,
+                        "55": 217995.30, "56": 230017.32, "57": 242039.34, "58": 254061.36, "59": 266083.38,
+                        "60": 278105.40, "61": 293469.48, "62": 308833.56, "63": 324197.64, "64": 339561.72,
+                        "65": 354925.80, "66": 375276.24, "67": 395626.68, "68": 415977.12, "69": 436327.56, "70": 456678.00
+                    },
+                    "5": { 
+                        "35": 19555.20, "36": 20472.48, "37": 21389.76, "38": 22307.04, "39": 23224.32,
+                        "40": 24141.60, "41": 25357.68, "42": 26573.76, "43": 27789.84, "44": 29005.92,
+                        "45": 30222.00, "46": 31808.16, "47": 33394.32, "48": 34980.48, "49": 36566.64,
+                        "50": 38152.80, "51": 40210.92, "52": 42269.04, "53": 44327.16, "54": 46385.28,
+                        "55": 48443.40, "56": 51114.96, "57": 53786.52, "58": 56458.08, "59": 59129.64,
+                        "60": 61801.20, "61": 65215.44, "62": 68629.68, "63": 72043.92, "64": 75458.16,
+                        "65": 78872.40, "66": 83394.72, "67": 87917.04, "68": 92439.36, "69": 96961.68, "70": 101484.00
+                    },
+                    "10": { 
+                        "35": 10864.00, "36": 11373.60, "37": 11883.20, "38": 12392.80, "39": 12902.40,
+                        "40": 13412.00, "41": 14087.60, "42": 14763.20, "43": 15438.80, "44": 16114.40,
+                        "45": 16790.00, "46": 17671.20, "47": 18552.40, "48": 19433.60, "49": 20314.80,
+                        "50": 21196.00, "51": 22339.40, "52": 23482.80, "53": 24626.20, "54": 25769.60,
+                        "55": 26913.00, "56": 28397.20, "57": 29881.40, "58": 31365.60, "59": 32849.80,
+                        "60": 34334.00, "61": 36230.80, "62": 38127.60, "63": 40024.40, "64": 41921.20,
+                        "65": 43818.00, "66": 46330.40, "67": 48842.80, "68": 51355.20, "69": 53867.60, "70": 56380.00
+                    }
+                },
+                "female": {
+                    "1": { 
+                        "35": 78456.60, "36": 81962.28, "37": 85467.96, "38": 88973.64, "39": 92479.32,
+                        "40": 95985.00, "41": 100597.14, "42": 105209.28, "43": 109821.42, "44": 114433.56,
+                        "45": 119045.70, "46": 125089.92, "47": 131134.14, "48": 137178.36, "49": 143222.58,
+                        "50": 149266.80, "51": 157127.04, "52": 164987.28, "53": 172847.52, "54": 180707.76,
+                        "55": 188568.00, "56": 198811.26, "57": 209054.52, "58": 219297.78, "59": 229541.04,
+                        "60": 239784.30, "61": 253329.12, "62": 266873.94, "63": 280418.76, "64": 293963.58,
+                        "65": 307508.40, "66": 325610.28, "67": 343712.16, "68": 361814.04, "69": 379915.92, "70": 398017.80
+                    },
+                    "5": { 
+                        "35": 17434.80, "36": 18213.84, "37": 18992.88, "38": 19771.92, "39": 20550.96,
+                        "40": 21330.00, "41": 22354.92, "42": 23379.84, "43": 24404.76, "44": 25429.68,
+                        "45": 26454.60, "46": 27797.76, "47": 29140.92, "48": 30484.08, "49": 31827.24,
+                        "50": 33170.40, "51": 34917.12, "52": 36663.84, "53": 38410.56, "54": 40157.28,
+                        "55": 41904.00, "56": 44180.28, "57": 46456.56, "58": 48732.84, "59": 51009.12,
+                        "60": 53285.40, "61": 56295.36, "62": 59305.32, "63": 62315.28, "64": 65325.24,
+                        "65": 68335.20, "66": 72357.84, "67": 76380.48, "68": 80403.12, "69": 84425.76, "70": 88448.40
+                    },
+                    "10": { 
+                        "35": 9686.00, "36": 10118.80, "37": 10551.60, "38": 10984.40, "39": 11417.20,
+                        "40": 11850.00, "41": 12419.40, "42": 12988.80, "43": 13558.20, "44": 14127.60,
+                        "45": 14697.00, "46": 15443.20, "47": 16189.40, "48": 16935.60, "49": 17681.80,
+                        "50": 18428.00, "51": 19398.40, "52": 20368.80, "53": 21339.20, "54": 22309.60,
+                        "55": 23280.00, "56": 24544.60, "57": 25809.20, "58": 27073.80, "59": 28338.40,
+                        "60": 29603.00, "61": 31275.20, "62": 32947.40, "63": 34619.60, "64": 36291.80,
+                        "65": 37964.00, "66": 40198.80, "67": 42433.60, "68": 44668.40, "69": 46903.20, "70": 49138.00
+                    }
+                }
+            },
+            "2000000": {
+                "male": {
+                    "1": { 
+                        "35": 175996.80, "36": 184252.32, "37": 192507.84, "38": 200763.36, "39": 209018.88,
+                        "40": 217274.40, "41": 228219.12, "42": 239163.84, "43": 250108.56, "44": 261053.28,
+                        "45": 271998.00, "46": 286273.44, "47": 300548.88, "48": 314824.32, "49": 329099.76,
+                        "50": 343375.20, "51": 361898.28, "52": 380421.36, "53": 398944.44, "54": 417467.52,
+                        "55": 435990.60, "56": 460034.64, "57": 484078.68, "58": 508122.72, "59": 532166.76,
+                        "60": 556210.80, "61": 586938.96, "62": 617667.12, "63": 648395.28, "64": 679123.44,
+                        "65": 709851.60, "66": 750552.48, "67": 791253.36, "68": 831954.24, "69": 872655.12, "70": 913356.00
+                    },
+                    "5": { 
+                        "35": 39110.40, "36": 40944.96, "37": 42779.52, "38": 44614.08, "39": 46448.64,
+                        "40": 48283.20, "41": 50715.36, "42": 53147.52, "43": 55579.68, "44": 58011.84,
+                        "45": 60444.00, "46": 63616.32, "47": 66788.64, "48": 69960.96, "49": 73133.28,
+                        "50": 76305.60, "51": 80421.84, "52": 84538.08, "53": 88654.32, "54": 92770.56,
+                        "55": 96886.80, "56": 102229.92, "57": 107573.04, "58": 112916.16, "59": 118259.28,
+                        "60": 123602.40, "61": 130430.88, "62": 137259.36, "63": 144087.84, "64": 150916.32,
+                        "65": 157744.80, "66": 166789.44, "67": 175834.08, "68": 184878.72, "69": 193923.36, "70": 202968.00
+                    },
+                    "10": { 
+                        "35": 21728.00, "36": 22747.20, "37": 23766.40, "38": 24785.60, "39": 25804.80,
+                        "40": 26824.00, "41": 28175.20, "42": 29526.40, "43": 30877.60, "44": 32228.80,
+                        "45": 33580.00, "46": 35342.40, "47": 37104.80, "48": 38867.20, "49": 40629.60,
+                        "50": 42392.00, "51": 44678.80, "52": 46965.60, "53": 49252.40, "54": 51539.20,
+                        "55": 53826.00, "56": 56794.40, "57": 59762.80, "58": 62731.20, "59": 65699.60,
+                        "60": 68668.00, "61": 72461.60, "62": 76255.20, "63": 80048.80, "64": 83842.40,
+                        "65": 87636.00, "66": 92660.80, "67": 97685.60, "68": 102710.40, "69": 107735.20, "70": 112760.00
+                    }
+                },
+                "female": {
+                    "1": { 
+                        "35": 156913.20, "36": 163924.56, "37": 170935.92, "38": 177947.28, "39": 184958.64,
+                        "40": 191970.00, "41": 201194.28, "42": 210418.56, "43": 219642.84, "44": 228867.12,
+                        "45": 238091.40, "46": 250179.84, "47": 262268.28, "48": 274356.72, "49": 286445.16,
+                        "50": 298533.60, "51": 314254.08, "52": 329974.56, "53": 345695.04, "54": 361415.52,
+                        "55": 377136.00, "56": 397622.52, "57": 418109.04, "58": 438595.56, "59": 459082.08,
+                        "60": 479568.60, "61": 506658.24, "62": 533747.88, "63": 560837.52, "64": 587927.16,
+                        "65": 615016.80, "66": 651220.56, "67": 687424.32, "68": 723628.08, "69": 759831.84, "70": 796035.60
+                    },
+                    "5": { 
+                        "35": 34869.60, "36": 36427.68, "37": 37985.76, "38": 39543.84, "39": 41101.92,
+                        "40": 42660.00, "41": 44709.84, "42": 46759.68, "43": 48809.52, "44": 50859.36,
+                        "45": 52909.20, "46": 55595.52, "47": 58281.84, "48": 60968.16, "49": 63654.48,
+                        "50": 66340.80, "51": 69834.24, "52": 73327.68, "53": 76821.12, "54": 80314.56,
+                        "55": 83808.00, "56": 88360.56, "57": 92913.12, "58": 97465.68, "59": 102018.24,
+                        "60": 106570.80, "61": 112590.72, "62": 118610.64, "63": 124630.56, "64": 130650.48,
+                        "65": 136670.40, "66": 144715.68, "67": 152760.96, "68": 160806.24, "69": 168851.52, "70": 176896.80
+                    },
+                    "10": { 
+                        "35": 19372.00, "36": 20237.60, "37": 21103.20, "38": 21968.80, "39": 22834.40,
+                        "40": 23700.00, "41": 24838.80, "42": 25977.60, "43": 27116.40, "44": 28255.20,
+                        "45": 29394.00, "46": 30886.40, "47": 32378.80, "48": 33871.20, "49": 35363.60,
+                        "50": 36856.00, "51": 38796.80, "52": 40737.60, "53": 42678.40, "54": 44619.20,
+                        "55": 46560.00, "56": 49089.20, "57": 51618.40, "58": 54147.60, "59": 56676.80,
+                        "60": 59206.00, "61": 62550.40, "62": 65894.80, "63": 69239.20, "64": 72583.60,
+                        "65": 75928.00, "66": 80397.60, "67": 84867.20, "68": 89336.80, "69": 93806.40, "70": 98276.00
+                    }
+                }
+            }
+        };
+
+        // Exchange rate - USD only
+        let exchangeRates = {
+            USD: 15800   // Fallback rate
+        };
+
+        let chartInstance = null;
+        let ratesLoaded = false;
+
+        // Fetch real-time exchange rates
+        async function fetchExchangeRates() {
+            try {
+                const response = await fetch('https://api.exchangerate-api.com/v4/latest/IDR');
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch exchange rates');
+                }
+                
+                const data = await response.json();
+                
+                if (data.rates.USD) {
+                    exchangeRates.USD = Math.round(1 / data.rates.USD);
+                    ratesLoaded = true;
+                    console.log('✅ Exchange rates updated:', exchangeRates);
+                } else {
+                    console.warn('⚠️ Exchange rate data incomplete, using fallback rates');
+                }
+            } catch (error) {
+                console.error('❌ Error fetching exchange rates:', error);
+                console.log('Using fallback exchange rates:', exchangeRates);
+            }
+        }
+
+        function calculateAge(dob) {
+            const today = new Date();
+            const birthDate = new Date(dob);
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            
+            return age;
+        }
+
+        // Parse DD/MM/YYYY format to Date object
+        function parseDDMMYYYY(dateString) {
+            const parts = dateString.split('/');
+            if (parts.length !== 3) return null;
+            
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            
+            if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+            if (day < 1 || day > 31) return null;
+            if (month < 0 || month > 11) return null;
+            if (year < 1900 || year > new Date().getFullYear()) return null;
+            
+            const date = new Date(year, month, day);
+            
+            if (date.getDate() !== day || date.getMonth() !== month || date.getFullYear() !== year) {
+                return null;
+            }
+            
+            return date;
+        }
+
+        function formatDateInput(input) {
+            let value = input.value.replace(/\D/g, '');
+            
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + '/' + value.substring(2);
+            }
+            if (value.length >= 5) {
+                value = value.substring(0, 5) + '/' + value.substring(5, 9);
+            }
+            
+            input.value = value;
+        }
+
+        function formatCurrency(amount, currency) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: currency,
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function formatIDR(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function getPremium(age, gender, sumAssured, smoking, paymentTerm) {
+            const saKey = String(sumAssured);
+            const termKey = String(paymentTerm);
+            const ageKey = String(age);
+            
+            if (!premiumTable[saKey] || !premiumTable[saKey][gender] || 
+                !premiumTable[saKey][gender][termKey] || !premiumTable[saKey][gender][termKey][ageKey]) {
+                console.error('Premium not found for:', { saKey, gender, termKey, ageKey });
+                return null;
+            }
+            
+            let premium = premiumTable[saKey][gender][termKey][ageKey];
+            
+            // If smoker, increase premium by 30%
+            if (smoking === 'yes') {
+                premium = premium * 1.3;
+            }
+            
+            return Math.round(premium);
+        }
+
+        function calculate() {
+            const clientName = document.getElementById('clientName').value;
+            const dobInput = document.getElementById('dob').value;
+            const gender = document.getElementById('gender').value;
+            const smoking = document.getElementById('smoking').value;
+            const sumAssured = parseInt(document.getElementById('sumAssured').value);
+
+            // Validation
+            if (!clientName || !dobInput || !gender || !smoking || !sumAssured) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            const birthDate = parseDDMMYYYY(dobInput);
+            if (!birthDate) {
+                alert('⚠️ Invalid Date Format\n\nPlease enter date in DD/MM/YYYY format.\nExample: 15/06/1978');
+                return;
+            }
+
+            const age = calculateAge(birthDate);
+
+            if (age < 35 || age > 70) {
+                alert('⚠️ Age Requirement Not Met\n\nEligible age range: 35 - 70 years old\nYour current age: ' + age + ' years old\n\nPlease enter a valid date of birth.');
+                return;
+            }
+
+            // Get premiums for all 3 payment terms
+            const premium1 = getPremium(age, gender, sumAssured, smoking, 1);
+            const premium5 = getPremium(age, gender, sumAssured, smoking, 5);
+            const premium10 = getPremium(age, gender, sumAssured, smoking, 10);
+
+            if (!premium1 || !premium5 || !premium10) {
+                alert('Premium not available for this combination');
+                return;
+            }
+
+            // Calculate totals
+            const total1 = premium1 * 1;
+            const total5 = premium5 * 5;
+            const total10 = premium10 * 10;
+
+            // Calculate multipliers
+            const multiplier1 = (sumAssured / total1).toFixed(1);
+            const multiplier5 = (sumAssured / total5).toFixed(1);
+            const multiplier10 = (sumAssured / total10).toFixed(1);
+
+            const currency = 'USD';
+
+            // Exchange rate calculations
+            const rate = exchangeRates.USD;
+            const saIDR = sumAssured * rate;
+
+            // Display header summary
+            document.getElementById('summaryNameHeader').textContent = clientName;
+            document.getElementById('summaryAgeHeader').textContent = age + ' years old';
+            document.getElementById('summaryGenderHeader').textContent = gender.charAt(0).toUpperCase() + gender.slice(1);
+            document.getElementById('summarySmokingHeader').textContent = smoking === 'yes' ? 'Smoker' : 'Non-Smoker';
+            document.getElementById('summarySAHeader').textContent = formatCurrency(sumAssured, currency);
+
+            // Display PAY 1 card
+            document.getElementById('premium1').textContent = formatCurrency(premium1, currency);
+            document.getElementById('total1').textContent = formatCurrency(total1, currency);
+            document.getElementById('multiplier1').textContent = multiplier1 + 'x';
+
+            // Display PAY 5 card
+            document.getElementById('premium5').textContent = formatCurrency(premium5, currency) + '/year';
+            document.getElementById('total5').textContent = formatCurrency(total5, currency);
+            document.getElementById('multiplier5').textContent = multiplier5 + 'x';
+
+            // Display PAY 10 card
+            document.getElementById('premium10').textContent = formatCurrency(premium10, currency) + '/year';
+            document.getElementById('total10').textContent = formatCurrency(total10, currency);
+            document.getElementById('multiplier10').textContent = multiplier10 + 'x';
+
+            // Display IDR conversion
+            document.getElementById('exchangeRate').textContent = `1 USD = ${formatIDR(rate).replace('IDR', 'Rp')}`;
+            document.getElementById('saIDR').textContent = formatIDR(saIDR);
+            
+            document.getElementById('premiumIDR1').textContent = formatIDR(premium1 * rate);
+            document.getElementById('premiumIDR5').textContent = formatIDR(premium5 * rate);
+            document.getElementById('premiumIDR10').textContent = formatIDR(premium10 * rate);
+            
+            document.getElementById('totalPremiumIDR1').textContent = formatIDR(total1 * rate);
+            document.getElementById('totalPremiumIDR5').textContent = formatIDR(total5 * rate);
+            document.getElementById('totalPremiumIDR10').textContent = formatIDR(total10 * rate);
+
+            // Show results section
+            document.getElementById('resultsSection').style.display = 'block';
+
+            // Create chart comparing all 3 payment terms
+            createComparisonChart(age, gender, sumAssured, smoking);
+
+            // Store data for PDF generation
+            calculationData = {
+                clientName: clientName,
+                age: age,
+                gender: gender,
+                smoking: smoking,
+                sumAssured: sumAssured,
+                sumAssuredText: formatCurrency(sumAssured, currency),
+                premium1: premium1,
+                premium5: premium5,
+                premium10: premium10,
+                total1: total1,
+                total5: total5,
+                total10: total10,
+                multiplier1: multiplier1,
+                multiplier5: multiplier5,
+                multiplier10: multiplier10,
+                currency: currency,
+                rate: rate,
+                saIDR: formatIDR(saIDR)
+            };
+
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function createComparisonChart(currentAge, gender, sumAssured, smoking) {
+            const ctx = document.getElementById('coverageChart').getContext('2d');
+
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            // Get premiums for all 3 payment terms
+            const premium1 = getPremium(currentAge, gender, sumAssured, smoking, 1);
+            const premium5 = getPremium(currentAge, gender, sumAssured, smoking, 5);
+            const premium10 = getPremium(currentAge, gender, sumAssured, smoking, 10);
+
+            // Calculate totals
+            const total1 = premium1 * 1;
+            const total5 = premium5 * 5;
+            const total10 = premium10 * 10;
+
+            // Calculate multipliers
+            const multiplier1 = (sumAssured / total1).toFixed(1);
+            const multiplier5 = (sumAssured / total5).toFixed(1);
+            const multiplier10 = (sumAssured / total10).toFixed(1);
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [
+                        ['PAY 1', 'Single Premium', multiplier1 + 'x'], 
+                        ['PAY 5', '5 Years', multiplier5 + 'x'], 
+                        ['PAY 10', '10 Years', multiplier10 + 'x'], 
+                        ['Sum Assured', 'Coverage till Age 100', '']
+                    ],
+                    datasets: [{
+                        label: 'Amount (USD)',
+                        data: [total1, total5, total10, sumAssured],
+                        backgroundColor: [
+                            'rgba(245, 158, 11, 0.8)',  // Gold for PAY 1
+                            'rgba(100, 255, 218, 0.8)',  // Cyan for PAY 5
+                            'rgba(167, 139, 250, 0.8)',  // Purple for PAY 10
+                            'rgba(16, 185, 129, 0.8)'    // Green for Coverage
+                        ],
+                        borderColor: [
+                            '#f59e0b',
+                            '#64ffda',
+                            '#a78bfa',
+                            '#10b981'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#172a46',
+                            titleColor: '#64ffda',
+                            bodyColor: '#e2e8f0',
+                            borderColor: '#64ffda',
+                            borderWidth: 1,
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return '$' + context.parsed.y.toLocaleString();
+                                },
+                                afterLabel: function(context) {
+                                    if (context.dataIndex < 3) {
+                                        const multipliers = [multiplier1, multiplier5, multiplier10];
+                                        return 'Protection Multiplier: ' + multipliers[context.dataIndex] + 'x';
+                                    }
+                                    return '';
+                                }
+                            }
+                        },
+                        datalabels: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#a8b2c1',
+                                font: {
+                                    family: 'Montserrat',
+                                    size: 11,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Amount (USD)',
+                                color: '#a8b2c1',
+                                font: {
+                                    size: 14,
+                                    family: 'Montserrat',
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                color: '#a8b2c1',
+                                font: {
+                                    family: 'Montserrat'
+                                },
+                                callback: function(value) {
+                                    if (value >= 1000000) {
+                                        return '$' + (value / 1000000).toFixed(1) + 'M';
+                                    } else if (value >= 1000) {
+                                        return '$' + (value / 1000).toFixed(0) + 'K';
+                                    }
+                                    return '$' + value;
+                                }
+                            },
+                            grid: {
+                                color: '#2d3748'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Store calculation data for PDF generation
+        let calculationData = null;
+
+        function downloadPDF() {
+            if (!calculationData) {
+                alert('Please calculate premium first before downloading PDF');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const navyBlue = [25, 55, 109];
+            const gold = [212, 175, 55];
+            const lightGold = [255, 235, 180];
+            const darkText = [40, 40, 40];
+            const lightGray = [245, 245, 245];
+            const white = [255, 255, 255];
+
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 20;
+
+            // Header
+            doc.setFillColor(...navyBlue);
+            doc.rect(0, 0, pageWidth, 45, 'F');
+            
+            doc.setFillColor(...gold);
+            doc.rect(0, 45, pageWidth, 2, 'F');
+            
+            doc.setTextColor(...white);
+            doc.setFontSize(24);
+            doc.setFont('helvetica', 'bold');
+            doc.text('IUL Insurance Report', pageWidth / 2, 22, { align: 'center' });
+            
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Index Universal Life Insurance Summary', pageWidth / 2, 35, { align: 'center' });
+
+            let yPos = 57;
+
+            // Client Information Section
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 45, 3, 3, 'F');
+            
+            doc.setFillColor(...gold);
+            doc.rect(margin, yPos, 4, 45, 'F');
+            
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Client Information', margin + 8, yPos + 10);
+
+            doc.setTextColor(...darkText);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            
+            const clientInfo = [
+                ['Name:', calculationData.clientName],
+                ['Age:', calculationData.age + ' years old'],
+                ['Gender:', calculationData.gender.charAt(0).toUpperCase() + calculationData.gender.slice(1)],
+                ['Smoking Status:', calculationData.smoking === 'yes' ? 'Smoker' : 'Non-Smoker']
+            ];
+
+            let infoY = yPos + 22;
+            clientInfo.forEach(([label, value]) => {
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...navyBlue);
+                doc.text(label, margin + 10, infoY);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(...darkText);
+                doc.text(value, margin + 55, infoY);
+                infoY += 7;
+            });
+
+            yPos += 52;
+
+            // Premium Details Section
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 52, 3, 3, 'F');
+            
+            doc.setFillColor(...gold);
+            doc.rect(margin, yPos, 4, 52, 'F');
+            
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Premium Details', margin + 8, yPos + 10);
+
+            doc.setTextColor(...darkText);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            
+            const premiumInfo = [
+                ['Sum Assured:', calculationData.sumAssuredText],
+                ['Currency:', 'USD']
+            ];
+
+            let premY = yPos + 22;
+            premiumInfo.forEach(([label, value]) => {
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...navyBlue);
+                doc.text(label, margin + 10, premY);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(...darkText);
+                doc.text(value, margin + 65, premY);
+                premY += 8;
+            });
+
+            yPos += 37;
+
+            // Payment Options Comparison
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 45, 3, 3, 'F');
+            
+            doc.setFillColor(...gold);
+            doc.rect(margin, yPos, 4, 45, 'F');
+            
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Payment Options', margin + 8, yPos + 10);
+
+            doc.setTextColor(...darkText);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            
+            const colWidth = (pageWidth - 2 * margin - 20) / 3;
+            let optY = yPos + 18;
+            
+            // PAY 1
+            doc.setFont('helvetica', 'bold');
+            doc.text('PAY 1 (Single)', margin + 10, optY);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Premium: $' + calculationData.premium1.toLocaleString(), margin + 10, optY + 5);
+            doc.text('Total: $' + calculationData.total1.toLocaleString(), margin + 10, optY + 10);
+            doc.text('Multiplier: ' + calculationData.multiplier1 + 'x', margin + 10, optY + 15);
+            
+            // PAY 5
+            doc.setFont('helvetica', 'bold');
+            doc.text('PAY 5 (5 Years)', margin + 10 + colWidth, optY);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Annual: $' + calculationData.premium5.toLocaleString(), margin + 10 + colWidth, optY + 5);
+            doc.text('Total: $' + calculationData.total5.toLocaleString(), margin + 10 + colWidth, optY + 10);
+            doc.text('Multiplier: ' + calculationData.multiplier5 + 'x', margin + 10 + colWidth, optY + 15);
+            
+            // PAY 10
+            doc.setFont('helvetica', 'bold');
+            doc.text('PAY 10 (10 Years)', margin + 10 + colWidth * 2, optY);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Annual: $' + calculationData.premium10.toLocaleString(), margin + 10 + colWidth * 2, optY + 5);
+            doc.text('Total: $' + calculationData.total10.toLocaleString(), margin + 10 + colWidth * 2, optY + 10);
+            doc.text('Multiplier: ' + calculationData.multiplier10 + 'x', margin + 10 + colWidth * 2, optY + 15);
+
+            yPos += 52;
+
+            // Exchange Rate Section
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 32, 3, 3, 'F');
+            
+            doc.setFillColor(...gold);
+            doc.rect(margin, yPos, 4, 32, 'F');
+            
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('IDR Conversion', margin + 8, yPos + 10);
+
+            doc.setTextColor(...darkText);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            
+            doc.text('Exchange Rate: 1 USD = Rp ' + calculationData.rate.toLocaleString('id-ID'), margin + 10, yPos + 20);
+            doc.text('Sum Assured (IDR): ' + calculationData.saIDR, margin + 10, yPos + 27);
+
+            yPos += 37;
+
+            // Disclaimer Section
+            doc.setFillColor(255, 250, 230);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 35, 3, 3, 'F');
+            doc.setDrawColor(...gold);
+            doc.setLineWidth(1);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 35, 3, 3, 'S');
+            
+            doc.setTextColor(...gold);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.text('! Important Disclaimer', margin + 5, yPos + 8);
+            
+            doc.setTextColor(80, 80, 80);
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
+            
+            const disclaimerText = 'Informasi dan angka-angka yang disajikan dalam alat ini, termasuk tabel premi dan ilustrasi, HANYA BERTUJUAN UNTUK MEMBERIKAN ESTIMASI (PERKIRAAN) JUMLAH PREMI dan gambaran umum produk. Angka-angka ini BUKANLAH kutipan atau tawaran yang mengikat secara resmi (formal quotation) dari penyedia asuransi mana pun dan tidak boleh dianggap sebagai dasar untuk pengambilan keputusan akhir. Untuk mendapatkan rincian biaya yang akurat, lengkap, dan mengikat, Anda WAJIB meminta quotation dan illustration resmi dari perusahaan asuransi terkait. Semua hak, kewajiban, syarat, ketentuan, dan pengecualian sepenuhnya diatur oleh Dokumen Polis resmi (official Policy document) yang dikeluarkan oleh masing-masing penyedia. Klien disarankan untuk meninjau secara cermat ilustrasi asli dan memverifikasi semua angka dan informasi secara independen.';
+            
+            const splitDisclaimer = doc.splitTextToSize(disclaimerText, pageWidth - 2 * margin - 10);
+            doc.text(splitDisclaimer, margin + 5, yPos + 15);
+
+            yPos += 40;
+
+            // Footer
+            doc.setDrawColor(...gold);
+            doc.setLineWidth(1);
+            doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+            
+            doc.setFontSize(7);
+            doc.setTextColor(120, 120, 120);
+            doc.setFont('helvetica', 'italic');
+            doc.text('Generated on: ' + new Date().toLocaleDateString('en-US', { 
+                year: 'numeric', month: 'long', day: 'numeric', 
+                hour: '2-digit', minute: '2-digit' 
+            }), pageWidth / 2, pageHeight - 8, { align: 'center' });
+
+            const fileName = 'IUL_Insurance_' + calculationData.clientName.replace(/\s+/g, '_') + '_' + 
+                new Date().toISOString().split('T')[0] + '.pdf';
+            doc.save(fileName);
+        }
+
+        // Load user information and setup
+        window.addEventListener('DOMContentLoaded', function() {
+            try {
+                const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                
+                if (!authData.authenticated) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                document.getElementById('userEmail').textContent = authData.email || 'Unknown';
+            } catch (error) {
+                console.error('Error loading user info:', error);
+                window.location.href = 'index.html';
+            }
+            
+            // Fetch real-time exchange rates
+            fetchExchangeRates();
+            
+            // Setup date input auto-formatting
+            const dobInput = document.getElementById('dob');
+            dobInput.addEventListener('input', function(e) {
+                formatDateInput(e.target);
+            });
+            
+            dobInput.addEventListener('keypress', function(e) {
+                const char = String.fromCharCode(e.which);
+                if (!/[0-9\/]/.test(char)) {
+                    e.preventDefault();
+                }
+            });
+        });
+
+        // Logout functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('logoutBtn').addEventListener('click', async function() {
+                if (!confirm('Are you sure you want to logout?')) {
+                    return;
+                }
+
+                try {
+                    const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                    
+                    localStorage.setItem('logoutBroadcast', JSON.stringify({
+                        email: authData.email,
+                        timestamp: Date.now()
+                    }));
+                    
+                    setTimeout(() => {
+                        localStorage.removeItem('logoutBroadcast');
+                    }, 1000);
+                    
+                    if (typeof SecurityUtils !== 'undefined') {
+                        SecurityUtils.logSecurityEvent('LOGOUT', {
+                            email: authData.email,
+                            message: 'User logged out from IUL Calculator',
+                            timestamp: Date.now()
+                        });
+                    }
+
+                    if (window.sessionTracker) {
+                        await window.sessionTracker.stopSession();
+                    }
+                } catch (error) {
+                    console.error('Error during logout:', error);
+                }
+
+                sessionStorage.removeItem('waterfallAuth');
+                localStorage.removeItem('waterfallActiveSession');
+                
+                window.location.href = 'index.html';
+            });
+        });
+
+        // Listen for logout broadcast from other tabs
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'logoutBroadcast') {
+                try {
+                    const logoutData = JSON.parse(e.newValue || '{}');
+                    const currentAuth = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                    
+                    if (logoutData.email === currentAuth.email) {
+                        sessionStorage.removeItem('waterfallAuth');
+                        localStorage.removeItem('waterfallActiveSession');
+                        alert('🚪 You have been logged out from another tab.');
+                        window.location.href = 'index.html';
+                    }
+                } catch (error) {
+                    console.error('Error processing logout broadcast:', error);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
