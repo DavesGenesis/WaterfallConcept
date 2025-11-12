@@ -1447,6 +1447,7 @@
             yPos += 40;
 
             // Footer with gold line
+	    /* multi line comment
             doc.setDrawColor(...gold);
             doc.setLineWidth(1);
             doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
@@ -1458,8 +1459,9 @@
                 year: 'numeric', month: 'long', day: 'numeric', 
                 hour: '2-digit', minute: '2-digit' 
             }), pageWidth / 2, pageHeight - 8, { align: 'center' });
-
-            // Save PDF
+	    */
+            
+	    // Save PDF
             const fileName = 'Term_Life_Insurance_' + calculationData.clientName.replace(/\s+/g, '_') + '_' + 
                 new Date().toISOString().split('T')[0] + '.pdf';
             doc.save(fileName);
