@@ -359,6 +359,71 @@
             background: var(--bg-card-lighter);
         }
 
+        /* Story Card Styles */
+        .story-card {
+            background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%);
+            border: 2px solid var(--accent);
+            border-radius: 0.75rem;
+            margin-bottom: 2rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .story-header {
+            background: var(--bg-card-darker);
+            padding: 1rem 1.5rem;
+            border-bottom: 2px solid var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .story-header i {
+            color: var(--accent);
+            font-size: 1.5rem;
+        }
+
+        .story-header h3 {
+            color: var(--accent);
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .story-body {
+            padding: 1.5rem;
+        }
+
+        .story-content {
+            border-left: 4px solid var(--accent);
+            padding-left: 1.5rem;
+        }
+
+        .story-content p {
+            color: var(--text-primary);
+            font-size: 1rem;
+            line-height: 1.8;
+            margin-bottom: 1rem;
+            text-align: justify;
+        }
+
+        .story-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .story-content strong {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .story-comparison {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
         .hidden {
             display: none;
         }
@@ -634,6 +699,34 @@
             .summary-box-waterfall {
                 transform: scale(1); /* Disable pop effect on mobile for better layout */
             }
+
+            /* Story Card Mobile Styles */
+            .story-header {
+                padding: 0.75rem 1rem;
+            }
+
+            .story-header h3 {
+                font-size: 1rem;
+            }
+
+            .story-header i {
+                font-size: 1.25rem;
+            }
+
+            .story-body {
+                padding: 1rem;
+            }
+
+            .story-content {
+                padding-left: 1rem;
+                border-left-width: 3px;
+            }
+
+            .story-content p {
+                font-size: 0.9rem;
+                text-align: left;
+                line-height: 1.6;
+            }
         }
 
         @media print {
@@ -832,7 +925,7 @@
                         <!-- Usia Anak -->
                         <div class="space-y-2">
                             <label class="text-sm font-semibold" style="color: var(--text-secondary);">
-                                Usia Rata-rata Anak: <span id="childAgeDisplay" class="highlight">14</span> Tahun
+                                Usia Anak Sulung: <span id="childAgeDisplay" class="highlight">14</span> Tahun
                             </label>
                             <input id="childAgeSlider" type="range" min="14" max="70" value="14" class="w-full py-4" />
                             <div class="kpi-card text-center">
@@ -848,6 +941,29 @@
 
             <!-- Main Content -->
             <main class="main-content">
+                <!-- Background Story Section -->
+                <div class="story-card">
+                    <div class="story-header">
+                        <i class="fas fa-book-open"></i>
+                        <h3>Scenario Perencanaan Legacy</h3>
+                    </div>
+                    <div class="story-body">
+                        <div class="story-content">
+                            <p>
+                                <strong id="storyClientName">Mr. John</strong> (usia <strong id="storyClientAge">43</strong> tahun) 
+                                memiliki harta kekayaan sebesar <strong id="storyTotalAssets">Rp 30.000.000</strong> 
+                                dan hendak mengatur <strong>LEGACY PLANNING</strong> yang terbaik untuk 
+                                <strong id="storyNumChildren">2</strong> anaknya, dimana usia anak yang sulung adalah 
+                                <strong id="storyOldestChildAge">14</strong> tahun.
+                            </p>
+                            <p class="story-comparison">
+                                Di bawah ini adalah perbandingan LEGACY planning secara 
+                                <strong>Tradisional</strong> atau <strong>Waterfall Concept</strong>.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Tabs -->
                 <div class="w-full max-w-2xl mx-auto mb-8">
                     <div class="grid grid-cols-2 gap-0 rounded-lg overflow-hidden"
@@ -1126,6 +1242,9 @@
             renderTraditionalVisualization();
             renderWaterfallVisualization();
 
+            // Update story section
+            updateStorySection();
+
             // --- NEW UI UPDATES FOR SUMMARY (v2) ---
             // Update chart subtitles
             document.getElementById('chartTradSubtitle').innerHTML = `Initial Assets Available: <br><span class="highlight">${formatShortRupiah(state.initialAssets)}</span>`;
@@ -1237,6 +1356,23 @@
             `;
 
             container.innerHTML = html;
+        }
+
+        // Update Story Section
+        function updateStorySection() {
+            // Get values from state
+            const clientName = "Mr. John"; // You can make this dynamic if you add a name input
+            const clientAge = state.fatherAge;
+            const totalAssets = formatRupiah(state.initialAssets);
+            const numChildren = state.numChildren;
+            const oldestChildAge = state.childAge;
+            
+            // Update story content
+            document.getElementById('storyClientName').textContent = clientName;
+            document.getElementById('storyClientAge').textContent = clientAge;
+            document.getElementById('storyTotalAssets').textContent = totalAssets;
+            document.getElementById('storyNumChildren').textContent = numChildren;
+            document.getElementById('storyOldestChildAge').textContent = oldestChildAge;
         }
 
         // Render Waterfall Visualization
