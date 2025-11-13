@@ -1270,7 +1270,7 @@
         // Store calculation data for PDF generation
         let calculationData = null;
 
-        function downloadPDF() {
+        async function downloadPDF() {
             if (!calculationData) {
                 alert('Please calculate premium first before downloading PDF');
                 return;
@@ -1281,19 +1281,20 @@
 
             const navyBlue = [25, 55, 109];
             const gold = [212, 175, 55];
-            const lightGold = [255, 235, 180];
             const darkText = [40, 40, 40];
             const lightGray = [245, 245, 245];
             const white = [255, 255, 255];
+            const green = [16, 185, 129];
 
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
             const margin = 20;
 
+            // ========== PAGE 1 ==========
+            
             // Header
             doc.setFillColor(...navyBlue);
             doc.rect(0, 0, pageWidth, 45, 'F');
-            
             doc.setFillColor(...gold);
             doc.rect(0, 45, pageWidth, 2, 'F');
             
@@ -1301,19 +1302,17 @@
             doc.setFontSize(24);
             doc.setFont('helvetica', 'bold');
             doc.text('IUL Insurance Report', pageWidth / 2, 22, { align: 'center' });
-            
             doc.setFontSize(11);
             doc.setFont('helvetica', 'normal');
             doc.text('Index Universal Life Insurance Summary', pageWidth / 2, 35, { align: 'center' });
 
             let yPos = 57;
 
-            // Client Information Section (Compact - 2 columns)
+            // Client Information
             doc.setFillColor(...lightGray);
-            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 38, 3, 3, 'F');
-            
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 35, 3, 3, 'F');
             doc.setFillColor(...gold);
-            doc.rect(margin, yPos, 4, 38, 'F');
+            doc.rect(margin, yPos, 4, 35, 'F');
             
             doc.setTextColor(...navyBlue);
             doc.setFontSize(14);
@@ -1321,185 +1320,90 @@
             doc.text('Client Information', margin + 8, yPos + 10);
 
             doc.setTextColor(...darkText);
-            doc.setFontSize(9);
+            doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
             
-            const leftCol = [
-                ['Name:', calculationData.clientName],
-                ['Age:', calculationData.age + ' years old']
-            ];
-            const rightCol = [
-                ['Gender:', calculationData.gender.charAt(0).toUpperCase() + calculationData.gender.slice(1)],
-                ['Smoking:', calculationData.smoking === 'yes' ? 'Smoker' : 'Non-Smoker']
-            ];
-
             let infoY = yPos + 20;
-            leftCol.forEach(([label, value]) => {
+            const clientInfo = [
+                ['Name:', calculationData.clientName, 'Gender:', calculationData.gender.charAt(0).toUpperCase() + calculationData.gender.slice(1)],
+                ['Age:', calculationData.age + ' years old', 'Smoking:', calculationData.smoking === 'yes' ? 'Smoker' : 'Non-Smoker']
+            ];
+
+            clientInfo.forEach(row => {
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(...navyBlue);
-                doc.text(label, margin + 10, infoY);
+                doc.text(row[0], margin + 10, infoY);
                 doc.setFont('helvetica', 'normal');
                 doc.setTextColor(...darkText);
-                doc.text(value, margin + 35, infoY);
-                infoY += 7;
-            });
-            
-            infoY = yPos + 20;
-            rightCol.forEach(([label, value]) => {
+                doc.text(row[1], margin + 35, infoY);
+                
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(...navyBlue);
-                doc.text(label, margin + 95, infoY);
+                doc.text(row[2], margin + 95, infoY);
                 doc.setFont('helvetica', 'normal');
                 doc.setTextColor(...darkText);
-                doc.text(value, margin + 120, infoY);
+                doc.text(row[3], margin + 120, infoY);
                 infoY += 7;
             });
 
-            yPos += 43;
+            yPos += 40;
 
-            // Premium Details Section (Compact)
+            // Sum Assured
             doc.setFillColor(...lightGray);
-            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 28, 3, 3, 'F');
-            
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 20, 3, 3, 'F');
             doc.setFillColor(...gold);
-            doc.rect(margin, yPos, 4, 28, 'F');
+            doc.rect(margin, yPos, 4, 20, 'F');
             
             doc.setTextColor(...navyBlue);
             doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
-            doc.text('Coverage Details', margin + 8, yPos + 10);
+            doc.text('Sum Assured:', margin + 10, yPos + 13);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...darkText);
+            doc.text(calculationData.sumAssuredText + ' (USD)', margin + 50, yPos + 13);
+
+            yPos += 25;
+
+            // Payment Options
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 50, 3, 3, 'F');
+            doc.setFillColor(...gold);
+            doc.rect(margin, yPos, 4, 50, 'F');
+            
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Payment Options Comparison', margin + 8, yPos + 10);
 
             doc.setTextColor(...darkText);
             doc.setFontSize(9);
-            doc.setFont('helvetica', 'normal');
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(...navyBlue);
-            doc.text('Sum Assured:', margin + 10, yPos + 20);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(...darkText);
-            doc.text(calculationData.sumAssuredText + ' (USD)', margin + 50, yPos + 20);
-
-            yPos += 32;
-
-            // Payment Options Comparison
-            doc.setFillColor(...lightGray);
-            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 45, 3, 3, 'F');
-            
-            doc.setFillColor(...gold);
-            doc.rect(margin, yPos, 4, 45, 'F');
-            
-            doc.setTextColor(...navyBlue);
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Payment Options', margin + 8, yPos + 10);
-
-            doc.setTextColor(...darkText);
-            doc.setFontSize(8);
-            doc.setFont('helvetica', 'normal');
             
             const colWidth = (pageWidth - 2 * margin - 20) / 3;
-            let optY = yPos + 18;
+            let optY = yPos + 20;
             
-            // PAY 1
-            doc.setFont('helvetica', 'bold');
-            doc.text('PAY 1 (Single)', margin + 10, optY);
-            doc.setFont('helvetica', 'normal');
-            doc.text('Premium: $' + calculationData.premium1.toLocaleString(), margin + 10, optY + 5);
-            doc.text('Total: $' + calculationData.total1.toLocaleString(), margin + 10, optY + 10);
-            doc.text('Multiplier: ' + calculationData.multiplier1 + 'x', margin + 10, optY + 15);
-            
-            // PAY 5
-            doc.setFont('helvetica', 'bold');
-            doc.text('PAY 5 (5 Years)', margin + 10 + colWidth, optY);
-            doc.setFont('helvetica', 'normal');
-            doc.text('Annual: $' + calculationData.premium5.toLocaleString(), margin + 10 + colWidth, optY + 5);
-            doc.text('Total: $' + calculationData.total5.toLocaleString(), margin + 10 + colWidth, optY + 10);
-            doc.text('Multiplier: ' + calculationData.multiplier5 + 'x', margin + 10 + colWidth, optY + 15);
-            
-            // PAY 10
-            doc.setFont('helvetica', 'bold');
-            doc.text('PAY 10 (10 Years)', margin + 10 + colWidth * 2, optY);
-            doc.setFont('helvetica', 'normal');
-            doc.text('Annual: $' + calculationData.premium10.toLocaleString(), margin + 10 + colWidth * 2, optY + 5);
-            doc.text('Total: $' + calculationData.total10.toLocaleString(), margin + 10 + colWidth * 2, optY + 10);
-            doc.text('Multiplier: ' + calculationData.multiplier10 + 'x', margin + 10 + colWidth * 2, optY + 15);
-
-            yPos += 52;
-
-            // BEP and Long-Term Projections Section
-            doc.setFillColor(...lightGray);
-            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 42, 3, 3, 'F');
-            
-            doc.setFillColor(...gold);
-            doc.rect(margin, yPos, 4, 42, 'F');
-            
-            doc.setTextColor(...navyBlue);
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Long-Term Performance', margin + 8, yPos + 10);
-
-            doc.setTextColor(...darkText);
-            doc.setFontSize(7);
-            
-            // Table headers
-            const projColWidth = (pageWidth - 2 * margin - 40) / 3;
-            let projY = yPos + 18;
-            
-            doc.setFont('helvetica', 'bold');
-            doc.text('', margin + 10, projY);
-            doc.text('PAY 1', margin + 50, projY);
-            doc.text('PAY 5', margin + 50 + projColWidth, projY);
-            doc.text('PAY 10', margin + 50 + projColWidth * 2, projY);
-            
-            projY += 5;
-            doc.setFont('helvetica', 'normal');
-            
-            // BEP Row
-            doc.setFont('helvetica', 'bold');
-            doc.text('BEP:', margin + 10, projY);
-            doc.setFont('helvetica', 'normal');
-            doc.text('Year 9', margin + 50, projY);
-            doc.text('Year 10', margin + 50 + projColWidth, projY);
-            doc.text('Year 11', margin + 50 + projColWidth * 2, projY);
-            
-            // Projection rows (Years 20, 30, 40)
-            const projections = [
-                { year: 20, pct: 185 }, // Average of 158-211
-                { year: 30, pct: 290 }, // Average of 232-347
-                { year: 40, pct: 414 }  // Average of 307-521
+            const paymentOptions = [
+                { title: 'PAY 1 (Single)', premium: '$' + calculationData.premium1.toLocaleString(), total: '$' + calculationData.total1.toLocaleString(), mult: calculationData.multiplier1 + 'x' },
+                { title: 'PAY 5 (5 Years)', premium: '$' + calculationData.premium5.toLocaleString() + '/yr', total: '$' + calculationData.total5.toLocaleString(), mult: calculationData.multiplier5 + 'x' },
+                { title: 'PAY 10 (10 Years)', premium: '$' + calculationData.premium10.toLocaleString() + '/yr', total: '$' + calculationData.total10.toLocaleString(), mult: calculationData.multiplier10 + 'x' }
             ];
-            
-            projections.forEach(proj => {
-                projY += 5;
+
+            paymentOptions.forEach((opt, idx) => {
+                const xPos = margin + 10 + (colWidth * idx);
                 doc.setFont('helvetica', 'bold');
-                doc.text(`Year ${proj.year}:`, margin + 10, projY);
+                doc.text(opt.title, xPos, optY);
                 doc.setFont('helvetica', 'normal');
-                
-                // Calculate values for each payment option
-                const val1 = calculationData.total1 * (proj.pct / 100);
-                const val5 = calculationData.total5 * (proj.pct / 100);
-                const val10 = calculationData.total10 * (proj.pct / 100);
-                
-                // Format as compact (e.g., $59K)
-                const format = (val) => {
-                    if (val >= 1000000) return '$' + (val / 1000000).toFixed(1) + 'M';
-                    if (val >= 1000) return '$' + (val / 1000).toFixed(0) + 'K';
-                    return '$' + val.toFixed(0);
-                };
-                
-                doc.text(`${format(val1)} (${proj.pct}%)`, margin + 50, projY);
-                doc.text(`${format(val5)} (${proj.pct}%)`, margin + 50 + projColWidth, projY);
-                doc.text(`${format(val10)} (${proj.pct}%)`, margin + 50 + projColWidth * 2, projY);
+                doc.text('Premium: ' + opt.premium, xPos, optY + 6);
+                doc.text('Total: ' + opt.total, xPos, optY + 12);
+                doc.text('Multiplier: ' + opt.mult, xPos, optY + 18);
             });
 
-            yPos += 47;
+            yPos += 55;
 
-            // Exchange Rate Section
+            // IDR Conversion
             doc.setFillColor(...lightGray);
-            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 32, 3, 3, 'F');
-            
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 30, 3, 3, 'F');
             doc.setFillColor(...gold);
-            doc.rect(margin, yPos, 4, 32, 'F');
+            doc.rect(margin, yPos, 4, 30, 'F');
             
             doc.setTextColor(...navyBlue);
             doc.setFontSize(12);
@@ -1509,40 +1413,155 @@
             doc.setTextColor(...darkText);
             doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
-            
             doc.text('Exchange Rate: 1 USD = Rp ' + calculationData.rate.toLocaleString('id-ID'), margin + 10, yPos + 20);
-            doc.text('Sum Assured (IDR): ' + calculationData.saIDR, margin + 10, yPos + 27);
 
-            yPos += 37;
+            yPos += 35;
 
-            // Disclaimer Section (Compact)
-            doc.setFillColor(255, 250, 230);
-            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 25, 3, 3, 'F');
+            // Footer Page 1
             doc.setDrawColor(...gold);
             doc.setLineWidth(1);
-            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 25, 3, 3, 'S');
+            doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+            doc.setFontSize(7);
+            doc.setTextColor(120, 120, 120);
+            doc.setFont('helvetica', 'italic');
+            doc.text('Page 1 of 2', pageWidth / 2, pageHeight - 8, { align: 'center' });
+
+            // ========== PAGE 2 ==========
+            doc.addPage();
+            yPos = 20;
+
+            // Header Page 2
+            doc.setFillColor(...navyBlue);
+            doc.rect(0, 0, pageWidth, 35, 'F');
+            doc.setFillColor(...gold);
+            doc.rect(0, 35, pageWidth, 2, 'F');
+            
+            doc.setTextColor(...white);
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Long-Term Performance & Projections', pageWidth / 2, 22, { align: 'center' });
+
+            yPos = 47;
+
+            // BEP and Projections Table
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 85, 3, 3, 'F');
+            doc.setFillColor(...gold);
+            doc.rect(margin, yPos, 4, 85, 'F');
+            
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Cash Value Projections', margin + 8, yPos + 10);
+
+            // Table
+            doc.setFontSize(8);
+            let tableY = yPos + 20;
+            const col1 = margin + 10;
+            const col2 = margin + 60;
+            const col3 = margin + 110;
+            const col4 = margin + 160;
+
+            // Headers
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...navyBlue);
+            doc.text('', col1, tableY);
+            doc.text('PAY 1', col2, tableY);
+            doc.text('PAY 5', col3, tableY);
+            doc.text('PAY 10', col4, tableY);
+            
+            tableY += 6;
+            doc.setDrawColor(...gold);
+            doc.line(margin + 5, tableY, pageWidth - margin - 5, tableY);
+            tableY += 5;
+
+            // BEP
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...darkText);
+            doc.text('Break-Even:', col1, tableY);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Year 9', col2, tableY);
+            doc.text('Year 10', col3, tableY);
+            doc.text('Year 11', col4, tableY);
+            tableY += 6;
+
+            // Projections
+            const projections = [
+                { year: 20, minPct: 158, maxPct: 211 },
+                { year: 25, minPct: 200, maxPct: 272 },
+                { year: 30, minPct: 232, maxPct: 347 },
+                { year: 35, minPct: 265, maxPct: 430 },
+                { year: 40, minPct: 307, maxPct: 521 }
+            ];
+
+            doc.setFontSize(7);
+            projections.forEach(proj => {
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...darkText);
+                doc.text(`Year ${proj.year}:`, col1, tableY);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(...green);
+                
+                // PAY 1
+                const min1 = calculationData.total1 * (proj.minPct / 100);
+                const max1 = calculationData.total1 * (proj.maxPct / 100);
+                doc.text(`$${(min1/1000).toFixed(0)}K (${proj.minPct}%)`, col2, tableY);
+                doc.text(`$${(max1/1000).toFixed(0)}K (${proj.maxPct}%)`, col2, tableY + 3);
+                
+                // PAY 5
+                const min5 = calculationData.total5 * (proj.minPct / 100);
+                const max5 = calculationData.total5 * (proj.maxPct / 100);
+                doc.text(`$${(min5/1000).toFixed(0)}K (${proj.minPct}%)`, col3, tableY);
+                doc.text(`$${(max5/1000).toFixed(0)}K (${proj.maxPct}%)`, col3, tableY + 3);
+                
+                // PAY 10
+                const min10 = calculationData.total10 * (proj.minPct / 100);
+                const max10 = calculationData.total10 * (proj.maxPct / 100);
+                doc.text(`$${(min10/1000).toFixed(0)}K (${proj.minPct}%)`, col4, tableY);
+                doc.text(`$${(max10/1000).toFixed(0)}K (${proj.maxPct}%)`, col4, tableY + 3);
+                
+                tableY += 10;
+            });
+
+            yPos += 90;
+
+            // Chart
+            const chartCanvas = document.getElementById('coverageChart');
+            if (chartCanvas) {
+                try {
+                    const chartImage = chartCanvas.toDataURL('image/png');
+                    doc.addImage(chartImage, 'PNG', margin, yPos, pageWidth - 2 * margin, 60);
+                    yPos += 65;
+                } catch (error) {
+                    console.error('Error adding chart:', error);
+                }
+            }
+
+            // Disclaimer
+            doc.setFillColor(255, 250, 230);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 30, 3, 3, 'F');
+            doc.setDrawColor(...gold);
+            doc.setLineWidth(1);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 30, 3, 3, 'S');
             
             doc.setTextColor(...gold);
-            doc.setFontSize(8);
+            doc.setFontSize(9);
             doc.setFont('helvetica', 'bold');
-            doc.text('! Important Disclaimer', margin + 5, yPos + 7);
+            doc.text('! Important Disclaimer', margin + 5, yPos + 8);
             
             doc.setTextColor(80, 80, 80);
             doc.setFontSize(6);
             doc.setFont('helvetica', 'normal');
             
-            const disclaimerText = 'Informasi dan angka-angka yang disajikan dalam alat ini, termasuk tabel premi dan ilustrasi, HANYA BERTUJUAN UNTUK MEMBERIKAN ESTIMASI (PERKIRAAN) JUMLAH PREMI dan gambaran umum produk. Angka-angka ini BUKANLAH kutipan atau tawaran yang mengikat secara resmi (formal quotation) dari penyedia asuransi mana pun dan tidak boleh dianggap sebagai dasar untuk pengambilan keputusan akhir. Untuk mendapatkan rincian biaya yang akurat, lengkap, dan mengikat, Anda WAJIB meminta quotation dan illustration resmi dari perusahaan asuransi terkait. Semua hak, kewajiban, syarat, ketentuan, dan pengecualian sepenuhnya diatur oleh Dokumen Polis resmi (official Policy document) yang dikeluarkan oleh masing-masing penyedia. Klien disarankan untuk meninjau secara cermat ilustrasi asli dan memverifikasi semua angka dan informasi secara independen.';
+            const disclaimerText = 'Informasi dan angka-angka yang disajikan dalam alat ini, termasuk tabel premi dan ilustrasi, HANYA BERTUJUAN UNTUK MEMBERIKAN ESTIMASI (PERKIRAAN) JUMLAH PREMI dan gambaran umum produk. Angka-angka ini BUKANLAH kutipan atau tawaran yang mengikat secara resmi (formal quotation) dari penyedia asuransi mana pun dan tidak boleh dianggap sebagai dasar untuk pengambilan keputusan akhir. Untuk mendapatkan rincian biaya yang akurat, lengkap, dan mengikat, Anda WAJIB meminta quotation dan illustration resmi dari perusahaan asuransi terkait.';
             
             const splitDisclaimer = doc.splitTextToSize(disclaimerText, pageWidth - 2 * margin - 10);
-            doc.text(splitDisclaimer, margin + 5, yPos + 12);
+            doc.text(splitDisclaimer, margin + 5, yPos + 15);
 
-            yPos += 30;
-
-            // Footer
+            // Footer Page 2
             doc.setDrawColor(...gold);
             doc.setLineWidth(1);
             doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
-            
             doc.setFontSize(7);
             doc.setTextColor(120, 120, 120);
             doc.setFont('helvetica', 'italic');
@@ -1550,6 +1569,7 @@
                 year: 'numeric', month: 'long', day: 'numeric', 
                 hour: '2-digit', minute: '2-digit' 
             }), pageWidth / 2, pageHeight - 8, { align: 'center' });
+            doc.text('Page 2 of 2', pageWidth - margin, pageHeight - 8, { align: 'right' });
 
             const fileName = 'IUL_Insurance_' + calculationData.clientName.replace(/\s+/g, '_') + '_' + 
                 new Date().toISOString().split('T')[0] + '.pdf';
