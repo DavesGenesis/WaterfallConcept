@@ -1250,7 +1250,7 @@
                 }
                 
                 // Display results
-                displaySummaryCards(idrResult, usdResult, idrInstrument, usdInstrument, baseCurrency);
+                displaySummaryCards(idrResult, usdResult, idrInstrument, usdInstrument, baseCurrency, method, investmentAmount, startDate, endDate, frequency, contributionPeriod);
                 displayGrowthChart(idrYearly, usdYearlyIDR, idrInstrument, usdInstrument);
                 displayDetailedCalculations(baseCurrency, method, investmentAmount, startDate, endDate, frequency, contributionPeriod, 
                     idrData, usdData, usdIdrData, idrInstrument, usdInstrument, startExchangeRate, endExchangeRate);
@@ -1265,8 +1265,67 @@
         }
 
         // Display summary as comprehensive table
-        function displaySummaryCards(idrResult, usdResult, idrInstrument, usdInstrument, baseCurrency) {
+        function displaySummaryCards(idrResult, usdResult, idrInstrument, usdInstrument, baseCurrency, method, investmentAmount, startDate, endDate, frequency, contributionPeriod) {
             const winner = parseFloat(usdResult.returnPct) > parseFloat(idrResult.returnPct) ? 'USD' : 'IDR';
+            
+            // Calculate period duration
+            const startYear = startDate.getFullYear();
+            const startMonth = startDate.getMonth();
+            const endYear = endDate.getFullYear();
+            const endMonth = endDate.getMonth();
+            
+            const yearsDiff = endYear - startYear;
+            const monthsDiff = endMonth - startMonth;
+            const totalMonths = yearsDiff * 12 + monthsDiff;
+            const years = Math.floor(totalMonths / 12);
+            const months = totalMonths % 12;
+            
+            const periodDuration = years > 0 ? `${years}y ${months}m` : `${months}m`;
+            
+            // Calculate total contributions for DCA
+            let totalContributions = 1;
+            if (method === 'dca') {
+                const contributionEndDate = contributionPeriod ? 
+                    new Date(startDate.getFullYear(), startDate.getMonth() + (contributionPeriod * 12), startDate.getDate()) : endDate;
+                
+                let currentDate = new Date(startDate);
+                totalContributions = 0;
+                
+                while (currentDate <= contributionEndDate && currentDate <= endDate) {
+                    totalContributions++;
+                    if (frequency === 'monthly') {
+                        currentDate.setMonth(currentDate.getMonth() + 1);
+                    } else {
+                        currentDate.setFullYear(currentDate.getFullYear() + 1);
+                    }
+                }
+            }
+            
+            // Format dates
+            const formatDate = (date) => {
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                return `${day}/${month}/${year}`;
+            };
+            
+            // Build info bar
+            const methodDisplay = method === 'lumpsum' ? 'Lumpsum' : `DCA ${frequency === 'monthly' ? 'Monthly' : 'Yearly'}`;
+            const amountDisplay = baseCurrency === 'IDR' ? formatCurrency(investmentAmount) : formatCurrency(investmentAmount, 'USD');
+            const contributionInfo = method === 'dca' ? 
+                `⏱️ Contribution: ${contributionPeriod} ${contributionPeriod > 1 ? 'years' : 'year'} (${totalContributions} periods)` : 
+                `⏱️ Single Investment`;
+            
+            const infoBar = `
+                <div style="background: var(--bg-card-darker); padding: 12px 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid var(--accent); font-size: 0.9rem;">
+                    <p style="color: var(--text-primary); margin: 0; display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center;">
+                        <span><strong style="color: var(--accent);">📅 Period:</strong> ${formatDate(startDate)} → ${formatDate(endDate)} <span style="color: var(--text-muted);">(${periodDuration})</span></span>
+                        <span style="border-left: 2px solid var(--border-color); padding-left: 1.5rem;"><strong style="color: var(--accent);">💰 Method:</strong> ${methodDisplay}</span>
+                        <span style="border-left: 2px solid var(--border-color); padding-left: 1.5rem;">${contributionInfo}</span>
+                        <span style="border-left: 2px solid var(--border-color); padding-left: 1.5rem;"><strong style="color: var(--accent);">💵 Amount:</strong> ${amountDisplay}${method === 'dca' ? `/${frequency === 'monthly' ? 'month' : 'year'}` : ''}</span>
+                    </p>
+                </div>
+            `;
             
             // Build exchange rate details section
             let exchangeRateSection = '';
@@ -1334,6 +1393,8 @@
             }
             
             const tableHTML = `
+                ${infoBar}
+                
                 <div style="background: var(--bg-card-darker); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid var(--accent);">
                     <p style="color: var(--text-secondary); margin: 0;">
                         <strong style="color: var(--accent);">Base Currency:</strong> ${baseCurrency === 'IDR' ? '🇮🇩 Indonesian Rupiah (IDR)' : '🇺🇸 US Dollar (USD)'} | 
