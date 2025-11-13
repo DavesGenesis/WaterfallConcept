@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investment Comparison Tool - Genesis Advisory</title>
+    
+    <!-- Firebase SDK Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="broadcast-session-tracker.js"></script>
+    
+    <!-- Authentication Check -->
+    <script>
+        try {
+            const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+            if (!authData.authenticated) {
+                window.location.href = 'index.html';
+            }
+        } catch (error) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    
+    <!-- Protection Scripts -->
+    <script>
+        // Disable right-click context menu
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        // Disable keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Prevent F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U, Ctrl+S
+            if (e.keyCode === 123 || // F12
+                (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
+                (e.ctrlKey && e.shiftKey && e.keyCode === 74) || // Ctrl+Shift+J
+                (e.ctrlKey && e.shiftKey && e.keyCode === 67) || // Ctrl+Shift+C
+                (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
+                (e.ctrlKey && e.keyCode === 83)) { // Ctrl+S
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Detect DevTools opening
+        (function() {
+            const threshold = 160;
+            let devtools = {open: false};
+            
+            setInterval(function() {
+                if (window.outerWidth - window.innerWidth > threshold || 
+                    window.outerHeight - window.innerHeight > threshold) {
+                    if (!devtools.open) {
+                        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a192f;color:#64ffda;font-family:Montserrat,sans-serif;font-size:24px;text-align:center;padding:20px;">⚠️ Developer Tools detected. Please close it to continue.</div>';
+                    }
+                    devtools.open = true;
+                } else {
+                    devtools.open = false;
+                }
+            }, 500);
+        })();
+
+        // Disable text selection and copy
+        document.addEventListener('selectstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        document.addEventListener('copy', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    </script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a192f;
+            --bg-card: #172a46;
+            --bg-card-darker: #111e35;
+            --bg-card-lighter: #1d3555;
+            --accent: #64ffda;
+            --accent-darker: #4ecdb8;
+            --text-primary: #e2e8f0;
+            --text-secondary: #a8b2c1;
+            --text-muted: #718096;
+            --border-color: #2d3748;
+            --danger: #ff6496;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .header {
+            background: var(--bg-card-darker);
+            color: var(--text-primary);
+            padding: 30px;
+            text-align: center;
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: var(--accent);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            color: var(--text-secondary);
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .nav-link {
+            padding: 8px 20px;
+            background: var(--bg-card-lighter);
+            color: var(--text-primary);
+            text-decoration: none;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s;
+        }
+
+        .nav-link:hover {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border-color: var(--accent);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .input-section {
+            background: var(--bg-card-darker);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .input-group input,
+        .input-group select {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 8px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .radio-option input[type="radio"] {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg-primary);
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(100, 255, 218, 0.4);
+            background: var(--accent-darker);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #0ea572;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: var(--accent);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--accent);
+        }
+
+        .chart-container {
+            background: var(--bg-card-darker);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+        }
+
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background: var(--bg-card-darker);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+        }
+
+        .summary-table th {
+            background: var(--bg-card-lighter);
+            color: var(--accent);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .summary-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .summary-table tr:hover {
+            background: var(--bg-card);
+        }
+
+        .positive {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .negative {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        .winner-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: var(--success);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+
+        .error-message {
+            background: rgba(255, 100, 150, 0.1);
+            color: var(--danger);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            border: 1px solid var(--danger);
+        }
+
+        .error-message.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Investment Comparison Tool</h1>
+            <p>Compare IDR vs USD investment returns with currency strength analysis</p>
+            <div class="nav-links">
+                <a href="CCYstrength2.html" class="nav-link">← Currency Strength Tool</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="input-section">
+                <h3 style="color: var(--accent); margin-bottom: 20px;">Investment Parameters</h3>
+                
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label>Investment Method</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="lumpsum" name="method" value="lumpsum" checked>
+                            <label for="lumpsum" style="margin: 0;">Lumpsum (Single Investment)</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="dca" name="method" value="dca">
+                            <label for="dca" style="margin: 0;">DCA (Dollar Cost Averaging)</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-grid" id="dcaParametersRow" style="display: none; margin-bottom: 20px;">
+                    <div class="input-group">
+                        <label for="dcaFrequency">DCA Frequency</label>
+                        <select id="dcaFrequency">
+                            <option value="monthly">Monthly</option>
+                            <option value="yearly">Yearly</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="contributionPeriod">Contribution Period (years)</label>
+                        <input type="number" id="contributionPeriod" value="10" min="1" placeholder="10">
+                        <small style="color: var(--text-muted); margin-top: 5px;">How long to make contributions</small>
+                    </div>
+                </div>
+
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="investmentAmount">Investment Amount (IDR)</label>
+                        <input type="text" id="investmentAmount" value="100,000,000" placeholder="100,000,000">
+                        <small style="color: var(--text-muted); margin-top: 5px;" id="investmentAmountHint">Total lumpsum investment</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="startDate">Start Date (DD/MM/YYYY)</label>
+                        <input type="text" id="startDate" value="01/01/2005" placeholder="01/01/2005">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="endDate">End Date (DD/MM/YYYY)</label>
+                        <input type="text" id="endDate" value="01/11/2025" placeholder="01/11/2025">
+                    </div>
+                </div>
+
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="idrInstrument">IDR Investment</label>
+                        <select id="idrInstrument">
+                            <option value="JKSE">JKSE (Jakarta Stock Exchange)</option>
+                            <option value="JKLQ45">JKLQ45 (LQ45 Index)</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="usdInstrument">USD Investment</label>
+                        <select id="usdInstrument">
+                            <option value="SP500">S&P 500</option>
+                            <option value="NASDAQ">NASDAQ</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="calculateInvestment()">Calculate Comparison</button>
+                    <button class="btn-success" onclick="exportToPDF()">Export to PDF</button>
+                </div>
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+            <div class="loading" id="loading">Loading data and calculating... Please wait.</div>
+
+            <div class="results-section" id="results">
+                <h2 class="section-title">Investment Comparison Results</h2>
+                
+                <div id="summaryCards"></div>
+
+                <h2 class="section-title">Year-by-Year Growth Comparison</h2>
+                <div class="chart-container">
+                    <div class="chart-wrapper">
+                        <canvas id="growthChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let growthChartInstance = null;
+        let investmentData = {};
+        let currencyData = {};
+
+        // Show/hide DCA parameters based on method selection
+        document.querySelectorAll('input[name="method"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const dcaRow = document.getElementById('dcaParametersRow');
+                const investmentHint = document.getElementById('investmentAmountHint');
+                
+                if (this.value === 'dca') {
+                    dcaRow.style.display = 'grid';
+                    investmentHint.textContent = 'Amount per period';
+                } else {
+                    dcaRow.style.display = 'none';
+                    investmentHint.textContent = 'Total lumpsum investment';
+                }
+            });
+        });
+
+        // Format number input with thousand separators
+        document.getElementById('investmentAmount').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^\d]/g, '');
+            if (value) {
+                e.target.value = parseInt(value).toLocaleString('en-US');
+            }
+        });
+
+        // Parse date from DD/MM/YYYY
+        function parseDate(dateStr) {
+            const parts = dateStr.split('/');
+            return new Date(parts[2], parts[1] - 1, parts[0]);
+        }
+
+        // Format date to YYYY-MM-DD
+        function formatDateForAPI(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Format currency
+        function formatCurrency(value, currency = 'IDR') {
+            if (currency === 'IDR') {
+                return 'Rp ' + value.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            } else if (currency === 'USD') {
+                return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+        }
+
+        // Format currency for chart axis (compact format)
+        function formatCurrencyCompact(value) {
+            if (value >= 1000000000000) { // Trillion
+                return 'Rp ' + (value / 1000000000000).toFixed(1) + 'T';
+            } else if (value >= 1000000000) { // Billion
+                return 'Rp ' + (value / 1000000000).toFixed(1) + 'B';
+            } else if (value >= 1000000) { // Million
+                return 'Rp ' + (value / 1000000).toFixed(1) + 'M';
+            } else if (value >= 1000) { // Thousand
+                return 'Rp ' + (value / 1000).toFixed(1) + 'K';
+            } else {
+                return 'Rp ' + value.toFixed(0);
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('active');
+            setTimeout(() => errorDiv.classList.remove('active'), 5000);
+        }
+
+        // Load JSON data
+        async function loadJSONData(filename) {
+            try {
+                const response = await fetch(filename);
+                if (!response.ok) throw new Error(`Failed to load ${filename}`);
+                return await response.json();
+            } catch (error) {
+                console.error(`Error loading ${filename}:`, error);
+                throw error;
+            }
+        }
+
+        // Get price from JSON data for a specific date
+        function getPriceOnDate(data, targetDate) {
+            const targetStr = formatDateForAPI(targetDate);
+            const dates = data.prices.dates;
+            const closes = data.prices.close;
+            
+            // Find exact match or next available date
+            for (let i = 0; i < dates.length; i++) {
+                const dataDate = dates[i].substring(0, 10);
+                if (dataDate >= targetStr) {
+                    return closes[i];
+                }
+            }
+            
+            // If no future date found, return last available
+            return closes[closes.length - 1];
+        }
+
+        // Get all prices between two dates for DCA calculation
+        function getPricesBetweenDates(data, startDate, endDate, frequency, contributionPeriodYears = null) {
+            const dates = data.prices.dates;
+            const closes = data.prices.close;
+            const prices = [];
+            
+            let currentDate = new Date(startDate);
+            const end = new Date(endDate);
+            
+            // Calculate contribution end date if period is specified
+            let contributionEndDate = end;
+            if (contributionPeriodYears) {
+                contributionEndDate = new Date(startDate);
+                contributionEndDate.setFullYear(contributionEndDate.getFullYear() + contributionPeriodYears);
+                // Don't exceed the overall end date
+                if (contributionEndDate > end) {
+                    contributionEndDate = end;
+                }
+            }
+            
+            while (currentDate <= contributionEndDate) {
+                const targetStr = formatDateForAPI(currentDate);
+                
+                // Find next available price
+                for (let i = 0; i < dates.length; i++) {
+                    const dataDate = dates[i].substring(0, 10);
+                    if (dataDate >= targetStr) {
+                        prices.push({
+                            date: new Date(dataDate),
+                            price: closes[i]
+                        });
+                        break;
+                    }
+                }
+                
+                // Move to next period
+                if (frequency === 'monthly') {
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                } else {
+                    currentDate.setFullYear(currentDate.getFullYear() + 1);
+                }
+            }
+            
+            return prices;
+        }
+
+        // Calculate year-end values for chart (IDR investments)
+        function getYearEndValues(data, currencyData, startDate, endDate, investmentAmount, method, frequency, contributionPeriod = null) {
+            const yearlyValues = [];
+            const startYear = startDate.getFullYear();
+            const endYear = endDate.getFullYear();
+            
+            for (let year = startYear; year <= endYear; year++) {
+                const yearEndDate = new Date(year, 11, 31); // Dec 31
+                if (yearEndDate > endDate) break;
+                
+                let value = 0;
+                
+                if (method === 'lumpsum') {
+                    const startPrice = getPriceOnDate(data, startDate);
+                    const yearEndPrice = getPriceOnDate(data, yearEndDate);
+                    const shares = investmentAmount / startPrice;
+                    value = shares * yearEndPrice;
+                } else {
+                    // DCA: calculate accumulated value up to this year with contribution period
+                    const prices = getPricesBetweenDates(data, startDate, yearEndDate, frequency, contributionPeriod);
+                    let totalShares = 0;
+                    
+                    prices.forEach(p => {
+                        totalShares += investmentAmount / p.price;
+                    });
+                    
+                    const yearEndPrice = getPriceOnDate(data, yearEndDate);
+                    value = totalShares * yearEndPrice;
+                }
+                
+                yearlyValues.push({
+                    year: year,
+                    value: value
+                });
+            }
+            
+            return yearlyValues;
+        }
+
+        // Calculate year-end values for USD investments (with currency conversion for DCA)
+        function getYearEndValuesUSD(data, currencyData, startDate, endDate, investmentAmountIDR, method, frequency, contributionPeriod = null) {
+            const yearlyValues = [];
+            const startYear = startDate.getFullYear();
+            const endYear = endDate.getFullYear();
+            
+            for (let year = startYear; year <= endYear; year++) {
+                const yearEndDate = new Date(year, 11, 31); // Dec 31
+                if (yearEndDate > endDate) break;
+                
+                let value = 0;
+                
+                if (method === 'lumpsum') {
+                    // For lumpsum, investmentAmountIDR is already in USD
+                    const startPrice = getPriceOnDate(data, startDate);
+                    const yearEndPrice = getPriceOnDate(data, yearEndDate);
+                    const shares = investmentAmountIDR / startPrice;
+                    value = shares * yearEndPrice;
+                } else {
+                    // DCA: convert IDR to USD at each purchase date
+                    const prices = getPricesBetweenDates(data, startDate, yearEndDate, frequency, contributionPeriod);
+                    let totalShares = 0;
+                    
+                    prices.forEach(p => {
+                        // Get exchange rate at purchase date
+                        const exchangeRate = getPriceOnDate(currencyData, p.date);
+                        // Convert IDR to USD
+                        const amountUSD = investmentAmountIDR / exchangeRate;
+                        // Buy shares with USD
+                        totalShares += amountUSD / p.price;
+                    });
+                    
+                    const yearEndPrice = getPriceOnDate(data, yearEndDate);
+                    value = totalShares * yearEndPrice;
+                }
+                
+                yearlyValues.push({
+                    year: year,
+                    value: value
+                });
+            }
+            
+            return yearlyValues;
+        }
+
+        // Main calculation function
+        async function calculateInvestment() {
+            const method = document.querySelector('input[name="method"]:checked').value;
+            const investmentAmount = parseFloat(document.getElementById('investmentAmount').value.replace(/,/g, ''));
+            const frequency = document.getElementById('dcaFrequency').value;
+            const contributionPeriod = method === 'dca' ? parseInt(document.getElementById('contributionPeriod').value) : null;
+            const startDateStr = document.getElementById('startDate').value;
+            const endDateStr = document.getElementById('endDate').value;
+            const idrInstrument = document.getElementById('idrInstrument').value;
+            const usdInstrument = document.getElementById('usdInstrument').value;
+            
+            if (!investmentAmount || !startDateStr || !endDateStr) {
+                showError('Please fill in all required fields');
+                return;
+            }
+            
+            if (method === 'dca' && (!contributionPeriod || contributionPeriod < 1)) {
+                showError('Please enter a valid contribution period');
+                return;
+            }
+            
+            const startDate = parseDate(startDateStr);
+            const endDate = parseDate(endDateStr);
+            
+            if (startDate >= endDate) {
+                showError('End date must be after start date');
+                return;
+            }
+            
+            // Validate contribution period doesn't exceed total period
+            if (method === 'dca') {
+                const totalYears = (endDate - startDate) / (1000 * 60 * 60 * 24 * 365.25);
+                if (contributionPeriod > totalYears) {
+                    showError(`Contribution period (${contributionPeriod} years) cannot exceed total period (${Math.floor(totalYears)} years)`);
+                    return;
+                }
+            }
+            
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('results').classList.remove('active');
+            
+            try {
+                // Load all necessary data
+                const idrFile = idrInstrument === 'JKSE' ? 'JKSE.json' : 'JKLQ45.json';
+                const usdFile = usdInstrument === 'SP500' ? 'S&P.json' : 'IXIC.json';
+                
+                const [idrData, usdData, usdIdrData] = await Promise.all([
+                    loadJSONData(idrFile),
+                    loadJSONData(usdFile),
+                    loadJSONData('USDIDR.json')
+                ]);
+                
+                // Get exchange rates
+                const startExchangeRate = getPriceOnDate(usdIdrData, startDate);
+                const endExchangeRate = getPriceOnDate(usdIdrData, endDate);
+                
+                // Calculate IDR investment
+                let idrResult;
+                const idrStartPrice = getPriceOnDate(idrData, startDate);
+                const idrEndPrice = getPriceOnDate(idrData, endDate);
+                
+                if (method === 'lumpsum') {
+                    const shares = investmentAmount / idrStartPrice;
+                    const finalValue = shares * idrEndPrice;
+                    
+                    idrResult = {
+                        invested: investmentAmount,
+                        shares: shares,
+                        startPrice: idrStartPrice,
+                        endPrice: idrEndPrice,
+                        finalValue: finalValue,
+                        gain: finalValue - investmentAmount,
+                        returnPct: ((finalValue / investmentAmount - 1) * 100).toFixed(2)
+                    };
+                } else {
+                    // DCA calculation with contribution period
+                    const prices = getPricesBetweenDates(idrData, startDate, endDate, frequency, contributionPeriod);
+                    let totalShares = 0;
+                    let totalInvested = 0;
+                    
+                    prices.forEach(p => {
+                        totalShares += investmentAmount / p.price;
+                        totalInvested += investmentAmount;
+                    });
+                    
+                    const finalValue = totalShares * idrEndPrice;
+                    
+                    idrResult = {
+                        invested: totalInvested,
+                        shares: totalShares,
+                        startPrice: idrStartPrice,
+                        endPrice: idrEndPrice,
+                        finalValue: finalValue,
+                        gain: finalValue - totalInvested,
+                        returnPct: ((finalValue / totalInvested - 1) * 100).toFixed(2),
+                        periods: prices.length,
+                        contributionPeriod: contributionPeriod
+                    };
+                }
+                
+                // Calculate USD investment (in USD first, then convert to IDR)
+                const usdInvestmentAmount = investmentAmount / startExchangeRate;
+                const usdStartPrice = getPriceOnDate(usdData, startDate);
+                const usdEndPrice = getPriceOnDate(usdData, endDate);
+                let usdResult;
+                
+                if (method === 'lumpsum') {
+                    const shares = usdInvestmentAmount / usdStartPrice;
+                    const finalValueUSD = shares * usdEndPrice;
+                    const finalValueIDR = finalValueUSD * endExchangeRate;
+                    
+                    usdResult = {
+                        invested: investmentAmount,
+                        investedUSD: usdInvestmentAmount,
+                        shares: shares,
+                        startPrice: usdStartPrice,
+                        endPrice: usdEndPrice,
+                        startExchangeRate: startExchangeRate,
+                        endExchangeRate: endExchangeRate,
+                        finalValueUSD: finalValueUSD,
+                        finalValue: finalValueIDR,
+                        gain: finalValueIDR - investmentAmount,
+                        returnPct: ((finalValueIDR / investmentAmount - 1) * 100).toFixed(2)
+                    };
+                } else {
+                    // DCA calculation with contribution period
+                    const prices = getPricesBetweenDates(usdData, startDate, endDate, frequency, contributionPeriod);
+                    let totalShares = 0;
+                    let totalInvestedIDR = 0;
+                    
+                    prices.forEach(p => {
+                        const exchangeRate = getPriceOnDate(usdIdrData, p.date);
+                        const amountUSD = investmentAmount / exchangeRate;
+                        totalShares += amountUSD / p.price;
+                        totalInvestedIDR += investmentAmount;
+                    });
+                    
+                    const finalValueUSD = totalShares * usdEndPrice;
+                    const finalValueIDR = finalValueUSD * endExchangeRate;
+                    
+                    usdResult = {
+                        invested: totalInvestedIDR,
+                        shares: totalShares,
+                        startPrice: usdStartPrice,
+                        endPrice: usdEndPrice,
+                        startExchangeRate: startExchangeRate,
+                        endExchangeRate: endExchangeRate,
+                        finalValueUSD: finalValueUSD,
+                        finalValue: finalValueIDR,
+                        gain: finalValueIDR - totalInvestedIDR,
+                        returnPct: ((finalValueIDR / totalInvestedIDR - 1) * 100).toFixed(2),
+                        periods: prices.length,
+                        contributionPeriod: contributionPeriod
+                    };
+                }
+                
+                // Get year-by-year data for chart
+                const idrYearly = getYearEndValues(idrData, usdIdrData, startDate, endDate, investmentAmount, method, frequency, contributionPeriod);
+                const usdYearly = getYearEndValuesUSD(usdData, usdIdrData, startDate, endDate, method === 'lumpsum' ? usdInvestmentAmount : investmentAmount, method, frequency, contributionPeriod);
+                
+                // Convert USD yearly values to IDR
+                const usdYearlyIDR = usdYearly.map(item => {
+                    const yearEndDate = new Date(item.year, 11, 31);
+                    const exchangeRate = getPriceOnDate(usdIdrData, yearEndDate);
+                    return {
+                        year: item.year,
+                        value: item.value * exchangeRate
+                    };
+                });
+                
+                // Display results
+                displaySummaryCards(idrResult, usdResult, idrInstrument, usdInstrument);
+                displayGrowthChart(idrYearly, usdYearlyIDR, idrInstrument, usdInstrument);
+                
+                document.getElementById('results').classList.add('active');
+            } catch (error) {
+                showError('Error calculating investment: ' + error.message);
+                console.error(error);
+            } finally {
+                document.getElementById('loading').classList.remove('active');
+            }
+        }
+
+        // Display summary as comprehensive table
+        function displaySummaryCards(idrResult, usdResult, idrInstrument, usdInstrument) {
+            const winner = parseFloat(usdResult.returnPct) > parseFloat(idrResult.returnPct) ? 'USD' : 'IDR';
+            
+            const tableHTML = `
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left; width: 25%;">Metric</th>
+                            <th style="text-align: center; width: 35%;">🇮🇩 IDR (${idrInstrument})</th>
+                            <th style="text-align: center; width: 35%;">🇺🇸 USD (${usdInstrument})</th>
+                            <th style="text-align: center; width: 5%;">Winner</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Start Price</strong></td>
+                            <td style="text-align: center;">${idrResult.startPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            <td style="text-align: center;">
+                                ${formatCurrency(usdResult.startPrice, 'USD')}
+                                <br><small style="color: var(--text-muted);">(${usdResult.startExchangeRate.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})} IDR)</small>
+                            </td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><strong>End Price</strong></td>
+                            <td style="text-align: center;">${idrResult.endPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            <td style="text-align: center;">
+                                ${formatCurrency(usdResult.endPrice, 'USD')}
+                                <br><small style="color: var(--text-muted);">(${usdResult.endExchangeRate.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})} IDR)</small>
+                            </td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Shares Purchased</strong></td>
+                            <td style="text-align: center;">${idrResult.shares.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            <td style="text-align: center;">${usdResult.shares.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            <td></td>
+                        </tr>
+                        <tr style="background: var(--bg-card-lighter);">
+                            <td><strong>Total Invested</strong></td>
+                            <td style="text-align: center; font-weight: 600;">${formatCurrency(idrResult.invested)}</td>
+                            <td style="text-align: center; font-weight: 600;">${formatCurrency(usdResult.invested)}</td>
+                            <td></td>
+                        </tr>
+                        <tr style="background: var(--bg-card-lighter);">
+                            <td><strong>Final Value</strong></td>
+                            <td style="text-align: center; font-weight: 600; font-size: 1.1em;">${formatCurrency(idrResult.finalValue)}</td>
+                            <td style="text-align: center; font-weight: 600; font-size: 1.1em;">${formatCurrency(usdResult.finalValue)}</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Gain/Loss</strong></td>
+                            <td style="text-align: center; font-weight: 600;" class="${idrResult.gain >= 0 ? 'positive' : 'negative'}">${formatCurrency(idrResult.gain)}</td>
+                            <td style="text-align: center; font-weight: 600;" class="${usdResult.gain >= 0 ? 'positive' : 'negative'}">${formatCurrency(usdResult.gain)}</td>
+                            <td></td>
+                        </tr>
+                        <tr style="background: var(--bg-card-lighter);">
+                            <td><strong>Return %</strong></td>
+                            <td style="text-align: center; font-weight: 700; font-size: 1.3em;" class="${parseFloat(idrResult.returnPct) >= 0 ? 'positive' : 'negative'}">${idrResult.returnPct >= 0 ? '+' : ''}${idrResult.returnPct}%</td>
+                            <td style="text-align: center; font-weight: 700; font-size: 1.3em;" class="${parseFloat(usdResult.returnPct) >= 0 ? 'positive' : 'negative'}">${usdResult.returnPct >= 0 ? '+' : ''}${usdResult.returnPct}%</td>
+                            <td style="text-align: center; font-size: 1.8em;">${winner === 'USD' ? '🏆' : winner === 'IDR' ? '🏆' : ''}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            
+            document.getElementById('summaryCards').innerHTML = tableHTML;
+        }
+
+        // Chart.js plugin for dark background
+        const darkBackgroundPlugin = {
+            id: 'darkBackground',
+            beforeDraw: (chart) => {
+                const ctx = chart.ctx;
+                ctx.save();
+                ctx.fillStyle = '#111e35';
+                ctx.fillRect(0, 0, chart.width, chart.height);
+                ctx.restore();
+            }
+        };
+
+        // Display growth chart
+        function displayGrowthChart(idrYearly, usdYearly, idrInstrument, usdInstrument) {
+            const ctx = document.getElementById('growthChart').getContext('2d');
+            
+            if (growthChartInstance) {
+                growthChartInstance.destroy();
+            }
+            
+            const years = idrYearly.map(item => item.year);
+            const idrValues = idrYearly.map(item => item.value);
+            const usdValues = usdYearly.map(item => item.value);
+            
+            growthChartInstance = new Chart(ctx, {
+                type: 'line',
+                plugins: [darkBackgroundPlugin],
+                data: {
+                    labels: years,
+                    datasets: [
+                        {
+                            label: `IDR (${idrInstrument})`,
+                            data: idrValues,
+                            borderColor: '#28a745',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: `USD (${usdInstrument}) in IDR`,
+                            data: usdValues,
+                            borderColor: '#007bff',
+                            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Investment Growth Over Time (Year-End Values in IDR)',
+                            font: { size: 16, weight: 'bold' },
+                            color: '#e2e8f0'
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: '#e2e8f0'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#e2e8f0'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#e2e8f0',
+                                callback: function(value) {
+                                    return formatCurrencyCompact(value);
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Export to PDF
+        async function exportToPDF() {
+            if (!document.getElementById('results').classList.contains('active')) {
+                showError('Please calculate first before exporting to PDF.');
+                return;
+            }
+            
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            
+            const pageWidth = 210;
+            const pageHeight = 297;
+            const margin = 10;
+            const contentWidth = pageWidth - (2 * margin);
+            const maxContentHeight = pageHeight - 25;
+            
+            try {
+                // Title
+                pdf.setFontSize(18);
+                pdf.setTextColor(100, 255, 218);
+                pdf.text('Investment Comparison Report', pageWidth / 2, 15, { align: 'center' });
+                
+                // Subtitle with parameters
+                pdf.setFontSize(10);
+                pdf.setTextColor(168, 178, 193);
+                const method = document.querySelector('input[name="method"]:checked').value;
+                const methodText = method === 'lumpsum' ? 'Lumpsum' : 'DCA (' + document.getElementById('dcaFrequency').value + ')';
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                pdf.text(`Method: ${methodText} | Period: ${startDate} - ${endDate}`, pageWidth / 2, 22, { align: 'center' });
+                
+                let currentY = 30;
+                
+                // Comparison Table
+                const tableElement = document.getElementById('summaryCards');
+                const tableCanvas = await html2canvas(tableElement, { 
+                    scale: 1.5, 
+                    logging: false,
+                    backgroundColor: '#172a46'
+                });
+                const tableImg = tableCanvas.toDataURL('image/png');
+                const tableHeight = Math.min((tableCanvas.height * contentWidth) / tableCanvas.width, 120);
+                pdf.addImage(tableImg, 'PNG', margin, currentY, contentWidth, tableHeight);
+                currentY += tableHeight + 10;
+                
+                // Growth Chart
+                const chartElement = document.getElementById('growthChart').parentElement.parentElement;
+                const chartCanvas = await html2canvas(chartElement, { 
+                    scale: 1.5, 
+                    logging: false,
+                    backgroundColor: '#172a46'
+                });
+                const chartImg = chartCanvas.toDataURL('image/png');
+                const chartHeight = Math.min((chartCanvas.height * contentWidth) / chartCanvas.width, 100);
+                
+                // Check if chart fits on current page
+                if (currentY + chartHeight > maxContentHeight) {
+                    pdf.addPage();
+                    currentY = 20;
+                    pdf.setFontSize(14);
+                    pdf.setTextColor(100, 255, 218);
+                    pdf.text('Year-by-Year Growth Comparison', pageWidth / 2, 15, { align: 'center' });
+                }
+                
+                pdf.addImage(chartImg, 'PNG', margin, currentY, contentWidth, chartHeight);
+                
+                // Add footer
+                const totalPages = pdf.internal.getNumberOfPages();
+                for (let i = 1; i <= totalPages; i++) {
+                    pdf.setPage(i);
+                    pdf.setFontSize(9);
+                    pdf.setTextColor(128, 128, 128);
+                    pdf.text(`Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, margin, pageHeight - 8);
+                    pdf.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
+                }
+                
+                // Generate filename with date
+                const dateStr = new Date().toISOString().split('T')[0];
+                pdf.save(`investment-comparison-${dateStr}.pdf`);
+            } catch (error) {
+                showError('Error generating PDF: ' + error.message);
+                console.error('PDF generation error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
