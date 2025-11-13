@@ -1192,8 +1192,14 @@
                 let idrYearly, usdYearlyIDR;
                 
                 if (baseCurrency === 'IDR') {
+                    // IDR investment: pass IDR amount directly
                     idrYearly = getYearEndValues(idrData, usdIdrData, startDate, endDate, investmentAmount, method, frequency, contributionPeriod);
-                    const usdYearly = getYearEndValuesUSD(usdData, usdIdrData, startDate, endDate, investmentAmount, method, frequency, contributionPeriod);
+                    
+                    // USD investment: need to pass USD amount for lumpsum, IDR for DCA
+                    const usdChartAmount = method === 'lumpsum' ? investmentAmount / startExchangeRate : investmentAmount;
+                    const usdYearly = getYearEndValuesUSD(usdData, usdIdrData, startDate, endDate, usdChartAmount, method, frequency, contributionPeriod);
+                    
+                    // Convert USD yearly values to IDR
                     usdYearlyIDR = usdYearly.map(item => {
                         const yearEndDate = new Date(item.year, 11, 31);
                         const exchangeRate = getPriceOnDate(usdIdrData, yearEndDate);
@@ -1204,7 +1210,10 @@
                     });
                 } else {
                     // Base is USD
+                    // USD investment: pass USD amount directly
                     const usdYearly = getYearEndValuesUSDDirect(usdData, usdIdrData, startDate, endDate, investmentAmount, method, frequency, contributionPeriod);
+                    
+                    // Convert USD yearly values to IDR
                     usdYearlyIDR = usdYearly.map(item => {
                         const yearEndDate = new Date(item.year, 11, 31);
                         const exchangeRate = getPriceOnDate(usdIdrData, yearEndDate);
@@ -1213,6 +1222,8 @@
                             value: item.value * exchangeRate
                         };
                     });
+                    
+                    // IDR investment: pass USD amount (will be converted to IDR inside function)
                     idrYearly = getYearEndValuesFromUSD(idrData, usdIdrData, startDate, endDate, investmentAmount, method, frequency, contributionPeriod);
                 }
                 
