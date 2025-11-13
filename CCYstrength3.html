@@ -714,25 +714,27 @@
             
             for (let year = startYear; year <= endYear; year++) {
                 const yearEndDate = new Date(year, 11, 31); // Dec 31
-                if (yearEndDate > endDate) break;
+                
+                // For partial years, use actual end date instead of Dec 31
+                const calculationDate = yearEndDate > endDate ? endDate : yearEndDate;
                 
                 let value = 0;
                 
                 if (method === 'lumpsum') {
                     const startPrice = getPriceOnDate(data, startDate);
-                    const yearEndPrice = getPriceOnDate(data, yearEndDate);
+                    const yearEndPrice = getPriceOnDate(data, calculationDate);
                     const shares = investmentAmount / startPrice;
                     value = shares * yearEndPrice;
                 } else {
                     // DCA: calculate accumulated value up to this year with contribution period
-                    const prices = getPricesBetweenDates(data, startDate, yearEndDate, frequency, contributionPeriod);
+                    const prices = getPricesBetweenDates(data, startDate, calculationDate, frequency, contributionPeriod);
                     let totalShares = 0;
                     
                     prices.forEach(p => {
                         totalShares += investmentAmount / p.price;
                     });
                     
-                    const yearEndPrice = getPriceOnDate(data, yearEndDate);
+                    const yearEndPrice = getPriceOnDate(data, calculationDate);
                     value = totalShares * yearEndPrice;
                 }
                 
@@ -753,19 +755,21 @@
             
             for (let year = startYear; year <= endYear; year++) {
                 const yearEndDate = new Date(year, 11, 31); // Dec 31
-                if (yearEndDate > endDate) break;
+                
+                // For partial years, use actual end date instead of Dec 31
+                const calculationDate = yearEndDate > endDate ? endDate : yearEndDate;
                 
                 let value = 0;
                 
                 if (method === 'lumpsum') {
                     // For lumpsum, investmentAmountIDR is already in USD
                     const startPrice = getPriceOnDate(data, startDate);
-                    const yearEndPrice = getPriceOnDate(data, yearEndDate);
+                    const yearEndPrice = getPriceOnDate(data, calculationDate);
                     const shares = investmentAmountIDR / startPrice;
                     value = shares * yearEndPrice;
                 } else {
                     // DCA: convert IDR to USD at each purchase date
-                    const prices = getPricesBetweenDates(data, startDate, yearEndDate, frequency, contributionPeriod);
+                    const prices = getPricesBetweenDates(data, startDate, calculationDate, frequency, contributionPeriod);
                     let totalShares = 0;
                     
                     prices.forEach(p => {
@@ -777,7 +781,7 @@
                         totalShares += amountUSD / p.price;
                     });
                     
-                    const yearEndPrice = getPriceOnDate(data, yearEndDate);
+                    const yearEndPrice = getPriceOnDate(data, calculationDate);
                     value = totalShares * yearEndPrice;
                 }
                 
@@ -798,24 +802,26 @@
             
             for (let year = startYear; year <= endYear; year++) {
                 const yearEndDate = new Date(year, 11, 31);
-                if (yearEndDate > endDate) break;
+                
+                // For partial years, use actual end date instead of Dec 31
+                const calculationDate = yearEndDate > endDate ? endDate : yearEndDate;
                 
                 let value = 0;
                 
                 if (method === 'lumpsum') {
                     const startPrice = getPriceOnDate(data, startDate);
-                    const yearEndPrice = getPriceOnDate(data, yearEndDate);
+                    const yearEndPrice = getPriceOnDate(data, calculationDate);
                     const shares = investmentAmountUSD / startPrice;
                     value = shares * yearEndPrice;
                 } else {
-                    const prices = getPricesBetweenDates(data, startDate, yearEndDate, frequency, contributionPeriod);
+                    const prices = getPricesBetweenDates(data, startDate, calculationDate, frequency, contributionPeriod);
                     let totalShares = 0;
                     
                     prices.forEach(p => {
                         totalShares += investmentAmountUSD / p.price;
                     });
                     
-                    const yearEndPrice = getPriceOnDate(data, yearEndDate);
+                    const yearEndPrice = getPriceOnDate(data, calculationDate);
                     value = totalShares * yearEndPrice;
                 }
                 
@@ -836,7 +842,9 @@
             
             for (let year = startYear; year <= endYear; year++) {
                 const yearEndDate = new Date(year, 11, 31);
-                if (yearEndDate > endDate) break;
+                
+                // For partial years, use actual end date instead of Dec 31
+                const calculationDate = yearEndDate > endDate ? endDate : yearEndDate;
                 
                 let value = 0;
                 
@@ -844,11 +852,11 @@
                     const startExchangeRate = getPriceOnDate(currencyData, startDate);
                     const idrInvestmentAmount = investmentAmountUSD * startExchangeRate;
                     const startPrice = getPriceOnDate(data, startDate);
-                    const yearEndPrice = getPriceOnDate(data, yearEndDate);
+                    const yearEndPrice = getPriceOnDate(data, calculationDate);
                     const shares = idrInvestmentAmount / startPrice;
                     value = shares * yearEndPrice;
                 } else {
-                    const prices = getPricesBetweenDates(data, startDate, yearEndDate, frequency, contributionPeriod);
+                    const prices = getPricesBetweenDates(data, startDate, calculationDate, frequency, contributionPeriod);
                     let totalShares = 0;
                     
                     prices.forEach(p => {
@@ -857,7 +865,7 @@
                         totalShares += amountIDR / p.price;
                     });
                     
-                    const yearEndPrice = getPriceOnDate(data, yearEndDate);
+                    const yearEndPrice = getPriceOnDate(data, calculationDate);
                     value = totalShares * yearEndPrice;
                 }
                 
