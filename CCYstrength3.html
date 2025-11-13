@@ -408,6 +408,21 @@
                 <h3 style="color: var(--accent); margin-bottom: 20px;">Investment Parameters</h3>
                 
                 <div class="input-group" style="margin-bottom: 20px;">
+                    <label>Base Currency</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="baseCurrencyIDR" name="baseCurrency" value="IDR" checked>
+                            <label for="baseCurrencyIDR" style="margin: 0;">IDR (Indonesian Rupiah)</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="baseCurrencyUSD" name="baseCurrency" value="USD">
+                            <label for="baseCurrencyUSD" style="margin: 0;">USD (US Dollar)</label>
+                        </div>
+                    </div>
+                    <small style="color: var(--text-muted); margin-top: 5px;">Select the currency you want to invest with</small>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 20px;">
                     <label>Investment Method</label>
                     <div class="radio-group">
                         <div class="radio-option">
@@ -439,7 +454,7 @@
 
                 <div class="input-grid">
                     <div class="input-group">
-                        <label for="investmentAmount">Investment Amount (IDR)</label>
+                        <label for="investmentAmount" id="investmentAmountLabel">Investment Amount (IDR)</label>
                         <input type="text" id="investmentAmount" value="100,000,000" placeholder="100,000,000">
                         <small style="color: var(--text-muted); margin-top: 5px;" id="investmentAmountHint">Total lumpsum investment</small>
                     </div>
@@ -503,6 +518,33 @@
         let investmentData = {};
         let currencyData = {};
 
+        // Handle base currency change
+        document.querySelectorAll('input[name="baseCurrency"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const label = document.getElementById('investmentAmountLabel');
+                const input = document.getElementById('investmentAmount');
+                const method = document.querySelector('input[name="method"]:checked').value;
+                const hint = document.getElementById('investmentAmountHint');
+                
+                if (this.value === 'USD') {
+                    label.textContent = 'Investment Amount (USD)';
+                    input.value = '10,000.00';
+                    input.placeholder = '10,000.00';
+                } else {
+                    label.textContent = 'Investment Amount (IDR)';
+                    input.value = '100,000,000';
+                    input.placeholder = '100,000,000';
+                }
+                
+                // Update hint based on method
+                if (method === 'dca') {
+                    hint.textContent = 'Amount per period';
+                } else {
+                    hint.textContent = 'Total lumpsum investment';
+                }
+            });
+        });
+
         // Show/hide DCA parameters based on method selection
         document.querySelectorAll('input[name="method"]').forEach(radio => {
             radio.addEventListener('change', function() {
@@ -519,11 +561,26 @@
             });
         });
 
-        // Format number input with thousand separators
+        // Format number input with thousand separators (handles both IDR and USD)
         document.getElementById('investmentAmount').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/[^\d]/g, '');
+            const baseCurrency = document.querySelector('input[name="baseCurrency"]:checked').value;
+            let value = e.target.value.replace(/[^\d.]/g, '');
+            
             if (value) {
-                e.target.value = parseInt(value).toLocaleString('en-US');
+                if (baseCurrency === 'USD') {
+                    // Format as USD with decimals
+                    const parts = value.split('.');
+                    parts[0] = parseInt(parts[0] || 0).toLocaleString('en-US');
+                    if (parts.length > 1) {
+                        e.target.value = parts[0] + '.' + parts[1].substring(0, 2);
+                    } else {
+                        e.target.value = parts[0];
+                    }
+                } else {
+                    // Format as IDR without decimals
+                    value = value.replace(/\./g, '');
+                    e.target.value = parseInt(value).toLocaleString('en-US');
+                }
             }
         });
 
@@ -733,8 +790,89 @@
             return yearlyValues;
         }
 
+        // Calculate year-end values for USD investments when base is USD (direct investment)
+        function getYearEndValuesUSDDirect(data, currencyData, startDate, endDate, investmentAmountUSD, method, frequency, contributionPeriod = null) {
+            const yearlyValues = [];
+            const startYear = startDate.getFullYear();
+            const endYear = endDate.getFullYear();
+            
+            for (let year = startYear; year <= endYear; year++) {
+                const yearEndDate = new Date(year, 11, 31);
+                if (yearEndDate > endDate) break;
+                
+                let value = 0;
+                
+                if (method === 'lumpsum') {
+                    const startPrice = getPriceOnDate(data, startDate);
+                    const yearEndPrice = getPriceOnDate(data, yearEndDate);
+                    const shares = investmentAmountUSD / startPrice;
+                    value = shares * yearEndPrice;
+                } else {
+                    const prices = getPricesBetweenDates(data, startDate, yearEndDate, frequency, contributionPeriod);
+                    let totalShares = 0;
+                    
+                    prices.forEach(p => {
+                        totalShares += investmentAmountUSD / p.price;
+                    });
+                    
+                    const yearEndPrice = getPriceOnDate(data, yearEndDate);
+                    value = totalShares * yearEndPrice;
+                }
+                
+                yearlyValues.push({
+                    year: year,
+                    value: value
+                });
+            }
+            
+            return yearlyValues;
+        }
+
+        // Calculate year-end values for IDR investments when base is USD (convert USD to IDR)
+        function getYearEndValuesFromUSD(data, currencyData, startDate, endDate, investmentAmountUSD, method, frequency, contributionPeriod = null) {
+            const yearlyValues = [];
+            const startYear = startDate.getFullYear();
+            const endYear = endDate.getFullYear();
+            
+            for (let year = startYear; year <= endYear; year++) {
+                const yearEndDate = new Date(year, 11, 31);
+                if (yearEndDate > endDate) break;
+                
+                let value = 0;
+                
+                if (method === 'lumpsum') {
+                    const startExchangeRate = getPriceOnDate(currencyData, startDate);
+                    const idrInvestmentAmount = investmentAmountUSD * startExchangeRate;
+                    const startPrice = getPriceOnDate(data, startDate);
+                    const yearEndPrice = getPriceOnDate(data, yearEndDate);
+                    const shares = idrInvestmentAmount / startPrice;
+                    value = shares * yearEndPrice;
+                } else {
+                    const prices = getPricesBetweenDates(data, startDate, yearEndDate, frequency, contributionPeriod);
+                    let totalShares = 0;
+                    
+                    prices.forEach(p => {
+                        const exchangeRate = getPriceOnDate(currencyData, p.date);
+                        const amountIDR = investmentAmountUSD * exchangeRate;
+                        totalShares += amountIDR / p.price;
+                    });
+                    
+                    const yearEndPrice = getPriceOnDate(data, yearEndDate);
+                    value = totalShares * yearEndPrice;
+                }
+                
+                yearlyValues.push({
+                    year: year,
+                    value: value
+                });
+            }
+            
+            return yearlyValues;
+        }
+
         // Main calculation function
         async function calculateInvestment() {
+            const baseCurrency = document.querySelector('input[name="baseCurrency"]:checked').value;
             const method = document.querySelector('input[name="method"]:checked').value;
             const investmentAmount = parseFloat(document.getElementById('investmentAmount').value.replace(/,/g, ''));
             const frequency = document.getElementById('dcaFrequency').value;
@@ -789,122 +927,297 @@
                 const startExchangeRate = getPriceOnDate(usdIdrData, startDate);
                 const endExchangeRate = getPriceOnDate(usdIdrData, endDate);
                 
-                // Calculate IDR investment
-                let idrResult;
+                // Get start and end prices
                 const idrStartPrice = getPriceOnDate(idrData, startDate);
                 const idrEndPrice = getPriceOnDate(idrData, endDate);
-                
-                if (method === 'lumpsum') {
-                    const shares = investmentAmount / idrStartPrice;
-                    const finalValue = shares * idrEndPrice;
-                    
-                    idrResult = {
-                        invested: investmentAmount,
-                        shares: shares,
-                        startPrice: idrStartPrice,
-                        endPrice: idrEndPrice,
-                        finalValue: finalValue,
-                        gain: finalValue - investmentAmount,
-                        returnPct: ((finalValue / investmentAmount - 1) * 100).toFixed(2)
-                    };
-                } else {
-                    // DCA calculation with contribution period
-                    const prices = getPricesBetweenDates(idrData, startDate, endDate, frequency, contributionPeriod);
-                    let totalShares = 0;
-                    let totalInvested = 0;
-                    
-                    prices.forEach(p => {
-                        totalShares += investmentAmount / p.price;
-                        totalInvested += investmentAmount;
-                    });
-                    
-                    const finalValue = totalShares * idrEndPrice;
-                    
-                    idrResult = {
-                        invested: totalInvested,
-                        shares: totalShares,
-                        startPrice: idrStartPrice,
-                        endPrice: idrEndPrice,
-                        finalValue: finalValue,
-                        gain: finalValue - totalInvested,
-                        returnPct: ((finalValue / totalInvested - 1) * 100).toFixed(2),
-                        periods: prices.length,
-                        contributionPeriod: contributionPeriod
-                    };
-                }
-                
-                // Calculate USD investment (in USD first, then convert to IDR)
-                const usdInvestmentAmount = investmentAmount / startExchangeRate;
                 const usdStartPrice = getPriceOnDate(usdData, startDate);
                 const usdEndPrice = getPriceOnDate(usdData, endDate);
-                let usdResult;
                 
-                if (method === 'lumpsum') {
-                    const shares = usdInvestmentAmount / usdStartPrice;
-                    const finalValueUSD = shares * usdEndPrice;
-                    const finalValueIDR = finalValueUSD * endExchangeRate;
+                let idrResult, usdResult;
+                let exchangeRateDetails = [];
+                
+                // CALCULATION BASED ON BASE CURRENCY
+                if (baseCurrency === 'IDR') {
+                    // ===== BASE CURRENCY: IDR =====
                     
-                    usdResult = {
-                        invested: investmentAmount,
-                        investedUSD: usdInvestmentAmount,
-                        shares: shares,
-                        startPrice: usdStartPrice,
-                        endPrice: usdEndPrice,
-                        startExchangeRate: startExchangeRate,
-                        endExchangeRate: endExchangeRate,
-                        finalValueUSD: finalValueUSD,
-                        finalValue: finalValueIDR,
-                        gain: finalValueIDR - investmentAmount,
-                        returnPct: ((finalValueIDR / investmentAmount - 1) * 100).toFixed(2)
-                    };
+                    // IDR Investment (Direct - no conversion needed)
+                    if (method === 'lumpsum') {
+                        const shares = investmentAmount / idrStartPrice;
+                        const finalValue = shares * idrEndPrice;
+                        
+                        idrResult = {
+                            invested: investmentAmount,
+                            investedBase: investmentAmount,
+                            shares: shares,
+                            startPrice: idrStartPrice,
+                            endPrice: idrEndPrice,
+                            finalValue: finalValue,
+                            gain: finalValue - investmentAmount,
+                            returnPct: ((finalValue / investmentAmount - 1) * 100).toFixed(2),
+                            baseCurrency: 'IDR',
+                            needsConversion: false
+                        };
+                    } else {
+                        const prices = getPricesBetweenDates(idrData, startDate, endDate, frequency, contributionPeriod);
+                        let totalShares = 0;
+                        let totalInvested = 0;
+                        
+                        prices.forEach(p => {
+                            totalShares += investmentAmount / p.price;
+                            totalInvested += investmentAmount;
+                        });
+                        
+                        const finalValue = totalShares * idrEndPrice;
+                        
+                        idrResult = {
+                            invested: totalInvested,
+                            investedBase: totalInvested,
+                            shares: totalShares,
+                            startPrice: idrStartPrice,
+                            endPrice: idrEndPrice,
+                            finalValue: finalValue,
+                            gain: finalValue - totalInvested,
+                            returnPct: ((finalValue / totalInvested - 1) * 100).toFixed(2),
+                            periods: prices.length,
+                            contributionPeriod: contributionPeriod,
+                            baseCurrency: 'IDR',
+                            needsConversion: false
+                        };
+                    }
+                    
+                    // USD Investment (Convert IDR to USD)
+                    if (method === 'lumpsum') {
+                        const usdInvestmentAmount = investmentAmount / startExchangeRate;
+                        const shares = usdInvestmentAmount / usdStartPrice;
+                        const finalValueUSD = shares * usdEndPrice;
+                        const finalValueIDR = finalValueUSD * endExchangeRate;
+                        
+                        exchangeRateDetails.push({
+                            date: formatDateForAPI(startDate),
+                            rate: startExchangeRate,
+                            amountIDR: investmentAmount,
+                            amountUSD: usdInvestmentAmount
+                        });
+                        
+                        usdResult = {
+                            invested: investmentAmount,
+                            investedBase: investmentAmount,
+                            investedUSD: usdInvestmentAmount,
+                            shares: shares,
+                            startPrice: usdStartPrice,
+                            endPrice: usdEndPrice,
+                            startExchangeRate: startExchangeRate,
+                            endExchangeRate: endExchangeRate,
+                            finalValueUSD: finalValueUSD,
+                            finalValue: finalValueIDR,
+                            gain: finalValueIDR - investmentAmount,
+                            returnPct: ((finalValueIDR / investmentAmount - 1) * 100).toFixed(2),
+                            baseCurrency: 'IDR',
+                            needsConversion: true,
+                            exchangeRateDetails: exchangeRateDetails
+                        };
+                    } else {
+                        const prices = getPricesBetweenDates(usdData, startDate, endDate, frequency, contributionPeriod);
+                        let totalShares = 0;
+                        let totalInvestedIDR = 0;
+                        
+                        prices.forEach(p => {
+                            const exchangeRate = getPriceOnDate(usdIdrData, p.date);
+                            const amountUSD = investmentAmount / exchangeRate;
+                            totalShares += amountUSD / p.price;
+                            totalInvestedIDR += investmentAmount;
+                            
+                            exchangeRateDetails.push({
+                                date: formatDateForAPI(p.date),
+                                rate: exchangeRate,
+                                amountIDR: investmentAmount,
+                                amountUSD: amountUSD,
+                                price: p.price
+                            });
+                        });
+                        
+                        const finalValueUSD = totalShares * usdEndPrice;
+                        const finalValueIDR = finalValueUSD * endExchangeRate;
+                        
+                        usdResult = {
+                            invested: totalInvestedIDR,
+                            investedBase: totalInvestedIDR,
+                            shares: totalShares,
+                            startPrice: usdStartPrice,
+                            endPrice: usdEndPrice,
+                            startExchangeRate: startExchangeRate,
+                            endExchangeRate: endExchangeRate,
+                            finalValueUSD: finalValueUSD,
+                            finalValue: finalValueIDR,
+                            gain: finalValueIDR - totalInvestedIDR,
+                            returnPct: ((finalValueIDR / totalInvestedIDR - 1) * 100).toFixed(2),
+                            periods: prices.length,
+                            contributionPeriod: contributionPeriod,
+                            baseCurrency: 'IDR',
+                            needsConversion: true,
+                            exchangeRateDetails: exchangeRateDetails
+                        };
+                    }
+                    
                 } else {
-                    // DCA calculation with contribution period
-                    const prices = getPricesBetweenDates(usdData, startDate, endDate, frequency, contributionPeriod);
-                    let totalShares = 0;
-                    let totalInvestedIDR = 0;
+                    // ===== BASE CURRENCY: USD =====
                     
-                    prices.forEach(p => {
-                        const exchangeRate = getPriceOnDate(usdIdrData, p.date);
-                        const amountUSD = investmentAmount / exchangeRate;
-                        totalShares += amountUSD / p.price;
-                        totalInvestedIDR += investmentAmount;
-                    });
+                    // USD Investment (Direct - no conversion needed)
+                    if (method === 'lumpsum') {
+                        const shares = investmentAmount / usdStartPrice;
+                        const finalValueUSD = shares * usdEndPrice;
+                        const finalValueIDR = finalValueUSD * endExchangeRate;
+                        
+                        usdResult = {
+                            invested: finalValueIDR,
+                            investedBase: investmentAmount,
+                            investedUSD: investmentAmount,
+                            shares: shares,
+                            startPrice: usdStartPrice,
+                            endPrice: usdEndPrice,
+                            startExchangeRate: startExchangeRate,
+                            endExchangeRate: endExchangeRate,
+                            finalValueUSD: finalValueUSD,
+                            finalValue: finalValueIDR,
+                            gain: finalValueIDR - (investmentAmount * startExchangeRate),
+                            returnPct: ((finalValueIDR / (investmentAmount * startExchangeRate) - 1) * 100).toFixed(2),
+                            baseCurrency: 'USD',
+                            needsConversion: false
+                        };
+                    } else {
+                        const prices = getPricesBetweenDates(usdData, startDate, endDate, frequency, contributionPeriod);
+                        let totalShares = 0;
+                        let totalInvestedUSD = 0;
+                        
+                        prices.forEach(p => {
+                            totalShares += investmentAmount / p.price;
+                            totalInvestedUSD += investmentAmount;
+                        });
+                        
+                        const finalValueUSD = totalShares * usdEndPrice;
+                        const finalValueIDR = finalValueUSD * endExchangeRate;
+                        const totalInvestedIDR = totalInvestedUSD * startExchangeRate;
+                        
+                        usdResult = {
+                            invested: totalInvestedIDR,
+                            investedBase: totalInvestedUSD,
+                            investedUSD: totalInvestedUSD,
+                            shares: totalShares,
+                            startPrice: usdStartPrice,
+                            endPrice: usdEndPrice,
+                            startExchangeRate: startExchangeRate,
+                            endExchangeRate: endExchangeRate,
+                            finalValueUSD: finalValueUSD,
+                            finalValue: finalValueIDR,
+                            gain: finalValueIDR - totalInvestedIDR,
+                            returnPct: ((finalValueIDR / totalInvestedIDR - 1) * 100).toFixed(2),
+                            periods: prices.length,
+                            contributionPeriod: contributionPeriod,
+                            baseCurrency: 'USD',
+                            needsConversion: false
+                        };
+                    }
                     
-                    const finalValueUSD = totalShares * usdEndPrice;
-                    const finalValueIDR = finalValueUSD * endExchangeRate;
-                    
-                    usdResult = {
-                        invested: totalInvestedIDR,
-                        shares: totalShares,
-                        startPrice: usdStartPrice,
-                        endPrice: usdEndPrice,
-                        startExchangeRate: startExchangeRate,
-                        endExchangeRate: endExchangeRate,
-                        finalValueUSD: finalValueUSD,
-                        finalValue: finalValueIDR,
-                        gain: finalValueIDR - totalInvestedIDR,
-                        returnPct: ((finalValueIDR / totalInvestedIDR - 1) * 100).toFixed(2),
-                        periods: prices.length,
-                        contributionPeriod: contributionPeriod
-                    };
+                    // IDR Investment (Convert USD to IDR)
+                    if (method === 'lumpsum') {
+                        const idrInvestmentAmount = investmentAmount * startExchangeRate;
+                        const shares = idrInvestmentAmount / idrStartPrice;
+                        const finalValue = shares * idrEndPrice;
+                        
+                        exchangeRateDetails.push({
+                            date: formatDateForAPI(startDate),
+                            rate: startExchangeRate,
+                            amountUSD: investmentAmount,
+                            amountIDR: idrInvestmentAmount
+                        });
+                        
+                        idrResult = {
+                            invested: idrInvestmentAmount,
+                            investedBase: investmentAmount,
+                            shares: shares,
+                            startPrice: idrStartPrice,
+                            endPrice: idrEndPrice,
+                            startExchangeRate: startExchangeRate,
+                            endExchangeRate: endExchangeRate,
+                            finalValue: finalValue,
+                            gain: finalValue - idrInvestmentAmount,
+                            returnPct: ((finalValue / idrInvestmentAmount - 1) * 100).toFixed(2),
+                            baseCurrency: 'USD',
+                            needsConversion: true,
+                            exchangeRateDetails: exchangeRateDetails
+                        };
+                    } else {
+                        const prices = getPricesBetweenDates(idrData, startDate, endDate, frequency, contributionPeriod);
+                        let totalShares = 0;
+                        let totalInvestedIDR = 0;
+                        
+                        prices.forEach(p => {
+                            const exchangeRate = getPriceOnDate(usdIdrData, p.date);
+                            const amountIDR = investmentAmount * exchangeRate;
+                            totalShares += amountIDR / p.price;
+                            totalInvestedIDR += amountIDR;
+                            
+                            exchangeRateDetails.push({
+                                date: formatDateForAPI(p.date),
+                                rate: exchangeRate,
+                                amountUSD: investmentAmount,
+                                amountIDR: amountIDR,
+                                price: p.price
+                            });
+                        });
+                        
+                        const finalValue = totalShares * idrEndPrice;
+                        
+                        idrResult = {
+                            invested: totalInvestedIDR,
+                            investedBase: investmentAmount * prices.length,
+                            shares: totalShares,
+                            startPrice: idrStartPrice,
+                            endPrice: idrEndPrice,
+                            startExchangeRate: startExchangeRate,
+                            endExchangeRate: endExchangeRate,
+                            finalValue: finalValue,
+                            gain: finalValue - totalInvestedIDR,
+                            returnPct: ((finalValue / totalInvestedIDR - 1) * 100).toFixed(2),
+                            periods: prices.length,
+                            contributionPeriod: contributionPeriod,
+                            baseCurrency: 'USD',
+                            needsConversion: true,
+                            exchangeRateDetails: exchangeRateDetails
+                        };
+                    }
                 }
                 
-                // Get year-by-year data for chart
-                const idrYearly = getYearEndValues(idrData, usdIdrData, startDate, endDate, investmentAmount, method, frequency, contributionPeriod);
-                const usdYearly = getYearEndValuesUSD(usdData, usdIdrData, startDate, endDate, method === 'lumpsum' ? usdInvestmentAmount : investmentAmount, method, frequency, contributionPeriod);
+                // Get year-by-year data for chart (always in IDR for comparison)
+                let idrYearly, usdYearlyIDR;
                 
-                // Convert USD yearly values to IDR
-                const usdYearlyIDR = usdYearly.map(item => {
-                    const yearEndDate = new Date(item.year, 11, 31);
-                    const exchangeRate = getPriceOnDate(usdIdrData, yearEndDate);
-                    return {
-                        year: item.year,
-                        value: item.value * exchangeRate
-                    };
-                });
+                if (baseCurrency === 'IDR') {
+                    idrYearly = getYearEndValues(idrData, usdIdrData, startDate, endDate, investmentAmount, method, frequency, contributionPeriod);
+                    const usdYearly = getYearEndValuesUSD(usdData, usdIdrData, startDate, endDate, investmentAmount, method, frequency, contributionPeriod);
+                    usdYearlyIDR = usdYearly.map(item => {
+                        const yearEndDate = new Date(item.year, 11, 31);
+                        const exchangeRate = getPriceOnDate(usdIdrData, yearEndDate);
+                        return {
+                            year: item.year,
+                            value: item.value * exchangeRate
+                        };
+                    });
+                } else {
+                    // Base is USD
+                    const usdYearly = getYearEndValuesUSDDirect(usdData, usdIdrData, startDate, endDate, investmentAmount, method, frequency, contributionPeriod);
+                    usdYearlyIDR = usdYearly.map(item => {
+                        const yearEndDate = new Date(item.year, 11, 31);
+                        const exchangeRate = getPriceOnDate(usdIdrData, yearEndDate);
+                        return {
+                            year: item.year,
+                            value: item.value * exchangeRate
+                        };
+                    });
+                    idrYearly = getYearEndValuesFromUSD(idrData, usdIdrData, startDate, endDate, investmentAmount, method, frequency, contributionPeriod);
+                }
                 
                 // Display results
-                displaySummaryCards(idrResult, usdResult, idrInstrument, usdInstrument);
+                displaySummaryCards(idrResult, usdResult, idrInstrument, usdInstrument, baseCurrency);
                 displayGrowthChart(idrYearly, usdYearlyIDR, idrInstrument, usdInstrument);
                 
                 document.getElementById('results').classList.add('active');
@@ -917,10 +1230,84 @@
         }
 
         // Display summary as comprehensive table
-        function displaySummaryCards(idrResult, usdResult, idrInstrument, usdInstrument) {
+        function displaySummaryCards(idrResult, usdResult, idrInstrument, usdInstrument, baseCurrency) {
             const winner = parseFloat(usdResult.returnPct) > parseFloat(idrResult.returnPct) ? 'USD' : 'IDR';
             
+            // Build exchange rate details section
+            let exchangeRateSection = '';
+            const hasExchangeDetails = (idrResult.exchangeRateDetails && idrResult.exchangeRateDetails.length > 0) || 
+                                      (usdResult.exchangeRateDetails && usdResult.exchangeRateDetails.length > 0);
+            
+            if (hasExchangeDetails) {
+                const details = idrResult.exchangeRateDetails || usdResult.exchangeRateDetails;
+                const isIDRtoUSD = baseCurrency === 'IDR' && usdResult.needsConversion;
+                const isUSDtoIDR = baseCurrency === 'USD' && idrResult.needsConversion;
+                
+                let detailsHTML = '<div style="max-height: 300px; overflow-y: auto;"><table class="summary-table" style="margin-top: 0;"><thead><tr>';
+                detailsHTML += '<th>Date</th><th>Exchange Rate</th>';
+                
+                if (isIDRtoUSD) {
+                    detailsHTML += '<th>Amount (IDR)</th><th>Converted (USD)</th>';
+                    if (details[0].price) detailsHTML += '<th>S&P500 Price</th><th>Shares Bought</th>';
+                } else {
+                    detailsHTML += '<th>Amount (USD)</th><th>Converted (IDR)</th>';
+                    if (details[0].price) detailsHTML += '<th>JKSE Price</th><th>Shares Bought</th>';
+                }
+                
+                detailsHTML += '</tr></thead><tbody>';
+                
+                details.forEach((d, idx) => {
+                    detailsHTML += `<tr ${idx % 2 === 0 ? 'style="background: var(--bg-card-lighter);"' : ''}>`;
+                    detailsHTML += `<td>${d.date}</td>`;
+                    detailsHTML += `<td style="text-align: center;">${d.rate.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>`;
+                    
+                    if (isIDRtoUSD) {
+                        detailsHTML += `<td style="text-align: right;">${formatCurrency(d.amountIDR)}</td>`;
+                        detailsHTML += `<td style="text-align: right;">${formatCurrency(d.amountUSD, 'USD')}</td>`;
+                        if (d.price) {
+                            detailsHTML += `<td style="text-align: right;">${formatCurrency(d.price, 'USD')}</td>`;
+                            detailsHTML += `<td style="text-align: right;">${(d.amountUSD / d.price).toFixed(4)}</td>`;
+                        }
+                    } else {
+                        detailsHTML += `<td style="text-align: right;">${formatCurrency(d.amountUSD, 'USD')}</td>`;
+                        detailsHTML += `<td style="text-align: right;">${formatCurrency(d.amountIDR)}</td>`;
+                        if (d.price) {
+                            detailsHTML += `<td style="text-align: right;">${d.price.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>`;
+                            detailsHTML += `<td style="text-align: right;">${(d.amountIDR / d.price).toFixed(4)}</td>`;
+                        }
+                    }
+                    
+                    detailsHTML += '</tr>';
+                });
+                
+                detailsHTML += '</tbody></table></div>';
+                
+                exchangeRateSection = `
+                    <div style="background: var(--bg-card-darker); padding: 20px; border-radius: 10px; margin-bottom: 30px; border: 2px solid var(--warning);">
+                        <h3 style="color: var(--warning); margin-bottom: 15px; cursor: pointer;" onclick="document.getElementById('exchangeDetails').style.display = document.getElementById('exchangeDetails').style.display === 'none' ? 'block' : 'none';">
+                            <i class="fas fa-exchange-alt"></i> Exchange Rate Details (Click to ${details.length > 5 ? 'expand/collapse' : 'view'})
+                        </h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 15px;">
+                            <strong>Base Currency:</strong> ${baseCurrency} | 
+                            <strong>Conversion:</strong> ${isIDRtoUSD ? 'IDR → USD for S&P500 investment' : 'USD → IDR for JKSE investment'}
+                        </p>
+                        <div id="exchangeDetails" style="display: ${details.length > 5 ? 'none' : 'block'};">
+                            ${detailsHTML}
+                        </div>
+                    </div>
+                `;
+            }
+            
             const tableHTML = `
+                <div style="background: var(--bg-card-darker); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid var(--accent);">
+                    <p style="color: var(--text-secondary); margin: 0;">
+                        <strong style="color: var(--accent);">Base Currency:</strong> ${baseCurrency === 'IDR' ? '🇮🇩 Indonesian Rupiah (IDR)' : '🇺🇸 US Dollar (USD)'} | 
+                        <strong style="color: var(--accent);">All results shown in IDR for comparison</strong>
+                    </p>
+                </div>
+                
+                ${exchangeRateSection}
+                
                 <table class="summary-table">
                     <thead>
                         <tr>
