@@ -447,6 +447,23 @@
                                 <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.25rem;">Protection Multiplier</p>
                                 <p style="color: #f59e0b; font-size: 1.3rem; font-weight: 700;" id="multiplier1">-</p>
                             </div>
+                            
+                            <!-- BEP and Projections -->
+                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); text-align: left;">
+                                <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.5rem;">
+                                    <i class="fas fa-chart-line"></i> <strong>Break-Even Point</strong>
+                                </p>
+                                <p style="color: #f59e0b; font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem;">
+                                    Year 9
+                                </p>
+                                
+                                <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.5rem;">
+                                    <i class="fas fa-chart-area"></i> <strong>Cash Value Projections</strong>
+                                </p>
+                                <div style="font-size: 0.7rem; line-height: 1.8;" id="projections1">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
+                            </div>
                         </div>
 
                         <!-- PAY 5 Card -->
@@ -465,6 +482,23 @@
                                 <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.25rem;">Protection Multiplier</p>
                                 <p style="color: #64ffda; font-size: 1.3rem; font-weight: 700;" id="multiplier5">-</p>
                             </div>
+                            
+                            <!-- BEP and Projections -->
+                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); text-align: left;">
+                                <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.5rem;">
+                                    <i class="fas fa-chart-line"></i> <strong>Break-Even Point</strong>
+                                </p>
+                                <p style="color: #64ffda; font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem;">
+                                    Year 10
+                                </p>
+                                
+                                <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.5rem;">
+                                    <i class="fas fa-chart-area"></i> <strong>Cash Value Projections</strong>
+                                </p>
+                                <div style="font-size: 0.7rem; line-height: 1.8;" id="projections5">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
+                            </div>
                         </div>
 
                         <!-- PAY 10 Card -->
@@ -482,6 +516,23 @@
                             <div style="margin-top: 0.75rem;">
                                 <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.25rem;">Protection Multiplier</p>
                                 <p style="color: #a78bfa; font-size: 1.3rem; font-weight: 700;" id="multiplier10">-</p>
+                            </div>
+                            
+                            <!-- BEP and Projections -->
+                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); text-align: left;">
+                                <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.5rem;">
+                                    <i class="fas fa-chart-line"></i> <strong>Break-Even Point</strong>
+                                </p>
+                                <p style="color: #a78bfa; font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem;">
+                                    Year 11
+                                </p>
+                                
+                                <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.5rem;">
+                                    <i class="fas fa-chart-area"></i> <strong>Cash Value Projections</strong>
+                                </p>
+                                <div style="font-size: 0.7rem; line-height: 1.8;" id="projections10">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -918,6 +969,34 @@
             }).format(amount);
         }
 
+        function displayProjections(elementId, totalPaid, currency) {
+            // Cash value projection percentages (min - max)
+            const projections = [
+                { year: 20, minPct: 158, maxPct: 211 },
+                { year: 25, minPct: 200, maxPct: 272 },
+                { year: 30, minPct: 232, maxPct: 347 },
+                { year: 35, minPct: 265, maxPct: 430 },
+                { year: 40, minPct: 307, maxPct: 521 }
+            ];
+            
+            let html = '';
+            projections.forEach(proj => {
+                const minValue = totalPaid * (proj.minPct / 100);
+                const maxValue = totalPaid * (proj.maxPct / 100);
+                
+                html += `
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
+                        <span style="color: var(--text-muted);">Year ${proj.year}:</span>
+                        <span style="color: var(--success); font-weight: 600;">
+                            ${formatCurrency(minValue, currency)} (${proj.minPct}%) - ${formatCurrency(maxValue, currency)} (${proj.maxPct}%)
+                        </span>
+                    </div>
+                `;
+            });
+            
+            document.getElementById(elementId).innerHTML = html;
+        }
+
         function getPremium(age, gender, sumAssured, smoking, paymentTerm) {
             const saKey = String(sumAssured);
             const termKey = String(paymentTerm);
@@ -1002,16 +1081,19 @@
             document.getElementById('premium1').textContent = formatCurrency(premium1, currency);
             document.getElementById('total1').textContent = formatCurrency(total1, currency);
             document.getElementById('multiplier1').textContent = multiplier1 + 'x';
+            displayProjections('projections1', total1, currency);
 
             // Display PAY 5 card
             document.getElementById('premium5').textContent = formatCurrency(premium5, currency) + '/year';
             document.getElementById('total5').textContent = formatCurrency(total5, currency);
             document.getElementById('multiplier5').textContent = multiplier5 + 'x';
+            displayProjections('projections5', total5, currency);
 
             // Display PAY 10 card
             document.getElementById('premium10').textContent = formatCurrency(premium10, currency) + '/year';
             document.getElementById('total10').textContent = formatCurrency(total10, currency);
             document.getElementById('multiplier10').textContent = multiplier10 + 'x';
+            displayProjections('projections10', total10, currency);
 
             // Display IDR conversion
             document.getElementById('exchangeRate').textContent = `1 USD = ${formatIDR(rate).replace('IDR', 'Rp')}`;
