@@ -508,6 +508,19 @@
                         <canvas id="growthChart"></canvas>
                     </div>
                 </div>
+
+                <h2 class="section-title" style="margin-top: 3rem;">Detailed Calculation Breakdown</h2>
+                <div style="background: var(--bg-card-darker); padding: 20px; border-radius: 10px; margin-bottom: 30px; border: 2px solid var(--accent);">
+                    <h3 style="color: var(--accent); margin-bottom: 15px; cursor: pointer;" onclick="document.getElementById('detailedCalcTables').style.display = document.getElementById('detailedCalcTables').style.display === 'none' ? 'block' : 'none';">
+                        <i class="fas fa-calculator"></i> Click to View/Hide Detailed Calculations
+                    </h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 15px;">
+                        See step-by-step calculations showing how each year's value is derived, including prices, shares, and exchange rates.
+                    </p>
+                    <div id="detailedCalcTables" style="display: none;">
+                        <!-- Tables will be inserted here -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1239,6 +1252,8 @@
                 // Display results
                 displaySummaryCards(idrResult, usdResult, idrInstrument, usdInstrument, baseCurrency);
                 displayGrowthChart(idrYearly, usdYearlyIDR, idrInstrument, usdInstrument);
+                displayDetailedCalculations(baseCurrency, method, investmentAmount, startDate, endDate, frequency, contributionPeriod, 
+                    idrData, usdData, usdIdrData, idrInstrument, usdInstrument, startExchangeRate, endExchangeRate);
                 
                 document.getElementById('results').classList.add('active');
             } catch (error) {
@@ -1492,6 +1507,169 @@
                     }
                 }
             });
+        }
+
+        // Display detailed calculation breakdown
+        function displayDetailedCalculations(baseCurrency, method, investmentAmount, startDate, endDate, frequency, contributionPeriod,
+            idrData, usdData, usdIdrData, idrInstrument, usdInstrument, startExchangeRate, endExchangeRate) {
+            
+            const startYear = startDate.getFullYear();
+            const endYear = endDate.getFullYear();
+            
+            let idrTableHTML = '';
+            let usdTableHTML = '';
+            
+            // Build IDR Investment Table
+            if (baseCurrency === 'IDR') {
+                // IDR investment - direct, no conversion
+                idrTableHTML = buildCalculationTable('IDR', idrInstrument, method, investmentAmount, startDate, endDate, 
+                    idrData, null, startYear, endYear, false, null);
+                
+                // USD investment - needs conversion from IDR to USD
+                usdTableHTML = buildCalculationTable('USD', usdInstrument, method, investmentAmount, startDate, endDate,
+                    usdData, usdIdrData, startYear, endYear, true, startExchangeRate);
+            } else {
+                // Base is USD
+                // USD investment - direct, no conversion
+                usdTableHTML = buildCalculationTable('USD', usdInstrument, method, investmentAmount, startDate, endDate,
+                    usdData, usdIdrData, startYear, endYear, false, startExchangeRate);
+                
+                // IDR investment - needs conversion from USD to IDR
+                idrTableHTML = buildCalculationTable('IDR', idrInstrument, method, investmentAmount, startDate, endDate,
+                    idrData, usdIdrData, startYear, endYear, true, startExchangeRate);
+            }
+            
+            const html = `
+                <div style="display: grid; grid-template-columns: 1fr; gap: 30px;">
+                    ${idrTableHTML}
+                    ${usdTableHTML}
+                </div>
+            `;
+            
+            document.getElementById('detailedCalcTables').innerHTML = html;
+        }
+
+        // Build calculation table for a specific investment
+        function buildCalculationTable(currency, instrument, method, investmentAmount, startDate, endDate, 
+            priceData, exchangeData, startYear, endYear, needsConversion, startExchangeRate) {
+            
+            let tableHTML = `
+                <div style="background: var(--bg-card); padding: 20px; border-radius: 10px; border: 2px solid ${currency === 'USD' ? '#007bff' : '#28a745'};">
+                    <h4 style="color: ${currency === 'USD' ? '#007bff' : '#28a745'}; margin-bottom: 15px;">
+                        ${currency === 'IDR' ? '🇮🇩' : '🇺🇸'} ${instrument} Investment Breakdown
+                    </h4>
+                    <div style="overflow-x: auto;">
+                        <table class="summary-table" style="margin: 0; font-size: 0.85rem;">
+                            <thead>
+                                <tr style="background: var(--bg-card-darker);">
+                                    <th style="padding: 0.75rem;">Year</th>
+                                    <th style="padding: 0.75rem; text-align: center;">New Contribution</th>
+                                    <th style="padding: 0.75rem; text-align: center;">Accum. Investment</th>
+                                    <th style="padding: 0.75rem; text-align: center;">${instrument} Buy Price</th>
+                                    ${method === 'dca' ? '<th style="padding: 0.75rem; text-align: center;">Shares Bought</th>' : ''}
+                                    <th style="padding: 0.75rem; text-align: center;">Total Shares</th>
+                                    <th style="padding: 0.75rem; text-align: center;">${instrument} Year-End Price</th>
+                                    <th style="padding: 0.75rem; text-align: center;">Exchange Rate</th>
+                                    <th style="padding: 0.75rem; text-align: center;">Year-End Value (IDR)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            let totalShares = 0;
+            let accumulatedInvestment = 0;
+            
+            for (let year = startYear; year <= endYear; year++) {
+                const yearStartDate = year === startYear ? startDate : new Date(year, 0, 1);
+                const yearEndDate = new Date(year, 11, 31);
+                const calculationDate = yearEndDate > endDate ? endDate : yearEndDate;
+                
+                let newContribution = 0;
+                let buyPrice = 0;
+                let sharesBought = 0;
+                let yearEndPrice = getPriceOnDate(priceData, calculationDate);
+                let exchangeRate = exchangeData ? getPriceOnDate(exchangeData, calculationDate) : 1;
+                
+                if (method === 'lumpsum') {
+                    if (year === startYear) {
+                        newContribution = investmentAmount;
+                        buyPrice = getPriceOnDate(priceData, startDate);
+                        
+                        if (needsConversion) {
+                            if (currency === 'USD') {
+                                // Converting IDR to USD
+                                const usdAmount = investmentAmount / startExchangeRate;
+                                sharesBought = usdAmount / buyPrice;
+                            } else {
+                                // Converting USD to IDR
+                                const idrAmount = investmentAmount * startExchangeRate;
+                                sharesBought = idrAmount / buyPrice;
+                            }
+                        } else {
+                            sharesBought = investmentAmount / buyPrice;
+                        }
+                        
+                        totalShares = sharesBought;
+                        accumulatedInvestment = investmentAmount;
+                    }
+                } else {
+                    // DCA
+                    if (year === startYear || (contributionPeriod && year <= startYear + contributionPeriod - 1)) {
+                        newContribution = investmentAmount;
+                        buyPrice = getPriceOnDate(priceData, yearStartDate);
+                        
+                        if (needsConversion) {
+                            const yearExchangeRate = exchangeData ? getPriceOnDate(exchangeData, yearStartDate) : 1;
+                            if (currency === 'USD') {
+                                // Converting IDR to USD
+                                const usdAmount = investmentAmount / yearExchangeRate;
+                                sharesBought = usdAmount / buyPrice;
+                            } else {
+                                // Converting USD to IDR
+                                const idrAmount = investmentAmount * yearExchangeRate;
+                                sharesBought = idrAmount / buyPrice;
+                            }
+                        } else {
+                            sharesBought = investmentAmount / buyPrice;
+                        }
+                        
+                        totalShares += sharesBought;
+                        accumulatedInvestment += investmentAmount;
+                    }
+                }
+                
+                const yearEndValueUSD = totalShares * yearEndPrice;
+                const yearEndValueIDR = currency === 'USD' ? yearEndValueUSD * exchangeRate : yearEndValueUSD;
+                
+                const contributionDisplay = newContribution > 0 ? 
+                    (currency === 'USD' ? formatCurrency(newContribution, 'USD') : formatCurrency(newContribution)) : '-';
+                const accumDisplay = currency === 'USD' ? formatCurrency(accumulatedInvestment, 'USD') : formatCurrency(accumulatedInvestment);
+                const buyPriceDisplay = buyPrice > 0 ? 
+                    (currency === 'USD' ? formatCurrency(buyPrice, 'USD') : buyPrice.toLocaleString('en-US', {minimumFractionDigits: 2})) : '-';
+                
+                tableHTML += `
+                    <tr ${year % 2 === 0 ? 'style="background: var(--bg-card-lighter);"' : ''}>
+                        <td style="padding: 0.75rem; font-weight: 600;">${year}</td>
+                        <td style="padding: 0.75rem; text-align: center;">${contributionDisplay}</td>
+                        <td style="padding: 0.75rem; text-align: center;">${accumDisplay}</td>
+                        <td style="padding: 0.75rem; text-align: center;">${buyPriceDisplay}</td>
+                        ${method === 'dca' ? `<td style="padding: 0.75rem; text-align: center;">${sharesBought > 0 ? sharesBought.toFixed(4) : '-'}</td>` : ''}
+                        <td style="padding: 0.75rem; text-align: center; font-weight: 600;">${totalShares.toFixed(4)}</td>
+                        <td style="padding: 0.75rem; text-align: center;">${currency === 'USD' ? formatCurrency(yearEndPrice, 'USD') : yearEndPrice.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                        <td style="padding: 0.75rem; text-align: center;">${exchangeRate.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                        <td style="padding: 0.75rem; text-align: center; font-weight: 700; color: var(--accent);">${formatCurrencyCompact(yearEndValueIDR)}</td>
+                    </tr>
+                `;
+            }
+            
+            tableHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            return tableHTML;
         }
 
         // Export to PDF
