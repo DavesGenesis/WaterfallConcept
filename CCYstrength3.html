@@ -1067,9 +1067,10 @@
                         const shares = investmentAmount / usdStartPrice;
                         const finalValueUSD = shares * usdEndPrice;
                         const finalValueIDR = finalValueUSD * endExchangeRate;
+                        const totalInvestedIDR = investmentAmount * startExchangeRate;
                         
                         usdResult = {
-                            invested: finalValueIDR,
+                            invested: totalInvestedIDR,
                             investedBase: investmentAmount,
                             investedUSD: investmentAmount,
                             shares: shares,
@@ -1079,8 +1080,8 @@
                             endExchangeRate: endExchangeRate,
                             finalValueUSD: finalValueUSD,
                             finalValue: finalValueIDR,
-                            gain: finalValueIDR - (investmentAmount * startExchangeRate),
-                            returnPct: ((finalValueIDR / (investmentAmount * startExchangeRate) - 1) * 100).toFixed(2),
+                            gain: finalValueIDR - totalInvestedIDR,
+                            returnPct: ((finalValueIDR / totalInvestedIDR - 1) * 100).toFixed(2),
                             baseCurrency: 'USD',
                             needsConversion: false
                         };
