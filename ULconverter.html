@@ -3,11 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unit Link to Traditional Whole Life Converter</title>
+    <title>UL Converter - Genesis Advisory</title>
+    
+    <!-- Firebase SDK Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="broadcast-session-tracker.js"></script>
+    
+    <!-- Authentication Check -->
+    <script>
+        try {
+            const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+            if (!authData.authenticated) {
+                window.location.href = 'index.html';
+            }
+        } catch (error) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    
+    <!-- Protection Scripts -->
+    <script>
+        // Disable right-click context menu
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        // Disable keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Prevent F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U, Ctrl+S
+            if (e.keyCode === 123 || // F12
+                (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
+                (e.ctrlKey && e.shiftKey && e.keyCode === 74) || // Ctrl+Shift+J
+                (e.ctrlKey && e.shiftKey && e.keyCode === 67) || // Ctrl+Shift+C
+                (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
+                (e.ctrlKey && e.keyCode === 83)) { // Ctrl+S
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Detect DevTools opening
+        (function() {
+            const threshold = 160;
+            let devtools = {open: false};
+            
+            setInterval(function() {
+                if (window.outerWidth - window.innerWidth > threshold || 
+                    window.outerHeight - window.innerHeight > threshold) {
+                    if (!devtools.open) {
+                        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a192f;color:#64ffda;font-family:Montserrat,sans-serif;font-size:24px;text-align:center;padding:20px;">⚠️ Developer Tools detected. Please close it to continue.</div>';
+                    }
+                    devtools.open = true;
+                } else {
+                    devtools.open = false;
+                }
+            }, 500);
+        })();
+
+        // Disable text selection and copy
+        document.addEventListener('selectstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        document.addEventListener('copy', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    </script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <style>
         :root {
@@ -36,6 +107,19 @@
             background-color: var(--bg-primary);
             color: var(--text-primary);
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        * {
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
         }
 
         .container {
@@ -246,6 +330,136 @@
             display: none;
         }
 
+        .recommendation-card {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+            border: 2px solid var(--warning);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .recommendation-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--warning);
+        }
+
+        .recommendation-header i {
+            font-size: 2rem;
+            color: var(--warning);
+        }
+
+        .recommendation-header h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--warning);
+        }
+
+        .urgency-alert {
+            background: rgba(255, 100, 150, 0.15);
+            border: 2px solid var(--danger);
+            border-radius: 0.5rem;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .urgency-alert i {
+            font-size: 1.5rem;
+            color: var(--danger);
+        }
+
+        .urgency-alert-text {
+            color: var(--danger);
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .option-comparison {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .option-card {
+            background: var(--bg-card-darker);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            border: 2px solid var(--border-color);
+            transition: all 0.3s;
+        }
+
+        .option-card.recommended {
+            border-color: var(--success);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+        }
+
+        .option-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .option-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .option-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .recommended-badge {
+            background: var(--success);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .option-detail {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .option-detail-label {
+            color: var(--text-secondary);
+        }
+
+        .option-detail-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .savings-highlight {
+            background: rgba(16, 185, 129, 0.2);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .savings-highlight-text {
+            color: var(--success);
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
         @media (max-width: 768px) {
             .grid-2 {
                 grid-template-columns: 1fr;
@@ -258,20 +472,41 @@
             .card {
                 padding: 1.5rem;
             }
+
+            .option-comparison {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="card">
-            <div style="text-align: center;">
-                <h1 style="font-size: 2rem; font-weight: 700; color: var(--accent); margin-bottom: 0.5rem;">
-                    <i class="fas fa-exchange-alt"></i> Unit Link to Traditional Whole Life Converter
+    <!-- Header -->
+    <header style="background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-card-darker) 100%); border-bottom: 2px solid var(--accent); padding: 1.5rem 2rem; margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; max-width: 1400px; margin: 0 auto;">
+            <div>
+                <h1 style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">
+                    <i class="fas fa-exchange-alt"></i> UL <span style="color: var(--accent);">Converter</span>
                 </h1>
-                <p style="color: var(--text-secondary);">Convert your underperforming Unit Link policy to Traditional Whole Life with better coverage</p>
+                <p style="color: var(--text-secondary); font-size: 0.95rem;">Convert Unit Link to Traditional Whole Life with better coverage</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1.25rem; background: var(--bg-card-darker); border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                    <i class="fas fa-user" style="color: var(--accent);"></i>
+                    <div>
+                        <div id="userEmail" style="color: var(--text-secondary); font-size: 0.9rem;"></div>
+                    </div>
+                </div>
+                <button onclick="window.location.href='dashboard.html'" style="padding: 0.75rem 1.25rem; background: var(--accent); color: var(--bg-primary); border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-family: 'Montserrat', sans-serif;" title="Back to Dashboard">
+                    <i class="fas fa-home"></i> Dashboard
+                </button>
+                <button id="logoutBtn" style="padding: 0.75rem 1.25rem; background: var(--danger); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-family: 'Montserrat', sans-serif;" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
             </div>
         </div>
+    </header>
+
+    <div class="container">
 
         <!-- Input Form -->
         <div class="grid-2">
@@ -344,6 +579,9 @@
             </button>
             <button class="btn btn-secondary" onclick="resetForm()" style="margin-left: 1rem;">
                 <i class="fas fa-redo"></i> Reset
+            </button>
+            <button id="downloadPdfBtn" class="btn btn-secondary hidden" onclick="downloadPDF()" style="margin-left: 1rem;">
+                <i class="fas fa-file-pdf"></i> Download PDF Report
             </button>
         </div>
 
@@ -489,6 +727,82 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Coverage Shortfall Recommendation -->
+            <div id="shortfallSection" class="hidden">
+                <div class="recommendation-card">
+                    <div class="recommendation-header">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Coverage Shortfall Recommendation</h3>
+                    </div>
+
+                    <div id="urgencyAlert" class="urgency-alert hidden">
+                        <i class="fas fa-clock"></i>
+                        <div>
+                            <div class="urgency-alert-text" id="urgencyText"></div>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--bg-card-darker); padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                        <div class="summary-item">
+                            <span class="summary-label" style="font-size: 1rem;">Coverage Gap</span>
+                            <span class="summary-value highlight-danger" style="font-size: 1.25rem;" id="coverageGap">-</span>
+                        </div>
+                    </div>
+
+                    <h4 style="color: var(--text-primary); font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">
+                        Additional Premium Options to Cover Shortfall:
+                    </h4>
+
+                    <div class="option-comparison">
+                        <!-- Current Year Option -->
+                        <div class="option-card recommended">
+                            <div class="option-header">
+                                <span class="option-title" id="currentYearTitle">This Year (Age 44)</span>
+                                <span class="recommended-badge">RECOMMENDED</span>
+                            </div>
+                            <div class="option-detail">
+                                <span class="option-detail-label">Age</span>
+                                <span class="option-detail-value" id="currentAge">-</span>
+                            </div>
+                            <div class="option-detail">
+                                <span class="option-detail-label">Multiplier</span>
+                                <span class="option-detail-value highlight-accent" id="currentMultiplier">-</span>
+                            </div>
+                            <div class="option-detail">
+                                <span class="option-detail-label">Premium Needed</span>
+                                <span class="option-detail-value highlight-success" id="currentPremiumNeeded">-</span>
+                            </div>
+                        </div>
+
+                        <!-- Next Year Option -->
+                        <div class="option-card">
+                            <div class="option-header">
+                                <span class="option-title" id="nextYearTitle">Next Year (Age 45)</span>
+                            </div>
+                            <div class="option-detail">
+                                <span class="option-detail-label">Age</span>
+                                <span class="option-detail-value" id="nextAge">-</span>
+                            </div>
+                            <div class="option-detail">
+                                <span class="option-detail-label">Multiplier</span>
+                                <span class="option-detail-value highlight-accent" id="nextMultiplier">-</span>
+                            </div>
+                            <div class="option-detail">
+                                <span class="option-detail-label">Premium Needed</span>
+                                <span class="option-detail-value highlight-danger" id="nextPremiumNeeded">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="savings-highlight">
+                        <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">
+                            By Acting Now, You Save:
+                        </div>
+                        <div class="savings-highlight-text" id="savingsByActingNow">-</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -694,9 +1008,320 @@
                 ? `+${formatRupiah(coverageIncrease)} (+${coverageIncreasePercent}%)`
                 : formatRupiah(coverageIncrease);
 
-            // Show results
+            // Check for coverage shortfall and show recommendation
+            if (totalNewUP < upJiwa) {
+                const coverageGap = upJiwa - totalNewUP;
+                const currentMultiplier = multiplier;
+                const nextMultiplier = getMultiplierByAge(age + 1);
+                
+                const premiumNeededNow = coverageGap / currentMultiplier;
+                const premiumNeededNextYear = coverageGap / nextMultiplier;
+                const savings = premiumNeededNextYear - premiumNeededNow;
+
+                // Show shortfall section
+                document.getElementById('shortfallSection').classList.remove('hidden');
+                document.getElementById('coverageGap').textContent = formatRupiah(coverageGap);
+                
+                // Current year option
+                document.getElementById('currentYearTitle').textContent = `This Year (Age ${age})`;
+                document.getElementById('currentAge').textContent = age + ' years';
+                document.getElementById('currentMultiplier').textContent = currentMultiplier + 'x';
+                document.getElementById('currentPremiumNeeded').textContent = formatRupiah(premiumNeededNow);
+                
+                // Next year option
+                document.getElementById('nextYearTitle').textContent = `Next Year (Age ${age + 1})`;
+                document.getElementById('nextAge').textContent = (age + 1) + ' years';
+                document.getElementById('nextMultiplier').textContent = nextMultiplier + 'x';
+                document.getElementById('nextPremiumNeeded').textContent = formatRupiah(premiumNeededNextYear);
+                
+                // Savings
+                document.getElementById('savingsByActingNow').textContent = formatRupiah(savings);
+
+                // Show urgency alert if multiplier changes
+                if (currentMultiplier > nextMultiplier) {
+                    document.getElementById('urgencyAlert').classList.remove('hidden');
+                    let urgencyMessage = '';
+                    
+                    if (age === 24) {
+                        urgencyMessage = `🚨 CRITICAL! This is your LAST YEAR to get ${currentMultiplier}x multiplier! Next year it drops to ${nextMultiplier}x (50% reduction)!`;
+                    } else if (age === 34) {
+                        urgencyMessage = `⚠️ IMPORTANT! This is your LAST YEAR to get ${currentMultiplier}x multiplier! Next year it drops to ${nextMultiplier}x (50% reduction)!`;
+                    } else if (age === 44) {
+                        urgencyMessage = `⚠️ WARNING! This is your LAST YEAR to get ${currentMultiplier}x multiplier! Next year it drops to ${nextMultiplier}x (50% reduction)!`;
+                    } else if (age === 54) {
+                        urgencyMessage = `⚠️ NOTICE! This is your LAST YEAR to get ${currentMultiplier}x multiplier! Next year it drops to ${nextMultiplier}x (40% reduction)!`;
+                    } else if (age === 64) {
+                        urgencyMessage = `⚠️ ALERT! This is your LAST YEAR to get ${currentMultiplier}x multiplier! Next year it drops to ${nextMultiplier}x (33% reduction)!`;
+                    } else {
+                        urgencyMessage = `⚠️ Act now! Multiplier drops from ${currentMultiplier}x to ${nextMultiplier}x next year!`;
+                    }
+                    
+                    document.getElementById('urgencyText').textContent = urgencyMessage;
+                } else {
+                    document.getElementById('urgencyAlert').classList.add('hidden');
+                }
+            } else {
+                document.getElementById('shortfallSection').classList.add('hidden');
+            }
+
+            // Show results and PDF button
             document.getElementById('resultsSection').classList.remove('hidden');
+            document.getElementById('downloadPdfBtn').classList.remove('hidden');
             document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Get data from the page
+            const name = document.getElementById('summaryName').textContent;
+            const gender = document.getElementById('summaryGender').textContent;
+            const age = document.getElementById('summaryAge').textContent;
+            const totalPaid = document.getElementById('summaryTotalPaid').textContent;
+            const cashValue = document.getElementById('summaryCashValue').textContent;
+            const netLoss = document.getElementById('summaryNetLoss').textContent;
+            const unpaidPremium = document.getElementById('summaryUnpaidPremium').textContent;
+            const unpaidTerm = document.getElementById('summaryUnpaidTerm').textContent;
+            
+            const singlePremium = document.getElementById('newSinglePremium').textContent;
+            const newUP = document.getElementById('newUP').textContent;
+            const multiplier = document.getElementById('multiplicationFactor').textContent;
+            const totalNewUP = document.getElementById('totalNewUP').textContent;
+            
+            const ulPremium = document.getElementById('compULPremium').textContent;
+            const tradPremium = document.getElementById('compTradPremium').textContent;
+            const ulCoverage = document.getElementById('compULCoverage').textContent;
+            const tradCoverage = document.getElementById('compTradCoverage').textContent;
+            const savings = document.getElementById('compSavings').textContent;
+            const increase = document.getElementById('compIncrease').textContent;
+
+            let yPos = 20;
+            
+            // Header
+            doc.setFontSize(20);
+            doc.setTextColor(100, 255, 218);
+            doc.text('UL Converter Analysis Report', 105, yPos, { align: 'center' });
+            
+            yPos += 10;
+            doc.setFontSize(10);
+            doc.setTextColor(128, 128, 128);
+            doc.text('Unit Link to Traditional Whole Life Conversion', 105, yPos, { align: 'center' });
+            
+            yPos += 15;
+            
+            // Client Information
+            doc.setFontSize(14);
+            doc.setTextColor(100, 255, 218);
+            doc.text('Client Information', 20, yPos);
+            
+            yPos += 8;
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`Name: ${name}`, 20, yPos);
+            yPos += 6;
+            doc.text(`Gender: ${gender}`, 20, yPos);
+            yPos += 6;
+            doc.text(`Age: ${age}`, 20, yPos);
+            
+            yPos += 12;
+            
+            // Current Unit Link Policy
+            doc.setFontSize(14);
+            doc.setTextColor(100, 255, 218);
+            doc.text('Current Unit Link Policy', 20, yPos);
+            
+            yPos += 8;
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`Total Premium Paid: ${totalPaid}`, 20, yPos);
+            yPos += 6;
+            doc.text(`Current Cash Value: ${cashValue}`, 20, yPos);
+            yPos += 6;
+            doc.setTextColor(255, 100, 150);
+            doc.text(`Net Loss: ${netLoss}`, 20, yPos);
+            doc.setTextColor(0, 0, 0);
+            yPos += 6;
+            doc.text(`Total Unpaid Premium: ${unpaidPremium}`, 20, yPos);
+            yPos += 6;
+            doc.text(`Total Unpaid Term: ${unpaidTerm}`, 20, yPos);
+            
+            yPos += 12;
+            
+            // New Traditional Plan
+            doc.setFontSize(14);
+            doc.setTextColor(100, 255, 218);
+            doc.text('New Proposed Traditional Plan', 20, yPos);
+            
+            yPos += 8;
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`Single Premium (from Cash Value): ${singlePremium}`, 20, yPos);
+            yPos += 6;
+            doc.text(`New UP Jiwa / Coverage: ${newUP}`, 20, yPos);
+            yPos += 6;
+            doc.text(`Multiplication Factor: ${multiplier}`, 20, yPos);
+            yPos += 6;
+            doc.setTextColor(16, 185, 129);
+            doc.setFontSize(11);
+            doc.text(`TOTAL NEW UP JIWA: ${totalNewUP}`, 20, yPos);
+            
+            yPos += 12;
+            
+            // Comparison Table
+            doc.setFontSize(14);
+            doc.setTextColor(100, 255, 218);
+            doc.text('Comparison: Unit Link vs Traditional Plan', 20, yPos);
+            
+            yPos += 10;
+            doc.setFontSize(9);
+            doc.setTextColor(0, 0, 0);
+            
+            // Table headers
+            doc.setFillColor(23, 42, 70);
+            doc.rect(20, yPos - 5, 170, 8, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.text('Criteria', 25, yPos);
+            doc.text('Unit Link', 80, yPos);
+            doc.text('Traditional Plan', 135, yPos);
+            
+            yPos += 8;
+            doc.setTextColor(0, 0, 0);
+            
+            // Total Premium
+            doc.text('Total Premium', 25, yPos);
+            doc.setFontSize(8);
+            doc.text(ulPremium.substring(0, 40), 80, yPos);
+            doc.text(tradPremium.substring(0, 40), 135, yPos);
+            doc.setFontSize(9);
+            yPos += 8;
+            
+            // Total Coverage
+            doc.text('Total Coverage', 25, yPos);
+            doc.text(ulCoverage, 80, yPos);
+            doc.setTextColor(16, 185, 129);
+            doc.text(tradCoverage, 135, yPos);
+            doc.setTextColor(0, 0, 0);
+            yPos += 8;
+            
+            // Risk of Lapsing
+            doc.text('Risk of Lapsing', 25, yPos);
+            doc.setTextColor(255, 100, 150);
+            doc.text('HIGH RISK', 80, yPos);
+            doc.setTextColor(16, 185, 129);
+            doc.text('ZERO RISK', 135, yPos);
+            doc.setTextColor(0, 0, 0);
+            yPos += 8;
+            
+            // Premium Savings
+            doc.text('Premium Savings', 25, yPos);
+            doc.text('-', 80, yPos);
+            doc.setTextColor(16, 185, 129);
+            doc.text(savings, 135, yPos);
+            doc.setTextColor(0, 0, 0);
+            yPos += 8;
+            
+            // Coverage Increase
+            doc.text('Coverage Increase', 25, yPos);
+            doc.text('-', 80, yPos);
+            doc.setTextColor(16, 185, 129);
+            doc.text(increase, 135, yPos);
+            doc.setTextColor(0, 0, 0);
+            
+            // Check if there's a shortfall recommendation
+            if (!document.getElementById('shortfallSection').classList.contains('hidden')) {
+                doc.addPage();
+                yPos = 20;
+                
+                // Shortfall Recommendation
+                doc.setFontSize(14);
+                doc.setTextColor(245, 158, 11);
+                doc.text('Coverage Shortfall Recommendation', 20, yPos);
+                
+                yPos += 10;
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
+                
+                const coverageGap = document.getElementById('coverageGap').textContent;
+                doc.text(`Coverage Gap: ${coverageGap}`, 20, yPos);
+                
+                yPos += 12;
+                doc.setFontSize(12);
+                doc.text('Additional Premium Options:', 20, yPos);
+                
+                yPos += 10;
+                doc.setFontSize(10);
+                
+                // Current Year Option
+                const currentAge = document.getElementById('currentAge').textContent;
+                const currentMultiplier = document.getElementById('currentMultiplier').textContent;
+                const currentPremium = document.getElementById('currentPremiumNeeded').textContent;
+                
+                doc.setFillColor(16, 185, 129, 0.2);
+                doc.rect(20, yPos - 5, 80, 30, 'F');
+                doc.setTextColor(16, 185, 129);
+                doc.setFontSize(11);
+                doc.text('RECOMMENDED: This Year', 25, yPos);
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
+                yPos += 7;
+                doc.text(`Age: ${currentAge}`, 25, yPos);
+                yPos += 6;
+                doc.text(`Multiplier: ${currentMultiplier}`, 25, yPos);
+                yPos += 6;
+                doc.text(`Premium Needed: ${currentPremium}`, 25, yPos);
+                
+                yPos -= 19;
+                
+                // Next Year Option
+                const nextAge = document.getElementById('nextAge').textContent;
+                const nextMultiplier = document.getElementById('nextMultiplier').textContent;
+                const nextPremium = document.getElementById('nextPremiumNeeded').textContent;
+                
+                doc.rect(110, yPos - 5, 80, 30);
+                doc.setFontSize(11);
+                doc.text('Next Year', 115, yPos);
+                doc.setFontSize(10);
+                yPos += 7;
+                doc.text(`Age: ${nextAge}`, 115, yPos);
+                yPos += 6;
+                doc.text(`Multiplier: ${nextMultiplier}`, 115, yPos);
+                yPos += 6;
+                doc.text(`Premium Needed: ${nextPremium}`, 115, yPos);
+                
+                yPos += 15;
+                
+                // Savings
+                const savingsByActing = document.getElementById('savingsByActingNow').textContent;
+                doc.setFillColor(16, 185, 129, 0.1);
+                doc.rect(20, yPos - 5, 170, 12, 'F');
+                doc.setTextColor(16, 185, 129);
+                doc.setFontSize(12);
+                doc.text(`By Acting Now, You Save: ${savingsByActing}`, 105, yPos + 3, { align: 'center' });
+                
+                // Urgency message if applicable
+                if (!document.getElementById('urgencyAlert').classList.contains('hidden')) {
+                    yPos += 15;
+                    doc.setTextColor(255, 100, 150);
+                    doc.setFontSize(10);
+                    const urgencyText = document.getElementById('urgencyText').textContent;
+                    const splitText = doc.splitTextToSize(urgencyText, 170);
+                    doc.text(splitText, 20, yPos);
+                }
+            }
+            
+            // Footer
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(128, 128, 128);
+                doc.text(`Generated on ${new Date().toLocaleDateString('id-ID')} | Page ${i} of ${pageCount}`, 105, 285, { align: 'center' });
+                doc.text('Genesis Advisory - UL Converter', 105, 290, { align: 'center' });
+            }
+            
+            // Save PDF
+            doc.save(`UL_Converter_Report_${name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
         }
 
         function resetForm() {
@@ -710,7 +1335,85 @@
             document.getElementById('totalPaid').value = '';
             document.getElementById('upJiwa').value = '';
             document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('downloadPdfBtn').classList.add('hidden');
         }
+
+        // Load user email on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            try {
+                const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                
+                if (!authData.authenticated) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                document.getElementById('userEmail').textContent = authData.email || 'Unknown';
+            } catch (error) {
+                console.error('Error loading user info:', error);
+                window.location.href = 'index.html';
+            }
+        });
+
+        // Logout functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('logoutBtn').addEventListener('click', async function() {
+                if (!confirm('Are you sure you want to logout?')) {
+                    return;
+                }
+
+                try {
+                    const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                    
+                    localStorage.setItem('logoutBroadcast', JSON.stringify({
+                        email: authData.email,
+                        timestamp: Date.now()
+                    }));
+                    
+                    setTimeout(() => {
+                        localStorage.removeItem('logoutBroadcast');
+                    }, 1000);
+                    
+                    if (typeof SecurityUtils !== 'undefined') {
+                        SecurityUtils.logSecurityEvent('LOGOUT', {
+                            email: authData.email,
+                            message: 'User logged out from UL Converter',
+                            timestamp: Date.now()
+                        });
+                    }
+
+                    if (window.sessionTracker) {
+                        await window.sessionTracker.stopSession();
+                    }
+                } catch (error) {
+                    console.error('Error during logout:', error);
+                }
+
+                sessionStorage.removeItem('waterfallAuth');
+                localStorage.removeItem('waterfallActiveSession');
+                
+                window.location.href = 'index.html';
+            });
+        });
+
+        // Listen for logout broadcast from other tabs
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'logoutBroadcast') {
+                try {
+                    const logoutData = JSON.parse(e.newValue || '{}');
+                    const currentAuth = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                    
+                    if (logoutData.email === currentAuth.email) {
+                        sessionStorage.removeItem('waterfallAuth');
+                        localStorage.removeItem('waterfallActiveSession');
+                        alert('🚪 You have been logged out from another tab.');
+                        window.location.href = 'index.html';
+                    }
+                } catch (error) {
+                    console.error('Error processing logout broadcast:', error);
+                }
+            }
+        });
     </script>
 </body>
 </html>
