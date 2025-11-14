@@ -504,6 +504,117 @@
             font-weight: 700;
         }
 
+        .insurability-warning {
+            background: rgba(245, 158, 11, 0.15);
+            border: 2px solid var(--warning);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .insurability-warning h4 {
+            color: var(--warning);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .insurability-warning ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .insurability-warning li {
+            color: var(--text-primary);
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .insurability-warning li:before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+        .multiplier-countdown {
+            background: linear-gradient(135deg, rgba(255, 100, 150, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%);
+            border: 2px solid var(--danger);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .multiplier-countdown h4 {
+            color: var(--danger);
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .countdown-info {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .countdown-item {
+            text-align: center;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .countdown-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--danger);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .countdown-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .progress-bar-container {
+            background: var(--bg-card-darker);
+            border-radius: 1rem;
+            height: 2rem;
+            overflow: hidden;
+            position: relative;
+            margin-top: 1rem;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--danger) 0%, var(--warning) 100%);
+            transition: width 1s ease-out;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 1rem;
+            color: white;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .progress-bar-label {
+            text-align: center;
+            margin-top: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
         @media (max-width: 768px) {
             .grid-2 {
                 grid-template-columns: 1fr;
@@ -843,11 +954,47 @@
                         </div>
                     </div>
 
-                    <div class="savings-highlight">
+                    <div class="savings-highlight" id="savingsHighlightBox">
                         <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">
                             By Acting Now, You Save:
                         </div>
                         <div class="savings-highlight-text gold-highlight-large" id="savingsByActingNow">-</div>
+                    </div>
+
+                    <!-- Insurability Warning (shown when multiplier is same) -->
+                    <div id="insurabilityWarning" class="insurability-warning hidden">
+                        <h4><i class="fas fa-heartbeat"></i> Important: Age & Insurability Considerations</h4>
+                        <ul>
+                            <li><strong>You're getting 1 year older</strong> - Health risks increase with age</li>
+                            <li><strong>Medical underwriting required</strong> - Traditional Whole Life needs health check</li>
+                            <li><strong>What if you develop a condition?</strong> - Diabetes, hypertension, or other issues could make you uninsurable</li>
+                            <li><strong>Lock in your insurability NOW</strong> - While you're still healthy and eligible</li>
+                        </ul>
+                    </div>
+
+                    <!-- Multiplier Countdown -->
+                    <div id="multiplierCountdown" class="multiplier-countdown">
+                        <h4 id="countdownTitle">⏰ Time Remaining at Current Multiplier</h4>
+                        <div class="countdown-info">
+                            <div class="countdown-item">
+                                <div class="countdown-value" id="yearsRemaining">-</div>
+                                <div class="countdown-label">Years Left</div>
+                            </div>
+                            <div class="countdown-item">
+                                <div class="countdown-value" id="currentMultiplierDisplay">-</div>
+                                <div class="countdown-label">Current Multiplier</div>
+                            </div>
+                            <div class="countdown-item">
+                                <div class="countdown-value" id="nextMultiplierDisplay">-</div>
+                                <div class="countdown-label">Next Multiplier</div>
+                            </div>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;">
+                                <span id="progressPercentage"></span>
+                            </div>
+                        </div>
+                        <div class="progress-bar-label" id="progressLabel">-</div>
                     </div>
                 </div>
             </div>
@@ -1099,7 +1246,22 @@
                 // Savings
                 document.getElementById('savingsByActingNow').textContent = formatRupiah(savings);
 
-                // Show urgency alert if multiplier changes
+                // Calculate years remaining at current multiplier
+                function getMultiplierBracketEnd(currentAge) {
+                    if (currentAge >= 14 && currentAge <= 24) return 24;
+                    if (currentAge >= 25 && currentAge <= 34) return 34;
+                    if (currentAge >= 35 && currentAge <= 44) return 44;
+                    if (currentAge >= 45 && currentAge <= 54) return 54;
+                    if (currentAge >= 55 && currentAge <= 64) return 64;
+                    if (currentAge >= 65 && currentAge <= 70) return 70;
+                    return currentAge;
+                }
+
+                const bracketEnd = getMultiplierBracketEnd(age);
+                const yearsRemaining = bracketEnd - age;
+                const multiplierAfterBracket = getMultiplierByAge(bracketEnd + 1);
+
+                // Show urgency alert if multiplier changes next year
                 if (currentMultiplier > nextMultiplier) {
                     document.getElementById('urgencyAlert').classList.remove('hidden');
                     let urgencyMessage = '';
@@ -1119,8 +1281,43 @@
                     }
                     
                     document.getElementById('urgencyText').textContent = urgencyMessage;
+                    
+                    // Hide savings box, show insurability warning
+                    document.getElementById('savingsHighlightBox').classList.add('hidden');
                 } else {
                     document.getElementById('urgencyAlert').classList.add('hidden');
+                    
+                    // Show insurability warning when multiplier is same
+                    document.getElementById('savingsHighlightBox').classList.add('hidden');
+                    document.getElementById('insurabilityWarning').classList.remove('hidden');
+                }
+
+                // Update multiplier countdown
+                document.getElementById('yearsRemaining').textContent = yearsRemaining;
+                document.getElementById('currentMultiplierDisplay').textContent = currentMultiplier + 'x';
+                document.getElementById('nextMultiplierDisplay').textContent = multiplierAfterBracket + 'x';
+
+                // Calculate progress bar (how far through the bracket)
+                const bracketStart = bracketEnd - (currentMultiplier === 40 ? 10 : currentMultiplier === 20 ? 9 : currentMultiplier === 10 ? 9 : currentMultiplier === 5 ? 9 : currentMultiplier === 3 ? 9 : 5);
+                const totalYearsInBracket = bracketEnd - bracketStart + 1;
+                const yearsCompleted = age - bracketStart;
+                const progressPercentage = (yearsCompleted / totalYearsInBracket) * 100;
+
+                setTimeout(() => {
+                    document.getElementById('progressBarFill').style.width = progressPercentage + '%';
+                    document.getElementById('progressPercentage').textContent = Math.round(progressPercentage) + '%';
+                }, 100);
+
+                // Update countdown title and label
+                if (yearsRemaining === 0) {
+                    document.getElementById('countdownTitle').innerHTML = '🚨 FINAL YEAR at ' + currentMultiplier + 'x Multiplier!';
+                    document.getElementById('progressLabel').textContent = 'This is your LAST CHANCE before multiplier drops to ' + multiplierAfterBracket + 'x!';
+                } else if (yearsRemaining === 1) {
+                    document.getElementById('countdownTitle').innerHTML = '⚠️ Only 1 YEAR Left at ' + currentMultiplier + 'x Multiplier!';
+                    document.getElementById('progressLabel').textContent = 'After next year, multiplier drops to ' + multiplierAfterBracket + 'x - that\'s a ' + Math.round((1 - multiplierAfterBracket/currentMultiplier) * 100) + '% reduction!';
+                } else {
+                    document.getElementById('countdownTitle').innerHTML = '⏰ Time Remaining at ' + currentMultiplier + 'x Multiplier';
+                    document.getElementById('progressLabel').textContent = 'You have ' + yearsRemaining + ' years left before multiplier drops to ' + multiplierAfterBracket + 'x at age ' + (bracketEnd + 1);
                 }
             } else {
                 document.getElementById('shortfallSection').classList.add('hidden');
@@ -1164,9 +1361,21 @@
             const multiplier = document.getElementById('multiplicationFactor').textContent;
             const totalNewUP = document.getElementById('totalNewUP').textContent;
             
-            const ulPremium = document.getElementById('compULPremium').textContent;
-            const tradPremium = document.getElementById('compTradPremium').textContent;
-            const ulCoverage = document.getElementById('compULCoverage').textContent;
+            // Get totals only (not the breakdown) for PDF
+            const pdfCashValue = parseRupiah(document.getElementById('cashValue').value);
+            const pdfAnnualPremium = parseRupiah(document.getElementById('annualPremium').value);
+            const pdfPaymentTerm = parseInt(document.getElementById('paymentTerm').value) || 0;
+            const pdfTotalPaid = parseRupiah(document.getElementById('totalPaid').value);
+            const pdfUpJiwa = parseRupiah(document.getElementById('upJiwa').value);
+            
+            const pdfTotalRequiredPremium = pdfAnnualPremium * pdfPaymentTerm;
+            const pdfUnpaidPremium = pdfTotalRequiredPremium - pdfTotalPaid;
+            const pdfTotalNewPremium = pdfCashValue + pdfUnpaidPremium;
+            
+            // For PDF: Show only totals, not breakdown
+            const ulPremium = formatRupiah(pdfTotalRequiredPremium);
+            const tradPremium = formatRupiah(pdfTotalNewPremium);
+            const ulCoverage = formatRupiah(pdfUpJiwa);
             const tradCoverage = document.getElementById('compTradCoverage').textContent;
             const savings = document.getElementById('compSavings').textContent;
             const increase = document.getElementById('compIncrease').textContent;
@@ -1481,7 +1690,46 @@
                     const splitText = doc.splitTextToSize(urgencyText, pageWidth - 2 * margin - 10);
                     doc.text(splitText, margin + 5, yPos + 8);
                     yPos += 30;
+                } else {
+                    // Show insurability warning when multiplier is same
+                    doc.setFillColor(255, 250, 240);
+                    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 30, 2, 2, 'F');
+                    doc.setDrawColor(...gold);
+                    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 30, 2, 2, 'S');
+                    
+                    doc.setTextColor(...gold);
+                    doc.setFontSize(9);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Age & Insurability Warning', margin + 5, yPos + 8);
+                    
+                    doc.setTextColor(...darkText);
+                    doc.setFontSize(7);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text('• You\'re getting 1 year older - health risks increase with age', margin + 5, yPos + 14);
+                    doc.text('• Medical underwriting required for Traditional Whole Life', margin + 5, yPos + 18);
+                    doc.text('• What if you develop a condition? Lock in your insurability NOW while you\'re healthy', margin + 5, yPos + 22);
+                    yPos += 35;
                 }
+
+                // Multiplier countdown info
+                const yearsLeft = document.getElementById('yearsRemaining').textContent;
+                const currentMult = document.getElementById('currentMultiplierDisplay').textContent;
+                const nextMult = document.getElementById('nextMultiplierDisplay').textContent;
+                
+                doc.setFillColor(255, 240, 245);
+                doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 20, 2, 2, 'F');
+                doc.setDrawColor(...red);
+                doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 20, 2, 2, 'S');
+                
+                doc.setTextColor(...red);
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`⏰ Multiplier Countdown: ${yearsLeft} years left at ${currentMult}`, margin + 5, yPos + 8);
+                
+                doc.setTextColor(...darkText);
+                doc.setFontSize(7);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`After this period, multiplier drops to ${nextMult} - Act now to maximize your coverage!`, margin + 5, yPos + 14);
             }
             
             // Disclaimer on last page
