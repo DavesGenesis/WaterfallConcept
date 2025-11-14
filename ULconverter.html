@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit Link to Traditional Whole Life Converter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --bg-primary: #0a192f;
+            --bg-card: #172a46;
+            --bg-card-darker: #111e35;
+            --accent: #64ffda;
+            --accent-darker: #4ecdb8;
+            --text-primary: #e2e8f0;
+            --text-secondary: #a8b2c1;
+            --text-muted: #718096;
+            --border-color: #2d3748;
+            --danger: #ff6496;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+        }
+
+        .card-header {
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .input-field {
+            width: 100%;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1rem;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(100, 255, 218, 0.1);
+        }
+
+        .btn {
+            padding: 0.875rem 2rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-darker);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(100, 255, 218, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card-darker);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .summary-box {
+            background: var(--bg-card-darker);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .summary-value {
+            color: var(--text-primary);
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .highlight-danger {
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        .highlight-success {
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        .highlight-accent {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .comparison-table th {
+            background: var(--bg-card-darker);
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+        }
+
+        .comparison-table td {
+            color: var(--text-primary);
+        }
+
+        .comparison-table tr:hover {
+            background: var(--bg-card-darker);
+        }
+
+        .projection-table {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .projection-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background: var(--bg-primary);
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-danger {
+            background: rgba(255, 100, 150, 0.2);
+            color: var(--danger);
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="card">
+            <div style="text-align: center;">
+                <h1 style="font-size: 2rem; font-weight: 700; color: var(--accent); margin-bottom: 0.5rem;">
+                    <i class="fas fa-exchange-alt"></i> Unit Link to Traditional Whole Life Converter
+                </h1>
+                <p style="color: var(--text-secondary);">Convert your underperforming Unit Link policy to Traditional Whole Life with better coverage</p>
+            </div>
+        </div>
+
+        <!-- Input Form -->
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-user"></i> Client Information
+                    </h2>
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label">Full Name</label>
+                    <input type="text" id="clientName" class="input-field" placeholder="Enter client name">
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label">Gender</label>
+                    <select id="clientGender" class="input-field">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label">Date of Birth (DD/MM/YYYY)</label>
+                    <input type="text" id="clientDOB" class="input-field" placeholder="DD/MM/YYYY" maxlength="10">
+                    <div style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.875rem;">
+                        Current Age: <span id="calculatedAge" style="color: var(--accent); font-weight: 600;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-file-contract"></i> Current Unit Link Policy
+                    </h2>
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label">Current Cash Value (Rp)</label>
+                    <input type="text" id="cashValue" class="input-field" placeholder="800,000,000">
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label">Annual Premium (Rp)</label>
+                    <input type="text" id="annualPremium" class="input-field" placeholder="200,000,000">
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label">Payment Term (years)</label>
+                    <input type="number" id="paymentTerm" class="input-field" placeholder="10">
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label">Total Premium Paid (Rp)</label>
+                    <input type="text" id="totalPaid" class="input-field" placeholder="1,600,000,000">
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label">UP Jiwa / Sum Assured (Rp)</label>
+                    <input type="text" id="upJiwa" class="input-field" placeholder="10,000,000,000">
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 2rem 0;">
+            <button class="btn btn-primary" onclick="calculate()">
+                <i class="fas fa-calculator"></i> Calculate Conversion
+            </button>
+            <button class="btn btn-secondary" onclick="resetForm()" style="margin-left: 1rem;">
+                <i class="fas fa-redo"></i> Reset
+            </button>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden">
+            <!-- Client Summary -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-user-check"></i> Client Summary
+                    </h2>
+                </div>
+                <div class="grid-2">
+                    <div class="summary-box">
+                        <div class="summary-item">
+                            <span class="summary-label">Name</span>
+                            <span class="summary-value" id="summaryName">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Gender</span>
+                            <span class="summary-value" id="summaryGender">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Age</span>
+                            <span class="summary-value" id="summaryAge">-</span>
+                        </div>
+                    </div>
+                    <div class="summary-box">
+                        <div class="summary-item">
+                            <span class="summary-label">Total Premium Paid</span>
+                            <span class="summary-value" id="summaryTotalPaid">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Current Cash Value</span>
+                            <span class="summary-value" id="summaryCashValue">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Net Loss</span>
+                            <span class="summary-value highlight-danger" id="summaryNetLoss">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid-2" style="margin-top: 1.5rem;">
+                    <div class="summary-box">
+                        <div class="summary-item">
+                            <span class="summary-label">Total Unpaid Premium</span>
+                            <span class="summary-value" id="summaryUnpaidPremium">-</span>
+                        </div>
+                    </div>
+                    <div class="summary-box">
+                        <div class="summary-item">
+                            <span class="summary-label">Total Unpaid Term</span>
+                            <span class="summary-value" id="summaryUnpaidTerm">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Traditional Plan -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-shield-alt"></i> New Proposed Traditional Plan
+                    </h2>
+                </div>
+                
+                <div class="summary-box" style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%); border: 2px solid var(--success);">
+                    <div class="summary-item">
+                        <span class="summary-label">Single Premium (from Cash Value)</span>
+                        <span class="summary-value highlight-accent" id="newSinglePremium">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">New UP Jiwa / Coverage</span>
+                        <span class="summary-value highlight-success" id="newUP">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Multiplication Factor</span>
+                        <span class="summary-value highlight-accent" id="multiplicationFactor">-</span>
+                    </div>
+                </div>
+
+                <!-- Future Projections -->
+                <div id="projectionSection" style="margin-top: 2rem;">
+                    <h3 style="color: var(--accent); font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">
+                        <i class="fas fa-chart-line"></i> Projected Additional Coverage (from Unpaid Premiums)
+                    </h3>
+                    <div id="projectionList"></div>
+                    
+                    <div class="summary-box" style="margin-top: 1.5rem; background: var(--bg-primary); border: 2px solid var(--accent);">
+                        <div class="summary-item">
+                            <span class="summary-label" style="font-size: 1rem; font-weight: 600;">Total Projected Additional UP</span>
+                            <span class="summary-value highlight-success" style="font-size: 1.25rem;" id="totalAdditionalUP">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label" style="font-size: 1rem; font-weight: 600;">TOTAL NEW UP JIWA</span>
+                            <span class="summary-value highlight-accent" style="font-size: 1.5rem;" id="totalNewUP">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-balance-scale"></i> Comparison: Unit Link vs Traditional Plan
+                    </h2>
+                </div>
+                
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Criteria</th>
+                            <th>Your Current Unit Link</th>
+                            <th>Our Proposed Traditional Plan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Total Premium</strong></td>
+                            <td id="compULPremium">-</td>
+                            <td id="compTradPremium" class="highlight-success">-</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Coverage</strong></td>
+                            <td id="compULCoverage">-</td>
+                            <td id="compTradCoverage" class="highlight-success">-</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Risk of Lapsing</strong></td>
+                            <td><span class="badge badge-danger">HIGH RISK</span></td>
+                            <td><span class="badge badge-success">ZERO RISK</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Premium Savings</strong></td>
+                            <td>-</td>
+                            <td id="compSavings" class="highlight-success">-</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Coverage Increase</strong></td>
+                            <td>-</td>
+                            <td id="compIncrease" class="highlight-success">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Age multiplier function from waterfallconcept44.html
+        function getMultiplierByAge(age) {
+            if (age >= 14 && age <= 24) return 40;
+            if (age >= 25 && age <= 34) return 20;
+            if (age >= 35 && age <= 44) return 10;
+            if (age >= 45 && age <= 54) return 5;
+            if (age >= 55 && age <= 64) return 3;
+            if (age >= 65 && age <= 70) return 2;
+            return 0;
+        }
+
+        // Format Rupiah
+        function formatRupiah(amount) {
+            return 'Rp ' + Math.round(amount).toLocaleString('id-ID');
+        }
+
+        // Parse Rupiah input
+        function parseRupiah(value) {
+            return parseFloat(value.replace(/[^0-9]/g, '')) || 0;
+        }
+
+        // Calculate age from DOB
+        function calculateAge(dob) {
+            const parts = dob.split('/');
+            if (parts.length !== 3) return null;
+            
+            const day = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1;
+            const year = parseInt(parts[2]);
+            
+            const birthDate = new Date(year, month, day);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            
+            return age;
+        }
+
+        // Auto-calculate age on DOB input
+        document.getElementById('clientDOB').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^0-9]/g, '');
+            
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + '/' + value.substring(2);
+            }
+            if (value.length >= 5) {
+                value = value.substring(0, 5) + '/' + value.substring(5, 9);
+            }
+            
+            e.target.value = value;
+            
+            if (value.length === 10) {
+                const age = calculateAge(value);
+                if (age !== null && age >= 0 && age <= 120) {
+                    document.getElementById('calculatedAge').textContent = age + ' years';
+                } else {
+                    document.getElementById('calculatedAge').textContent = 'Invalid date';
+                }
+            }
+        });
+
+        // Format currency inputs
+        ['cashValue', 'annualPremium', 'totalPaid', 'upJiwa'].forEach(id => {
+            document.getElementById(id).addEventListener('input', function(e) {
+                let value = e.target.value.replace(/[^0-9]/g, '');
+                e.target.value = value ? parseInt(value).toLocaleString('id-ID') : '';
+            });
+        });
+
+        function calculate() {
+            // Get inputs
+            const name = document.getElementById('clientName').value.trim();
+            const gender = document.getElementById('clientGender').value;
+            const dob = document.getElementById('clientDOB').value;
+            const cashValue = parseRupiah(document.getElementById('cashValue').value);
+            const annualPremium = parseRupiah(document.getElementById('annualPremium').value);
+            const paymentTerm = parseInt(document.getElementById('paymentTerm').value) || 0;
+            const totalPaid = parseRupiah(document.getElementById('totalPaid').value);
+            const upJiwa = parseRupiah(document.getElementById('upJiwa').value);
+
+            // Validate
+            if (!name) {
+                alert('Please enter client name');
+                return;
+            }
+            
+            const age = calculateAge(dob);
+            if (!age || age < 0 || age > 70) {
+                alert('Please enter a valid date of birth. Age must be between 0-70 years.');
+                return;
+            }
+            
+            if (age < 0.038) { // Less than 14 days (14/365)
+                alert('Client must be at least 14 days old for Traditional Whole Life eligibility.');
+                return;
+            }
+            
+            if (cashValue <= 0 || annualPremium <= 0 || paymentTerm <= 0 || totalPaid <= 0 || upJiwa <= 0) {
+                alert('Please fill in all policy details with valid amounts');
+                return;
+            }
+
+            // Calculate
+            const netLoss = totalPaid - cashValue;
+            const totalRequiredPremium = annualPremium * paymentTerm;
+            const unpaidPremium = totalRequiredPremium - totalPaid;
+            const unpaidTerm = unpaidPremium / annualPremium;
+
+            // Get multiplier for current age
+            const multiplier = getMultiplierByAge(age);
+            if (multiplier === 0) {
+                alert('Age is outside the eligible range for Traditional Whole Life (14 days - 70 years)');
+                return;
+            }
+
+            // Calculate new UP from cash value
+            const newUP = cashValue * multiplier;
+
+            // Calculate projections for unpaid premiums
+            let projections = [];
+            let totalAdditionalUP = 0;
+            
+            for (let i = 1; i <= unpaidTerm; i++) {
+                const futureAge = age + i;
+                const futureMultiplier = getMultiplierByAge(futureAge);
+                const additionalUP = annualPremium * futureMultiplier;
+                totalAdditionalUP += additionalUP;
+                
+                projections.push({
+                    year: i,
+                    age: futureAge,
+                    premium: annualPremium,
+                    multiplier: futureMultiplier,
+                    up: additionalUP
+                });
+            }
+
+            const totalNewUP = newUP + totalAdditionalUP;
+            const totalNewPremium = cashValue + unpaidPremium;
+            const premiumSavings = totalRequiredPremium - totalNewPremium;
+            const coverageIncrease = totalNewUP - upJiwa;
+            const coverageIncreasePercent = ((totalNewUP / upJiwa - 1) * 100).toFixed(1);
+
+            // Display results
+            document.getElementById('summaryName').textContent = name;
+            document.getElementById('summaryGender').textContent = gender;
+            document.getElementById('summaryAge').textContent = age + ' years';
+            document.getElementById('summaryTotalPaid').textContent = formatRupiah(totalPaid);
+            document.getElementById('summaryCashValue').textContent = formatRupiah(cashValue);
+            document.getElementById('summaryNetLoss').textContent = formatRupiah(netLoss);
+            document.getElementById('summaryUnpaidPremium').textContent = formatRupiah(unpaidPremium);
+            document.getElementById('summaryUnpaidTerm').textContent = unpaidTerm.toFixed(1) + ' years';
+
+            document.getElementById('newSinglePremium').textContent = formatRupiah(cashValue);
+            document.getElementById('newUP').textContent = formatRupiah(newUP);
+            document.getElementById('multiplicationFactor').textContent = multiplier + 'x';
+
+            // Display projections
+            const projectionList = document.getElementById('projectionList');
+            if (projections.length > 0) {
+                projectionList.innerHTML = projections.map(p => `
+                    <div class="projection-row">
+                        <span><strong>Age ${p.age}</strong> (Year ${p.year})</span>
+                        <span>Premium: ${formatRupiah(p.premium)}</span>
+                        <span>Multiplier: <span class="highlight-accent">${p.multiplier}x</span></span>
+                        <span>Additional UP: <span class="highlight-success">${formatRupiah(p.up)}</span></span>
+                    </div>
+                `).join('');
+                document.getElementById('projectionSection').style.display = 'block';
+            } else {
+                document.getElementById('projectionSection').style.display = 'none';
+            }
+
+            document.getElementById('totalAdditionalUP').textContent = formatRupiah(totalAdditionalUP);
+            document.getElementById('totalNewUP').textContent = formatRupiah(totalNewUP);
+
+            // Comparison table
+            const ulPremiumBreakdown = totalRequiredPremium === totalPaid 
+                ? formatRupiah(totalPaid)
+                : `${formatRupiah(totalPaid)} (paid) + ${formatRupiah(unpaidPremium)} (unpaid) = ${formatRupiah(totalRequiredPremium)}`;
+            
+            const tradPremiumBreakdown = unpaidPremium > 0
+                ? `${formatRupiah(cashValue)} + ${projections.map(p => formatRupiah(p.premium)).join(' + ')} = ${formatRupiah(totalNewPremium)}`
+                : formatRupiah(cashValue);
+
+            document.getElementById('compULPremium').textContent = ulPremiumBreakdown;
+            document.getElementById('compTradPremium').textContent = tradPremiumBreakdown;
+            document.getElementById('compULCoverage').textContent = formatRupiah(upJiwa);
+            document.getElementById('compTradCoverage').textContent = formatRupiah(totalNewUP);
+            document.getElementById('compSavings').textContent = premiumSavings > 0 
+                ? `Save ${formatRupiah(premiumSavings)}` 
+                : `Additional ${formatRupiah(Math.abs(premiumSavings))}`;
+            document.getElementById('compIncrease').textContent = coverageIncrease > 0
+                ? `+${formatRupiah(coverageIncrease)} (+${coverageIncreasePercent}%)`
+                : formatRupiah(coverageIncrease);
+
+            // Show results
+            document.getElementById('resultsSection').classList.remove('hidden');
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function resetForm() {
+            document.getElementById('clientName').value = '';
+            document.getElementById('clientGender').value = 'Male';
+            document.getElementById('clientDOB').value = '';
+            document.getElementById('calculatedAge').textContent = '-';
+            document.getElementById('cashValue').value = '';
+            document.getElementById('annualPremium').value = '';
+            document.getElementById('paymentTerm').value = '';
+            document.getElementById('totalPaid').value = '';
+            document.getElementById('upJiwa').value = '';
+            document.getElementById('resultsSection').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
