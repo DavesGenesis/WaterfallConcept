@@ -326,6 +326,50 @@
             color: var(--success);
         }
 
+        .gold-highlight {
+            color: #FFD700 !important;
+            font-weight: 700 !important;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .gold-highlight-large {
+            color: #FFD700 !important;
+            font-size: 1.75rem !important;
+            font-weight: 700 !important;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+        }
+
+        .floating-pdf-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 1000;
+            padding: 1rem 1.5rem;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-family: 'Montserrat', sans-serif;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .floating-pdf-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+            background: #ff4070;
+        }
+
+        .floating-pdf-btn i {
+            font-size: 1.25rem;
+        }
+
         .hidden {
             display: none;
         }
@@ -580,10 +624,13 @@
             <button class="btn btn-secondary" onclick="resetForm()" style="margin-left: 1rem;">
                 <i class="fas fa-redo"></i> Reset
             </button>
-            <button id="downloadPdfBtn" class="btn btn-secondary hidden" onclick="downloadPDF()" style="margin-left: 1rem;">
-                <i class="fas fa-file-pdf"></i> Download PDF Report
-            </button>
         </div>
+
+        <!-- Floating PDF Download Button -->
+        <button id="downloadPdfBtn" class="floating-pdf-btn hidden" onclick="downloadPDF()">
+            <i class="fas fa-file-pdf"></i>
+            <span>Download PDF Report</span>
+        </button>
 
         <!-- Results Section -->
         <div id="resultsSection" class="hidden">
@@ -651,15 +698,15 @@
                 <div class="summary-box" style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%); border: 2px solid var(--success);">
                     <div class="summary-item">
                         <span class="summary-label">Single Premium (from Cash Value)</span>
-                        <span class="summary-value highlight-accent" id="newSinglePremium">-</span>
+                        <span class="summary-value gold-highlight" id="newSinglePremium">-</span>
                     </div>
                     <div class="summary-item">
                         <span class="summary-label">New UP Jiwa / Coverage</span>
-                        <span class="summary-value highlight-success" id="newUP">-</span>
+                        <span class="summary-value gold-highlight" id="newUP">-</span>
                     </div>
                     <div class="summary-item">
                         <span class="summary-label">Multiplication Factor</span>
-                        <span class="summary-value highlight-accent" id="multiplicationFactor">-</span>
+                        <span class="summary-value gold-highlight-large" id="multiplicationFactor">-</span>
                     </div>
                 </div>
 
@@ -673,11 +720,11 @@
                     <div class="summary-box" style="margin-top: 1.5rem; background: var(--bg-primary); border: 2px solid var(--accent);">
                         <div class="summary-item">
                             <span class="summary-label" style="font-size: 1rem; font-weight: 600;">Total Projected Additional UP</span>
-                            <span class="summary-value highlight-success" style="font-size: 1.25rem;" id="totalAdditionalUP">-</span>
+                            <span class="summary-value gold-highlight" style="font-size: 1.25rem;" id="totalAdditionalUP">-</span>
                         </div>
                         <div class="summary-item">
-                            <span class="summary-label" style="font-size: 1rem; font-weight: 600;">TOTAL NEW UP JIWA</span>
-                            <span class="summary-value highlight-accent" style="font-size: 1.5rem;" id="totalNewUP">-</span>
+                            <span class="summary-label" style="font-size: 1.25rem; font-weight: 700;">TOTAL NEW UP JIWA</span>
+                            <span class="summary-value gold-highlight-large" style="font-size: 2rem;" id="totalNewUP">-</span>
                         </div>
                     </div>
                 </div>
@@ -747,7 +794,7 @@
                     <div style="background: var(--bg-card-darker); padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
                         <div class="summary-item">
                             <span class="summary-label" style="font-size: 1rem;">Coverage Gap</span>
-                            <span class="summary-value highlight-danger" style="font-size: 1.25rem;" id="coverageGap">-</span>
+                            <span class="summary-value gold-highlight-large" style="font-size: 1.5rem;" id="coverageGap">-</span>
                         </div>
                     </div>
 
@@ -772,7 +819,7 @@
                             </div>
                             <div class="option-detail">
                                 <span class="option-detail-label">Premium Needed</span>
-                                <span class="option-detail-value highlight-success" id="currentPremiumNeeded">-</span>
+                                <span class="option-detail-value gold-highlight" id="currentPremiumNeeded">-</span>
                             </div>
                         </div>
 
@@ -800,8 +847,23 @@
                         <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">
                             By Acting Now, You Save:
                         </div>
-                        <div class="savings-highlight-text" id="savingsByActingNow">-</div>
+                        <div class="savings-highlight-text gold-highlight-large" id="savingsByActingNow">-</div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Disclaimer Section -->
+            <div class="card" style="background: var(--bg-card-darker); border: 2px solid var(--warning); margin-top: 2rem;">
+                <div class="card-body" style="padding: 1.5rem;">
+                    <h3 style="color: var(--warning); font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-exclamation-triangle"></i> Important Disclaimer
+                    </h3>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; text-align: justify;">
+                        Informasi dan angka-angka yang disajikan dalam alat ini, termasuk perhitungan konversi dan proyeksi, <strong>HANYA BERTUJUAN UNTUK MEMBERIKAN ESTIMASI (PERKIRAAN)</strong> dan gambaran umum produk. 
+                        Angka-angka ini <strong>BUKANLAH kutipan atau tawaran yang mengikat secara resmi (formal quotation)</strong> dari penyedia asuransi mana pun dan tidak boleh dianggap sebagai dasar untuk pengambilan keputusan akhir. 
+                        Untuk mendapatkan rincian biaya yang akurat, lengkap, dan mengikat, Anda <strong>WAJIB meminta quotation dan illustration resmi</strong> dari perusahaan asuransi terkait. 
+                        Semua hak, kewajiban, syarat, ketentuan, dan pengecualian sepenuhnya diatur oleh Dokumen Polis resmi (official Policy document) yang dikeluarkan oleh masing-masing penyedia. Klien disarankan untuk meninjau secara cermat ilustrasi asli dan memverifikasi semua angka dan informasi secara independen.
+                    </p>
                 </div>
             </div>
         </div>
@@ -1073,6 +1135,19 @@
         function downloadPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
+
+            // Color scheme from IUL-tools.html
+            const navyBlue = [25, 55, 109];
+            const gold = [212, 175, 55];
+            const darkText = [40, 40, 40];
+            const lightGray = [245, 245, 245];
+            const white = [255, 255, 255];
+            const green = [16, 185, 129];
+            const red = [255, 100, 150];
+
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 20;
             
             // Get data from the page
             const name = document.getElementById('summaryName').textContent;
@@ -1096,228 +1171,355 @@
             const savings = document.getElementById('compSavings').textContent;
             const increase = document.getElementById('compIncrease').textContent;
 
-            let yPos = 20;
+            // ========== PAGE 1 ==========
             
             // Header
-            doc.setFontSize(20);
-            doc.setTextColor(100, 255, 218);
-            doc.text('UL Converter Analysis Report', 105, yPos, { align: 'center' });
+            doc.setFillColor(...navyBlue);
+            doc.rect(0, 0, pageWidth, 45, 'F');
+            doc.setFillColor(...gold);
+            doc.rect(0, 45, pageWidth, 2, 'F');
             
-            yPos += 10;
-            doc.setFontSize(10);
-            doc.setTextColor(128, 128, 128);
-            doc.text('Unit Link to Traditional Whole Life Conversion', 105, yPos, { align: 'center' });
-            
-            yPos += 15;
+            doc.setTextColor(...white);
+            doc.setFontSize(24);
+            doc.setFont('helvetica', 'bold');
+            doc.text('UL Converter Report', pageWidth / 2, 22, { align: 'center' });
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Unit Link to Traditional Whole Life Conversion Analysis', pageWidth / 2, 35, { align: 'center' });
+
+            let yPos = 57;
             
             // Client Information
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 25, 3, 3, 'F');
+            doc.setFillColor(...gold);
+            doc.rect(margin, yPos, 4, 25, 'F');
+            
+            doc.setTextColor(...navyBlue);
             doc.setFontSize(14);
-            doc.setTextColor(100, 255, 218);
-            doc.text('Client Information', 20, yPos);
-            
-            yPos += 8;
+            doc.setFont('helvetica', 'bold');
+            doc.text('Client Information', margin + 8, yPos + 10);
+
+            doc.setTextColor(...darkText);
             doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
-            doc.text(`Name: ${name}`, 20, yPos);
-            yPos += 6;
-            doc.text(`Gender: ${gender}`, 20, yPos);
-            yPos += 6;
-            doc.text(`Age: ${age}`, 20, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Name: ${name}`, margin + 10, yPos + 17);
+            doc.text(`Gender: ${gender}`, margin + 80, yPos + 17);
+            doc.text(`Age: ${age}`, margin + 130, yPos + 17);
             
-            yPos += 12;
+            yPos += 32;
             
             // Current Unit Link Policy
-            doc.setFontSize(14);
-            doc.setTextColor(100, 255, 218);
-            doc.text('Current Unit Link Policy', 20, yPos);
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 45, 3, 3, 'F');
+            doc.setFillColor(...gold);
+            doc.rect(margin, yPos, 4, 45, 'F');
             
-            yPos += 8;
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Current Unit Link Policy', margin + 8, yPos + 10);
+
+            doc.setTextColor(...darkText);
             doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
-            doc.text(`Total Premium Paid: ${totalPaid}`, 20, yPos);
-            yPos += 6;
-            doc.text(`Current Cash Value: ${cashValue}`, 20, yPos);
-            yPos += 6;
-            doc.setTextColor(255, 100, 150);
-            doc.text(`Net Loss: ${netLoss}`, 20, yPos);
-            doc.setTextColor(0, 0, 0);
-            yPos += 6;
-            doc.text(`Total Unpaid Premium: ${unpaidPremium}`, 20, yPos);
-            yPos += 6;
-            doc.text(`Total Unpaid Term: ${unpaidTerm}`, 20, yPos);
+            doc.setFont('helvetica', 'normal');
+            yPos += 17;
+            doc.text(`Total Premium Paid: ${totalPaid}`, margin + 10, yPos);
+            yPos += 7;
+            doc.text(`Current Cash Value: ${cashValue}`, margin + 10, yPos);
+            yPos += 7;
+            doc.setTextColor(...red);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Net Loss: ${netLoss}`, margin + 10, yPos);
+            doc.setTextColor(...darkText);
+            doc.setFont('helvetica', 'normal');
+            yPos += 7;
+            doc.text(`Total Unpaid Premium: ${unpaidPremium}`, margin + 10, yPos);
+            yPos += 7;
+            doc.text(`Total Unpaid Term: ${unpaidTerm}`, margin + 10, yPos);
             
             yPos += 12;
             
             // New Traditional Plan
-            doc.setFontSize(14);
-            doc.setTextColor(100, 255, 218);
-            doc.text('New Proposed Traditional Plan', 20, yPos);
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 40, 3, 3, 'F');
+            doc.setFillColor(...gold);
+            doc.rect(margin, yPos, 4, 40, 'F');
             
-            yPos += 8;
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('New Proposed Traditional Plan', margin + 8, yPos + 10);
+
+            doc.setTextColor(...darkText);
             doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
-            doc.text(`Single Premium (from Cash Value): ${singlePremium}`, 20, yPos);
-            yPos += 6;
-            doc.text(`New UP Jiwa / Coverage: ${newUP}`, 20, yPos);
-            yPos += 6;
-            doc.text(`Multiplication Factor: ${multiplier}`, 20, yPos);
-            yPos += 6;
-            doc.setTextColor(16, 185, 129);
-            doc.setFontSize(11);
-            doc.text(`TOTAL NEW UP JIWA: ${totalNewUP}`, 20, yPos);
+            doc.setFont('helvetica', 'normal');
+            yPos += 17;
+            doc.text(`Single Premium (from Cash Value): ${singlePremium}`, margin + 10, yPos);
+            yPos += 7;
+            doc.text(`New UP Jiwa / Coverage: ${newUP}`, margin + 10, yPos);
+            yPos += 7;
+            doc.text(`Multiplication Factor: ${multiplier}`, margin + 10, yPos);
+            yPos += 7;
+            doc.setTextColor(...gold);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`TOTAL NEW UP JIWA: ${totalNewUP}`, margin + 10, yPos);
             
             yPos += 12;
             
             // Comparison Table
-            doc.setFontSize(14);
-            doc.setTextColor(100, 255, 218);
-            doc.text('Comparison: Unit Link vs Traditional Plan', 20, yPos);
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 55, 3, 3, 'F');
+            doc.setFillColor(...gold);
+            doc.rect(margin, yPos, 4, 55, 'F');
             
-            yPos += 10;
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Comparison: Unit Link vs Traditional Plan', margin + 8, yPos + 10);
+            
+            yPos += 18;
             doc.setFontSize(9);
-            doc.setTextColor(0, 0, 0);
             
             // Table headers
-            doc.setFillColor(23, 42, 70);
-            doc.rect(20, yPos - 5, 170, 8, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.text('Criteria', 25, yPos);
-            doc.text('Unit Link', 80, yPos);
-            doc.text('Traditional Plan', 135, yPos);
+            doc.setFillColor(...navyBlue);
+            doc.rect(margin + 10, yPos - 5, pageWidth - 2 * margin - 20, 7, 'F');
+            doc.setTextColor(...white);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Criteria', margin + 15, yPos);
+            doc.text('Unit Link', margin + 70, yPos);
+            doc.text('Traditional Plan', margin + 125, yPos);
             
-            yPos += 8;
-            doc.setTextColor(0, 0, 0);
+            yPos += 7;
+            doc.setTextColor(...darkText);
+            doc.setFont('helvetica', 'normal');
             
             // Total Premium
-            doc.text('Total Premium', 25, yPos);
-            doc.setFontSize(8);
-            doc.text(ulPremium.substring(0, 40), 80, yPos);
-            doc.text(tradPremium.substring(0, 40), 135, yPos);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Total Premium', margin + 15, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
+            doc.text(ulPremium.substring(0, 30), margin + 70, yPos);
+            doc.setTextColor(...green);
+            doc.text(tradPremium.substring(0, 30), margin + 125, yPos);
+            doc.setTextColor(...darkText);
             doc.setFontSize(9);
-            yPos += 8;
+            yPos += 7;
             
             // Total Coverage
-            doc.text('Total Coverage', 25, yPos);
-            doc.text(ulCoverage, 80, yPos);
-            doc.setTextColor(16, 185, 129);
-            doc.text(tradCoverage, 135, yPos);
-            doc.setTextColor(0, 0, 0);
-            yPos += 8;
+            doc.setFont('helvetica', 'bold');
+            doc.text('Total Coverage', margin + 15, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(ulCoverage, margin + 70, yPos);
+            doc.setTextColor(...gold);
+            doc.setFont('helvetica', 'bold');
+            doc.text(tradCoverage, margin + 125, yPos);
+            doc.setTextColor(...darkText);
+            doc.setFont('helvetica', 'normal');
+            yPos += 7;
             
             // Risk of Lapsing
-            doc.text('Risk of Lapsing', 25, yPos);
-            doc.setTextColor(255, 100, 150);
-            doc.text('HIGH RISK', 80, yPos);
-            doc.setTextColor(16, 185, 129);
-            doc.text('ZERO RISK', 135, yPos);
-            doc.setTextColor(0, 0, 0);
-            yPos += 8;
+            doc.setFont('helvetica', 'bold');
+            doc.text('Risk of Lapsing', margin + 15, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...red);
+            doc.text('HIGH RISK', margin + 70, yPos);
+            doc.setTextColor(...green);
+            doc.text('ZERO RISK', margin + 125, yPos);
+            doc.setTextColor(...darkText);
+            yPos += 7;
             
             // Premium Savings
-            doc.text('Premium Savings', 25, yPos);
-            doc.text('-', 80, yPos);
-            doc.setTextColor(16, 185, 129);
-            doc.text(savings, 135, yPos);
-            doc.setTextColor(0, 0, 0);
-            yPos += 8;
+            doc.setFont('helvetica', 'bold');
+            doc.text('Premium Savings', margin + 15, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text('-', margin + 70, yPos);
+            doc.setTextColor(...green);
+            doc.text(savings, margin + 125, yPos);
+            doc.setTextColor(...darkText);
+            yPos += 7;
             
             // Coverage Increase
-            doc.text('Coverage Increase', 25, yPos);
-            doc.text('-', 80, yPos);
-            doc.setTextColor(16, 185, 129);
-            doc.text(increase, 135, yPos);
-            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Coverage Increase', margin + 15, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text('-', margin + 70, yPos);
+            doc.setTextColor(...green);
+            doc.text(increase, margin + 125, yPos);
+            doc.setTextColor(...darkText);
             
+            // Footer Page 1
+            yPos = pageHeight - 15;
+            doc.setDrawColor(...gold);
+            doc.line(margin, yPos, pageWidth - margin, yPos);
+            doc.setFontSize(7);
+            doc.setTextColor(120, 120, 120);
+            doc.setFont('helvetica', 'italic');
+            doc.text('Page 1 of 2', pageWidth / 2, yPos + 7, { align: 'center' });
+
             // Check if there's a shortfall recommendation
             if (!document.getElementById('shortfallSection').classList.contains('hidden')) {
                 doc.addPage();
-                yPos = 20;
+                
+                // Header Page 2
+                doc.setFillColor(...navyBlue);
+                doc.rect(0, 0, pageWidth, 35, 'F');
+                doc.setFillColor(...gold);
+                doc.rect(0, 35, pageWidth, 2, 'F');
+                
+                doc.setTextColor(...white);
+                doc.setFontSize(18);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Coverage Shortfall Analysis', pageWidth / 2, 22, { align: 'center' });
+
+                yPos = 47;
                 
                 // Shortfall Recommendation
-                doc.setFontSize(14);
-                doc.setTextColor(245, 158, 11);
-                doc.text('Coverage Shortfall Recommendation', 20, yPos);
+                doc.setFillColor(...lightGray);
+                doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 80, 3, 3, 'F');
+                doc.setFillColor(...gold);
+                doc.rect(margin, yPos, 4, 80, 'F');
                 
-                yPos += 10;
+                doc.setTextColor(...navyBlue);
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Coverage Shortfall Recommendation', margin + 8, yPos + 10);
+                
+                doc.setTextColor(...darkText);
                 doc.setFontSize(10);
-                doc.setTextColor(0, 0, 0);
+                doc.setFont('helvetica', 'normal');
+                yPos += 17;
                 
                 const coverageGap = document.getElementById('coverageGap').textContent;
-                doc.text(`Coverage Gap: ${coverageGap}`, 20, yPos);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Coverage Gap:', margin + 10, yPos);
+                doc.setTextColor(...red);
+                doc.setFontSize(11);
+                doc.text(coverageGap, margin + 50, yPos);
                 
-                yPos += 12;
-                doc.setFontSize(12);
-                doc.text('Additional Premium Options:', 20, yPos);
+                doc.setTextColor(...darkText);
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                yPos += 10;
+                doc.setFont('helvetica', 'bold');
+                doc.text('Additional Premium Options:', margin + 10, yPos);
+                doc.setFont('helvetica', 'normal');
                 
                 yPos += 10;
-                doc.setFontSize(10);
                 
                 // Current Year Option
                 const currentAge = document.getElementById('currentAge').textContent;
                 const currentMultiplier = document.getElementById('currentMultiplier').textContent;
                 const currentPremium = document.getElementById('currentPremiumNeeded').textContent;
                 
-                doc.setFillColor(16, 185, 129, 0.2);
-                doc.rect(20, yPos - 5, 80, 30, 'F');
-                doc.setTextColor(16, 185, 129);
-                doc.setFontSize(11);
-                doc.text('RECOMMENDED: This Year', 25, yPos);
-                doc.setFontSize(10);
-                doc.setTextColor(0, 0, 0);
-                yPos += 7;
-                doc.text(`Age: ${currentAge}`, 25, yPos);
-                yPos += 6;
-                doc.text(`Multiplier: ${currentMultiplier}`, 25, yPos);
-                yPos += 6;
-                doc.text(`Premium Needed: ${currentPremium}`, 25, yPos);
+                doc.setFillColor(220, 252, 231);
+                doc.roundedRect(margin + 10, yPos, 65, 28, 2, 2, 'F');
+                doc.setDrawColor(...green);
+                doc.roundedRect(margin + 10, yPos, 65, 28, 2, 2, 'S');
                 
-                yPos -= 19;
+                doc.setTextColor(...green);
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                doc.text('RECOMMENDED: This Year', margin + 12, yPos + 6);
+                doc.setTextColor(...darkText);
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`Age: ${currentAge}`, margin + 12, yPos + 12);
+                doc.text(`Multiplier: ${currentMultiplier}`, margin + 12, yPos + 17);
+                doc.setTextColor(...gold);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`Premium: ${currentPremium}`, margin + 12, yPos + 24);
                 
                 // Next Year Option
                 const nextAge = document.getElementById('nextAge').textContent;
                 const nextMultiplier = document.getElementById('nextMultiplier').textContent;
                 const nextPremium = document.getElementById('nextPremiumNeeded').textContent;
                 
-                doc.rect(110, yPos - 5, 80, 30);
-                doc.setFontSize(11);
-                doc.text('Next Year', 115, yPos);
-                doc.setFontSize(10);
-                yPos += 7;
-                doc.text(`Age: ${nextAge}`, 115, yPos);
-                yPos += 6;
-                doc.text(`Multiplier: ${nextMultiplier}`, 115, yPos);
-                yPos += 6;
-                doc.text(`Premium Needed: ${nextPremium}`, 115, yPos);
+                doc.setFillColor(...lightGray);
+                doc.roundedRect(margin + 85, yPos, 65, 28, 2, 2, 'F');
+                doc.setDrawColor(...darkText);
+                doc.roundedRect(margin + 85, yPos, 65, 28, 2, 2, 'S');
                 
-                yPos += 15;
+                doc.setTextColor(...navyBlue);
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Next Year', margin + 87, yPos + 6);
+                doc.setTextColor(...darkText);
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`Age: ${nextAge}`, margin + 87, yPos + 12);
+                doc.text(`Multiplier: ${nextMultiplier}`, margin + 87, yPos + 17);
+                doc.setTextColor(...red);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`Premium: ${nextPremium}`, margin + 87, yPos + 24);
+                
+                yPos += 35;
                 
                 // Savings
                 const savingsByActing = document.getElementById('savingsByActingNow').textContent;
-                doc.setFillColor(16, 185, 129, 0.1);
-                doc.rect(20, yPos - 5, 170, 12, 'F');
-                doc.setTextColor(16, 185, 129);
-                doc.setFontSize(12);
-                doc.text(`By Acting Now, You Save: ${savingsByActing}`, 105, yPos + 3, { align: 'center' });
+                doc.setFillColor(220, 252, 231);
+                doc.roundedRect(margin + 10, yPos, pageWidth - 2 * margin - 20, 12, 2, 2, 'F');
+                doc.setTextColor(...green);
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`By Acting Now, You Save: ${savingsByActing}`, pageWidth / 2, yPos + 8, { align: 'center' });
+                
+                yPos += 20;
                 
                 // Urgency message if applicable
                 if (!document.getElementById('urgencyAlert').classList.contains('hidden')) {
-                    yPos += 15;
-                    doc.setTextColor(255, 100, 150);
-                    doc.setFontSize(10);
                     const urgencyText = document.getElementById('urgencyText').textContent;
-                    const splitText = doc.splitTextToSize(urgencyText, 170);
-                    doc.text(splitText, 20, yPos);
+                    doc.setFillColor(255, 250, 240);
+                    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 25, 2, 2, 'F');
+                    doc.setDrawColor(...red);
+                    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 25, 2, 2, 'S');
+                    
+                    doc.setTextColor(...red);
+                    doc.setFontSize(9);
+                    doc.setFont('helvetica', 'bold');
+                    const splitText = doc.splitTextToSize(urgencyText, pageWidth - 2 * margin - 10);
+                    doc.text(splitText, margin + 5, yPos + 8);
+                    yPos += 30;
                 }
             }
             
-            // Footer
+            // Disclaimer on last page
+            const currentPage = doc.internal.getCurrentPageInfo().pageNumber;
+            doc.setPage(currentPage);
+            yPos = pageHeight - 45;
+            
+            doc.setFillColor(255, 250, 230);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 30, 3, 3, 'F');
+            doc.setDrawColor(...gold);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 30, 3, 3, 'S');
+            
+            doc.setTextColor(...gold);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.text('! Important Disclaimer', margin + 5, yPos + 8);
+            
+            doc.setTextColor(80, 80, 80);
+            doc.setFontSize(6);
+            doc.setFont('helvetica', 'normal');
+            
+            const disclaimerText = 'Informasi dan angka-angka yang disajikan dalam alat ini, termasuk perhitungan konversi dan proyeksi, HANYA BERTUJUAN UNTUK MEMBERIKAN ESTIMASI (PERKIRAAN) dan gambaran umum produk. Angka-angka ini BUKANLAH kutipan atau tawaran yang mengikat secara resmi (formal quotation) dari penyedia asuransi mana pun dan tidak boleh dianggap sebagai dasar untuk pengambilan keputusan akhir. Untuk mendapatkan rincian biaya yang akurat, lengkap, dan mengikat, Anda WAJIB meminta quotation dan illustration resmi dari perusahaan asuransi terkait.';
+            
+            const splitDisclaimer = doc.splitTextToSize(disclaimerText, pageWidth - 2 * margin - 10);
+            doc.text(splitDisclaimer, margin + 5, yPos + 15);
+            
+            // Footer for all pages
             const pageCount = doc.internal.getNumberOfPages();
             for (let i = 1; i <= pageCount; i++) {
                 doc.setPage(i);
-                doc.setFontSize(8);
-                doc.setTextColor(128, 128, 128);
-                doc.text(`Generated on ${new Date().toLocaleDateString('id-ID')} | Page ${i} of ${pageCount}`, 105, 285, { align: 'center' });
-                doc.text('Genesis Advisory - UL Converter', 105, 290, { align: 'center' });
+                const footerY = pageHeight - 15;
+                doc.setDrawColor(...gold);
+                doc.line(margin, footerY, pageWidth - margin, footerY);
+                doc.setFontSize(7);
+                doc.setTextColor(120, 120, 120);
+                doc.setFont('helvetica', 'italic');
+                doc.text('Generated on: ' + new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), pageWidth / 2, footerY + 7, { align: 'center' });
+                doc.text('Genesis Advisory - UL Converter | Page ' + i + ' of ' + pageCount, pageWidth / 2, footerY + 11, { align: 'center' });
             }
             
             // Save PDF
