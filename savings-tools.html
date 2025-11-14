@@ -500,10 +500,16 @@
 
             <!-- Chart -->
             <div class="card">
-                <div class="card-header">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <h2 class="card-title"><i class="fas fa-chart-line"></i> Growth Projection Chart</h2>
+                    <button class="btn" onclick="toggleChartView()" id="toggleChartBtn" style="font-size: 0.9rem; padding: 0.5rem 1rem;">
+                        <i class="fas fa-expand"></i> Show Full 120 Years
+                    </button>
                 </div>
                 <div class="card-body">
+                    <div style="text-align: center; margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+                        <span id="chartRangeInfo">Currently showing: Years 1-50 (Detailed View)</span>
+                    </div>
                     <div class="chart-container">
                         <canvas id="growthChart"></canvas>
                     </div>
@@ -571,6 +577,7 @@
         
         let calculationData = null;
         let showAllYears = false;
+        let showFullChartRange = false; // Toggle for chart view (50 vs 120 years)
         let growthChart = null;
 
         // Format currency
@@ -797,6 +804,23 @@
             updateTable();
         }
 
+        // Toggle chart view between 50 and 120 years
+        function toggleChartView() {
+            showFullChartRange = !showFullChartRange;
+            const btn = document.getElementById('toggleChartBtn');
+            const info = document.getElementById('chartRangeInfo');
+            
+            if (showFullChartRange) {
+                btn.innerHTML = '<i class="fas fa-compress"></i> Show First 50 Years';
+                info.textContent = 'Currently showing: Years 1-120 (Complete View)';
+            } else {
+                btn.innerHTML = '<i class="fas fa-expand"></i> Show Full 120 Years';
+                info.textContent = 'Currently showing: Years 1-50 (Detailed View)';
+            }
+            
+            updateChart();
+        }
+
         // Update chart
         function updateChart() {
             const ctx = document.getElementById('growthChart').getContext('2d');
@@ -806,9 +830,14 @@
                 growthChart.destroy();
             }
             
-            const labels = calculationData.projections.map(p => p.year);
-            const contributionData = calculationData.projections.map(p => p.totalContribution);
-            const projectedData = calculationData.projections.map(p => p.projectedValue);
+            // Determine data range based on toggle
+            const maxYear = showFullChartRange ? 120 : 50;
+            const filteredData = calculationData.projections.slice(0, maxYear);
+            
+            const labels = filteredData.map(p => p.year);
+            const ageLabels = filteredData.map(p => p.age);
+            const contributionData = filteredData.map(p => p.totalContribution);
+            const projectedData = filteredData.map(p => p.projectedValue);
             
             growthChart = new Chart(ctx, {
                 type: 'line',
@@ -857,6 +886,12 @@
                             borderColor: '#64ffda',
                             borderWidth: 1,
                             callbacks: {
+                                title: function(context) {
+                                    const yearIndex = context[0].dataIndex;
+                                    const year = filteredData[yearIndex].year;
+                                    const age = filteredData[yearIndex].age;
+                                    return `Year ${year} | Age ${age}`;
+                                },
                                 label: function(context) {
                                     let label = context.dataset.label || '';
                                     if (label) {
@@ -864,6 +899,14 @@
                                     }
                                     label += formatCurrency(context.parsed.y);
                                     return label;
+                                },
+                                afterLabel: function(context) {
+                                    const yearIndex = context.dataIndex;
+                                    const data = filteredData[yearIndex];
+                                    if (context.datasetIndex === 1) { // Projected Value dataset
+                                        return 'Multiplication: ' + formatMultiplier(data.multiplier);
+                                    }
+                                    return '';
                                 }
                             }
                         }
@@ -885,6 +928,27 @@
                             },
                             grid: {
                                 color: 'rgba(168, 178, 193, 0.1)'
+                            }
+                        },
+                        x2: {
+                            type: 'category',
+                            position: 'top',
+                            labels: ageLabels,
+                            title: {
+                                display: true,
+                                text: 'Client Age',
+                                color: '#a8b2c1',
+                                font: {
+                                    family: 'Montserrat',
+                                    size: 12
+                                }
+                            },
+                            ticks: {
+                                color: '#a8b2c1',
+                                maxTicksLimit: 20
+                            },
+                            grid: {
+                                display: false
                             }
                         },
                         y: {
