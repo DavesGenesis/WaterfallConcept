@@ -1598,6 +1598,9 @@
                 ? `${formatRupiah(cashValue)} + ${projections.map(p => formatRupiah(p.premium)).join(' + ')} = ${formatRupiah(totalNewPremium)}`
                 : formatRupiah(cashValue);
 
+            // Calculate lapse risk FIRST (needed for display below)
+            const lapseAnalysis = predictLapse(age, totalPaid, cashValue, annualPremium, paymentTerm);
+
             document.getElementById('compULPremium').textContent = ulPremiumBreakdown;
             document.getElementById('compTradPremium').textContent = tradPremiumBreakdown;
             // Get lapse info for display
@@ -1624,9 +1627,6 @@
                 document.getElementById('compAnalysis').innerHTML = `Traditional is ${formatRupiah(gap)} less NOW<br><small style="color: var(--success);">But ${formatRupiah(totalNewUP)} MORE after UL lapses to Rp 0</small>`;
             }
 
-            // Calculate lapse risk
-            const lapseAnalysis = predictLapse(age, totalPaid, cashValue, annualPremium, paymentTerm);
-            
             // Display lapse risk summary
             document.getElementById('lapseYearsPaid').textContent = lapseAnalysis.yearsPaid.toFixed(1) + ' years';
             document.getElementById('lapseTotalLoss').textContent = formatRupiah(lapseAnalysis.totalLoss);
