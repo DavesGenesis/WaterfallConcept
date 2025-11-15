@@ -1143,6 +1143,11 @@
                             <td id="compTradCoverage" class="highlight-success">-</td>
                         </tr>
                         <tr>
+                            <td><strong>Coverage After Lapse</strong></td>
+                            <td><span style="color: var(--danger); text-decoration: line-through;">-</span> → <strong style="color: var(--danger);">Rp 0</strong> ❌</td>
+                            <td id="compTradCoverageAfterLapse" class="highlight-success">-</td>
+                        </tr>
+                        <tr>
                             <td><strong>Risk of Lapsing</strong></td>
                             <td><span class="badge badge-danger">HIGH RISK</span></td>
                             <td><span class="badge badge-success">ZERO RISK</span></td>
@@ -1153,20 +1158,28 @@
                             <td id="compSavings" class="highlight-success">-</td>
                         </tr>
                         <tr>
-                            <td><strong>Coverage Increase</strong></td>
+                            <td><strong id="compAnalysisLabel">Coverage Analysis</strong></td>
                             <td>-</td>
-                            <td id="compIncrease" class="highlight-success">-</td>
+                            <td id="compAnalysis" class="highlight-success">-</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Coverage Shortfall Recommendation -->
+            <!-- Coverage Analysis Section -->
             <div id="shortfallSection" class="hidden">
                 <div class="recommendation-card">
                     <div class="recommendation-header">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <h3>Coverage Shortfall Recommendation</h3>
+                        <i id="analysisIcon" class="fas fa-exclamation-triangle"></i>
+                        <h3 id="analysisTitle">Coverage Gap Analysis & Recommendations</h3>
+                    </div>
+
+                    <!-- Context Box -->
+                    <div style="background: var(--bg-card-darker); border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; border-left: 4px solid var(--accent);">
+                        <h4 style="color: var(--accent); font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;">
+                            <i class="fas fa-info-circle"></i> Important Context
+                        </h4>
+                        <div id="contextMessage" style="color: var(--text-primary); line-height: 1.8;"></div>
                     </div>
 
                     <div id="urgencyAlert" class="urgency-alert hidden">
@@ -1176,14 +1189,14 @@
                         </div>
                     </div>
 
-                    <div style="background: var(--bg-card-darker); padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                    <div id="gapAmountBox" style="background: var(--bg-card-darker); padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
                         <div class="summary-item">
-                            <span class="summary-label" style="font-size: 1rem;">Coverage Gap</span>
+                            <span class="summary-label" style="font-size: 1rem;" id="gapLabel">Coverage Gap</span>
                             <span class="summary-value gold-highlight-large" style="font-size: 1.5rem;" id="coverageGap">-</span>
                         </div>
                     </div>
 
-                    <h4 style="color: var(--text-primary); font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">
+                    <h4 id="optionsTitle" style="color: var(--text-primary); font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">
                         Additional Premium Options to Cover Shortfall:
                     </h4>
 
@@ -1587,14 +1600,29 @@
 
             document.getElementById('compULPremium').textContent = ulPremiumBreakdown;
             document.getElementById('compTradPremium').textContent = tradPremiumBreakdown;
-            document.getElementById('compULCoverage').textContent = formatRupiah(upJiwa);
-            document.getElementById('compTradCoverage').textContent = formatRupiah(totalNewUP);
+            // Get lapse info for display
+            const lapseInfo = lapseAnalysis.willLapse 
+                ? `(lapses Year ${lapseAnalysis.lapseYear}, Age ${lapseAnalysis.lapseAge})`
+                : '';
+
+            document.getElementById('compULCoverage').innerHTML = `${formatRupiah(upJiwa)}<br><small style="color: var(--text-muted);">(current - temporary)</small>`;
+            document.getElementById('compTradCoverage').innerHTML = `${formatRupiah(totalNewUP)}<br><small style="color: var(--success);">(LIFETIME guaranteed)</small>`;
+            document.getElementById('compTradCoverageAfterLapse').innerHTML = `${formatRupiah(totalNewUP)} ✅<br><small style="color: var(--success);">(GUARANTEED)</small>`;
             document.getElementById('compSavings').textContent = premiumSavings > 0 
                 ? `Save ${formatRupiah(premiumSavings)}` 
                 : `Additional ${formatRupiah(Math.abs(premiumSavings))}`;
-            document.getElementById('compIncrease').textContent = coverageIncrease > 0
-                ? `+${formatRupiah(coverageIncrease)} (+${coverageIncreasePercent}%)`
-                : formatRupiah(coverageIncrease);
+            
+            // Dynamic coverage analysis
+            if (coverageIncrease > 0) {
+                // Traditional has MORE coverage
+                document.getElementById('compAnalysisLabel').textContent = 'Long-Term Advantage';
+                document.getElementById('compAnalysis').innerHTML = `Traditional provides <strong>${formatRupiah(coverageIncrease)}</strong> MORE<br><small>After UL lapse, Traditional gives you ${formatRupiah(totalNewUP)} vs Rp 0</small>`;
+            } else {
+                // Traditional has LESS coverage currently
+                const gap = Math.abs(coverageIncrease);
+                document.getElementById('compAnalysisLabel').textContent = 'Current vs Long-Term';
+                document.getElementById('compAnalysis').innerHTML = `Traditional is ${formatRupiah(gap)} less NOW<br><small style="color: var(--success);">But ${formatRupiah(totalNewUP)} MORE after UL lapses to Rp 0</small>`;
+            }
 
             // Calculate lapse risk
             const lapseAnalysis = predictLapse(age, totalPaid, cashValue, annualPremium, paymentTerm);
@@ -1694,8 +1722,12 @@
                 document.getElementById('ulCoverageDuration').textContent = 'Appears stable (rare)';
             }
 
+            // Always show coverage analysis section
+            document.getElementById('shortfallSection').classList.remove('hidden');
+            
             // Check for coverage shortfall and show recommendation
             if (totalNewUP < upJiwa) {
+                // SCENARIO A: Traditional coverage is LESS than current UL
                 const coverageGap = upJiwa - totalNewUP;
                 const currentMultiplier = multiplier;
                 const nextMultiplier = getMultiplierByAge(age + 1);
@@ -1704,9 +1736,36 @@
                 const premiumNeededNextYear = coverageGap / nextMultiplier;
                 const savings = premiumNeededNextYear - premiumNeededNow;
 
-                // Show shortfall section
-                document.getElementById('shortfallSection').classList.remove('hidden');
+                // Update section title and icon
+                document.getElementById('analysisIcon').className = 'fas fa-exclamation-triangle';
+                document.getElementById('analysisTitle').textContent = 'Coverage Gap Analysis (Current vs Lifetime)';
+                
+                // Show context message
+                document.getElementById('contextMessage').innerHTML = `
+                    <div style="margin-bottom: 0.75rem;"><strong>Current Situation:</strong></div>
+                    <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                        <li>Your UL coverage: <strong>${formatRupiah(upJiwa)}</strong> (temporary - lapses in Year ${lapseAnalysis.lapseYear})</li>
+                        <li>Traditional coverage: <strong>${formatRupiah(totalNewUP)}</strong> (LIFETIME)</li>
+                        <li>Current gap: <strong style="color: var(--warning);">${formatRupiah(coverageGap)}</strong></li>
+                    </ul>
+                    <div style="margin-bottom: 0.75rem;"><strong style="color: var(--success);">Important Context:</strong></div>
+                    <ul style="margin-left: 1.5rem;">
+                        <li>✅ After UL lapse (Year ${lapseAnalysis.lapseYear}, Age ${lapseAnalysis.lapseAge}), you'll have <strong style="color: var(--danger);">Rp 0</strong> coverage</li>
+                        <li>✅ Traditional provides <strong style="color: var(--success);">${formatRupiah(totalNewUP)}</strong> LIFETIME protection</li>
+                        <li>✅ Traditional is actually <strong>BETTER long-term</strong></li>
+                    </ul>
+                `;
+                
+                // Show gap amount
+                document.getElementById('gapAmountBox').style.display = 'block';
+                document.getElementById('gapLabel').textContent = 'Coverage Gap (vs current UL)';
                 document.getElementById('coverageGap').textContent = formatRupiah(coverageGap);
+                
+                // Show options title
+                document.getElementById('optionsTitle').style.display = 'block';
+                document.getElementById('optionsTitle').innerHTML = `
+                    <i class="fas fa-hand-point-right"></i> Optional: Additional Premium to Match Current UL Coverage
+                `;
                 
                 // Current year option
                 document.getElementById('currentYearTitle').textContent = `This Year (Age ${age})`;
@@ -1797,7 +1856,44 @@
                     document.getElementById('progressLabel').textContent = 'You have ' + yearsRemaining + ' years left before multiplier drops to ' + multiplierAfterBracket + 'x at age ' + (bracketEnd + 1);
                 }
             } else {
-                document.getElementById('shortfallSection').classList.add('hidden');
+                // SCENARIO B: Traditional coverage is MORE than or equal to current UL
+                const coverageAdvantage = totalNewUP - upJiwa;
+                
+                // Update section title and icon
+                document.getElementById('analysisIcon').className = 'fas fa-check-circle';
+                document.getElementById('analysisTitle').textContent = 'Coverage Advantage - You\'re Fully Protected!';
+                document.getElementById('analysisTitle').style.color = 'var(--success)';
+                
+                // Show context message
+                document.getElementById('contextMessage').innerHTML = `
+                    <div style="margin-bottom: 0.75rem;"><strong style="color: var(--success);">Excellent News!</strong></div>
+                    <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                        <li>Your UL coverage: <strong>${formatRupiah(upJiwa)}</strong> (temporary - lapses in Year ${lapseAnalysis.lapseYear})</li>
+                        <li>Traditional coverage: <strong style="color: var(--success);">${formatRupiah(totalNewUP)}</strong> (LIFETIME)</li>
+                        <li>Advantage: <strong style="color: var(--success);">+${formatRupiah(coverageAdvantage)}</strong></li>
+                    </ul>
+                    <div style="margin-bottom: 0.75rem;"><strong style="color: var(--success);">Benefits:</strong></div>
+                    <ul style="margin-left: 1.5rem;">
+                        <li>✅ <strong>${formatRupiah(coverageAdvantage)}</strong> MORE coverage than current UL</li>
+                        <li>✅ LIFETIME protection (vs UL lapsing in Year ${lapseAnalysis.lapseYear}, Age ${lapseAnalysis.lapseAge})</li>
+                        <li>✅ After UL lapse, you still have <strong style="color: var(--success);">${formatRupiah(totalNewUP)}</strong> protection</li>
+                        <li>✅ ZERO lapse risk - No additional premium needed!</li>
+                    </ul>
+                `;
+                
+                // Show advantage amount instead of gap
+                document.getElementById('gapAmountBox').style.display = 'block';
+                document.getElementById('gapLabel').textContent = 'Coverage Advantage';
+                document.getElementById('gapLabel').style.color = 'var(--success)';
+                document.getElementById('coverageGap').textContent = '+' + formatRupiah(coverageAdvantage);
+                document.getElementById('coverageGap').style.color = 'var(--success)';
+                
+                // Hide options section (no additional premium needed)
+                document.getElementById('optionsTitle').style.display = 'none';
+                document.getElementById('currentYearTitle').parentElement.parentElement.style.display = 'none';
+                document.getElementById('savingsHighlightBox').style.display = 'none';
+                document.getElementById('insurabilityWarning').style.display = 'none';
+                document.getElementById('urgencyAlert').style.display = 'none';
             }
 
             // Show results and PDF button
@@ -1853,9 +1949,9 @@
             const ulPremium = formatRupiah(pdfTotalRequiredPremium);
             const tradPremium = formatRupiah(pdfTotalNewPremium);
             const ulCoverage = formatRupiah(pdfUpJiwa);
-            const tradCoverage = document.getElementById('compTradCoverage').textContent;
+            const tradCoverage = formatRupiah(parseRupiah(document.getElementById('totalNewUP').textContent));
             const savings = document.getElementById('compSavings').textContent;
-            const increase = document.getElementById('compIncrease').textContent;
+            const analysis = document.getElementById('compAnalysis').textContent;
 
             // ========== PAGE 1 ==========
             
@@ -1993,14 +2089,27 @@
             doc.setFontSize(9);
             yPos += 7;
             
-            // Total Coverage
+            // Total Coverage (Current)
             doc.setFont('helvetica', 'bold');
-            doc.text('Total Coverage', margin + 15, yPos);
+            doc.text('Total Coverage (Current)', margin + 15, yPos);
             doc.setFont('helvetica', 'normal');
-            doc.text(ulCoverage, margin + 70, yPos);
-            doc.setTextColor(...gold);
+            doc.setFontSize(7);
+            doc.text(ulCoverage + ' (temporary)', margin + 70, yPos);
+            doc.setTextColor(...green);
+            doc.text(tradCoverage + ' (LIFETIME)', margin + 125, yPos);
+            doc.setTextColor(...darkText);
+            doc.setFontSize(9);
+            yPos += 7;
+            
+            // Coverage After Lapse
             doc.setFont('helvetica', 'bold');
-            doc.text(tradCoverage, margin + 125, yPos);
+            doc.text('Coverage After Lapse', margin + 15, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...red);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Rp 0', margin + 70, yPos);
+            doc.setTextColor(...green);
+            doc.text(tradCoverage + ' (guaranteed)', margin + 125, yPos);
             doc.setTextColor(...darkText);
             doc.setFont('helvetica', 'normal');
             yPos += 7;
@@ -2026,14 +2135,17 @@
             doc.setTextColor(...darkText);
             yPos += 7;
             
-            // Coverage Increase
+            // Coverage Analysis
             doc.setFont('helvetica', 'bold');
-            doc.text('Coverage Increase', margin + 15, yPos);
+            doc.text('Long-Term Analysis', margin + 15, yPos);
             doc.setFont('helvetica', 'normal');
             doc.text('-', margin + 70, yPos);
             doc.setTextColor(...green);
-            doc.text(increase, margin + 125, yPos);
+            doc.setFontSize(7);
+            const analysisText = analysis.replace(/<[^>]*>/g, ' ').substring(0, 40);
+            doc.text(analysisText, margin + 125, yPos);
             doc.setTextColor(...darkText);
+            doc.setFontSize(9);
             
             // Footer Page 1
             yPos = pageHeight - 15;
