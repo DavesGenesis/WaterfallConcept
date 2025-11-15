@@ -478,16 +478,18 @@
             display: flex;
             justify-content: space-between;
             padding: 0.5rem 0;
-            font-size: 0.95rem;
+            font-size: 1.1rem;
         }
 
         .option-detail-label {
             color: var(--text-secondary);
+            font-weight: 500;
         }
 
         .option-detail-value {
             color: var(--text-primary);
-            font-weight: 600;
+            font-weight: 700;
+            font-size: 1.15rem;
         }
 
         .savings-highlight {
@@ -759,15 +761,15 @@
 
         .lapse-warning-box h4 {
             color: var(--danger);
-            font-size: 1.5rem;
+            font-size: 1.75rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
         }
 
         .lapse-warning-box p {
             color: var(--text-primary);
-            font-size: 1rem;
-            line-height: 1.6;
+            font-size: 1.1rem;
+            line-height: 1.7;
         }
 
         .comparison-vs {
@@ -1158,7 +1160,7 @@
                             <td id="compSavings" class="highlight-success">-</td>
                         </tr>
                         <tr>
-                            <td><strong id="compAnalysisLabel">Coverage Analysis</strong></td>
+                            <td><strong id="compAnalysisLabel">Short-Term Analysis</strong></td>
                             <td>-</td>
                             <td id="compAnalysis" class="highlight-success">-</td>
                         </tr>
@@ -1618,12 +1620,12 @@
             // Dynamic coverage analysis
             if (coverageIncrease > 0) {
                 // Traditional has MORE coverage
-                document.getElementById('compAnalysisLabel').textContent = 'Long-Term Advantage';
+                document.getElementById('compAnalysisLabel').textContent = 'Short-Term Advantage';
                 document.getElementById('compAnalysis').innerHTML = `Traditional provides <strong>${formatRupiah(coverageIncrease)}</strong> MORE<br><small>After UL lapse, Traditional gives you ${formatRupiah(totalNewUP)} vs Rp 0</small>`;
             } else {
                 // Traditional has LESS coverage currently
                 const gap = Math.abs(coverageIncrease);
-                document.getElementById('compAnalysisLabel').textContent = 'Current vs Long-Term';
+                document.getElementById('compAnalysisLabel').textContent = 'Short-Term vs Long-Term';
                 document.getElementById('compAnalysis').innerHTML = `Traditional is ${formatRupiah(gap)} less NOW<br><small style="color: var(--success);">But ${formatRupiah(totalNewUP)} MORE after UL lapses to Rp 0</small>`;
             }
 
@@ -1781,6 +1783,13 @@
                 
                 // Savings
                 document.getElementById('savingsByActingNow').textContent = formatRupiah(savings);
+                
+                // Show/hide savings box based on amount
+                if (savings > 0) {
+                    document.getElementById('savingsHighlightBox').style.display = 'block';
+                } else {
+                    document.getElementById('savingsHighlightBox').style.display = 'none';
+                }
 
                 // Calculate years remaining at current multiplier
                 function getMultiplierBracketEnd(currentAge) {
@@ -2052,9 +2061,9 @@
             
             // Comparison Table
             doc.setFillColor(...lightGray);
-            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 55, 3, 3, 'F');
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 62, 3, 3, 'F');
             doc.setFillColor(...gold);
-            doc.rect(margin, yPos, 4, 55, 'F');
+            doc.rect(margin, yPos, 4, 62, 'F');
             
             doc.setTextColor(...navyBlue);
             doc.setFontSize(14);
@@ -2137,7 +2146,7 @@
             
             // Coverage Analysis
             doc.setFont('helvetica', 'bold');
-            doc.text('Long-Term Analysis', margin + 15, yPos);
+            doc.text('Short-Term Analysis', margin + 15, yPos);
             doc.setFont('helvetica', 'normal');
             doc.text('-', margin + 70, yPos);
             doc.setTextColor(...green);
