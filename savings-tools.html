@@ -320,6 +320,41 @@
             margin-top: 0.25rem;
         }
 
+        .floating-pdf-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 1000;
+            padding: 1rem 1.5rem;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-family: 'Montserrat', sans-serif;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .floating-pdf-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+            background: #ff4070;
+        }
+
+        .floating-pdf-btn i {
+            font-size: 1.25rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -516,12 +551,7 @@
                 </div>
             </div>
 
-            <!-- Download PDF -->
-            <div style="text-align: center; margin: 2rem 0;">
-                <button class="btn" onclick="downloadPDF()" style="font-size: 1.1rem; padding: 1rem 2rem;">
-                    <i class="fas fa-file-pdf"></i> Download PDF Report
-                </button>
-            </div>
+
         </div>
 
         <!-- Disclaimer -->
@@ -730,6 +760,7 @@
             
             // Show results
             document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('downloadPdfBtn').classList.remove('hidden');
             
             // Scroll to results
             document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
@@ -1356,5 +1387,11 @@
             }
         });
     </script>
+
+    <!-- Floating PDF Download Button -->
+    <button id="downloadPdfBtn" class="floating-pdf-btn hidden" onclick="downloadPDF()">
+        <i class="fas fa-file-pdf"></i>
+        <span>Download PDF Report</span>
+    </button>
 </body>
 </html>

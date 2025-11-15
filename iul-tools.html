@@ -291,6 +291,41 @@
             color: var(--accent);
         }
 
+        .floating-pdf-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 1000;
+            padding: 1rem 1.5rem;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-family: 'Montserrat', sans-serif;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .floating-pdf-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+            background: #ff4070;
+        }
+
+        .floating-pdf-btn i {
+            font-size: 1.25rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -397,11 +432,8 @@
 
         <div id="resultsSection" style="display: none;">
             <div class="card">
-                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="card-header">
                     <h2 class="card-title"><i class="fas fa-chart-line"></i> IUL Insurance Summary</h2>
-                    <button class="btn" onclick="downloadPDF()" style="display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-file-pdf"></i> Download PDF Report
-                    </button>
                 </div>
                 <div class="card-body">
                     <!-- Client Summary Header -->
@@ -1109,6 +1141,7 @@
 
             // Show results section
             document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('downloadPdfBtn').classList.remove('hidden');
 
             // Create chart comparing all 3 payment terms
             createComparisonChart(age, gender, sumAssured, smoking);
@@ -1669,5 +1702,11 @@
             }
         });
     </script>
+
+    <!-- Floating PDF Download Button -->
+    <button id="downloadPdfBtn" class="floating-pdf-btn hidden" onclick="downloadPDF()">
+        <i class="fas fa-file-pdf"></i>
+        <span>Download PDF Report</span>
+    </button>
 </body>
 </html>
