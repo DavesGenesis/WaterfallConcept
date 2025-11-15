@@ -615,6 +615,217 @@
             font-size: 0.85rem;
         }
 
+        .lapse-risk-card {
+            background: linear-gradient(135deg, rgba(255, 100, 150, 0.15) 0%, rgba(255, 100, 150, 0.05) 100%);
+            border: 3px solid var(--danger);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .lapse-risk-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--danger);
+        }
+
+        .lapse-risk-header i {
+            font-size: 2.5rem;
+            color: var(--danger);
+        }
+
+        .lapse-risk-header h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--danger);
+        }
+
+        .lapse-summary {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .lapse-summary-box {
+            background: var(--bg-card-darker);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .lapse-summary-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .lapse-summary-value {
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .lapse-summary-value.negative {
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        .lapse-timeline {
+            background: var(--bg-card-darker);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .lapse-timeline h4 {
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .timeline-phase {
+            margin-bottom: 1.5rem;
+        }
+
+        .timeline-phase-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .timeline-phase-title {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .timeline-phase.growing .timeline-phase-title {
+            color: var(--success);
+        }
+
+        .timeline-phase.depleting .timeline-phase-title {
+            color: var(--warning);
+        }
+
+        .timeline-phase.lapsed .timeline-phase-title {
+            color: var(--danger);
+        }
+
+        .timeline-bar {
+            background: var(--bg-primary);
+            border-radius: 0.5rem;
+            height: 2.5rem;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-bar-fill {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: width 1s ease-out;
+        }
+
+        .timeline-bar-fill.growing {
+            background: linear-gradient(90deg, var(--success) 0%, #0a7d5b 100%);
+        }
+
+        .timeline-bar-fill.depleting {
+            background: linear-gradient(90deg, var(--warning) 0%, #d97706 100%);
+        }
+
+        .timeline-bar-fill.lapsed {
+            background: linear-gradient(90deg, var(--danger) 0%, #b91c1c 100%);
+        }
+
+        .lapse-warning-box {
+            background: rgba(255, 100, 150, 0.1);
+            border: 2px solid var(--danger);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+
+        .lapse-warning-box h4 {
+            color: var(--danger);
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .lapse-warning-box p {
+            color: var(--text-primary);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .comparison-vs {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .comparison-vs-box {
+            background: var(--bg-card-darker);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            border: 2px solid var(--border-color);
+        }
+
+        .comparison-vs-box.unit-link {
+            border-color: var(--danger);
+        }
+
+        .comparison-vs-box.traditional {
+            border-color: var(--success);
+        }
+
+        .comparison-vs-box h5 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .comparison-vs-box.unit-link h5 {
+            color: var(--danger);
+        }
+
+        .comparison-vs-box.traditional h5 {
+            color: var(--success);
+        }
+
+        .comparison-vs-item {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .comparison-vs-item:last-child {
+            border-bottom: none;
+        }
+
+        @media (max-width: 768px) {
+            .lapse-summary {
+                grid-template-columns: 1fr;
+            }
+
+            .comparison-vs {
+                grid-template-columns: 1fr;
+            }
+        }
+
         @media (max-width: 768px) {
             .grid-2 {
                 grid-template-columns: 1fr;
@@ -841,6 +1052,69 @@
                 </div>
             </div>
 
+            <!-- Lapse Risk Analysis -->
+            <div id="lapseRiskSection" class="lapse-risk-card">
+                <div class="lapse-risk-header">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h3>Unit Link Lapse Risk Analysis</h3>
+                </div>
+
+                <div class="lapse-summary">
+                    <div class="lapse-summary-box">
+                        <div class="lapse-summary-label">Years Already Paid</div>
+                        <div class="lapse-summary-value" id="lapseYearsPaid">-</div>
+                    </div>
+                    <div class="lapse-summary-box">
+                        <div class="lapse-summary-label">Total Loss to Date</div>
+                        <div class="lapse-summary-value negative" id="lapseTotalLoss">-</div>
+                    </div>
+                    <div class="lapse-summary-box">
+                        <div class="lapse-summary-label">Annual Depletion Rate</div>
+                        <div class="lapse-summary-value negative" id="lapseAnnualDepletion">-</div>
+                    </div>
+                    <div class="lapse-summary-box">
+                        <div class="lapse-summary-label">Remaining Payment Years</div>
+                        <div class="lapse-summary-value" id="lapseRemainingPayments">-</div>
+                    </div>
+                </div>
+
+                <div class="lapse-timeline">
+                    <h4><i class="fas fa-chart-line"></i> Cash Value Projection Timeline</h4>
+                    
+                    <div id="timelinePhases"></div>
+                </div>
+
+                <div class="lapse-warning-box">
+                    <h4 id="lapseWarningTitle">🚨 CRITICAL WARNING</h4>
+                    <p id="lapseWarningMessage">-</p>
+                </div>
+
+                <div class="comparison-vs">
+                    <div class="comparison-vs-box unit-link">
+                        <h5>❌ Your Unit Link</h5>
+                        <div class="comparison-vs-item">
+                            <strong>Coverage Duration:</strong><br>
+                            <span id="ulCoverageDuration" style="color: var(--danger);">-</span>
+                        </div>
+                        <div class="comparison-vs-item">
+                            <strong>After Lapse:</strong><br>
+                            <span style="color: var(--danger);">❌ ZERO Coverage<br>❌ ZERO Cash Value<br>❌ Total Loss</span>
+                        </div>
+                    </div>
+                    <div class="comparison-vs-box traditional">
+                        <h5>✅ Traditional Whole Life</h5>
+                        <div class="comparison-vs-item">
+                            <strong>Coverage Duration:</strong><br>
+                            <span style="color: var(--success);">LIFETIME (Age 100+)</span>
+                        </div>
+                        <div class="comparison-vs-item">
+                            <strong>Guaranteed:</strong><br>
+                            <span style="color: var(--success);">✅ Full Coverage<br>✅ No Lapse Risk<br>✅ Protected Forever</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Comparison Table -->
             <div class="card">
                 <div class="card-header">
@@ -1026,6 +1300,111 @@
             if (age >= 55 && age <= 64) return 3;
             if (age >= 65 && age <= 70) return 2;
             return 0;
+        }
+
+        // Lapse prediction function based on historical data
+        function predictLapse(age, totalPaid, cashValue, annualPremium, paymentTerm) {
+            // Step 1: Calculate historical metrics
+            const yearsPaid = totalPaid / annualPremium;
+            const totalLoss = totalPaid - cashValue;
+            const annualDepletion = totalLoss / yearsPaid;
+            
+            // Step 2: Calculate remaining payment years
+            const remainingPayments = Math.max(0, paymentTerm - yearsPaid);
+            
+            // Step 3: Project year by year
+            let currentBalance = cashValue;
+            let currentYear = Math.ceil(yearsPaid);
+            const projection = [];
+            
+            // Phase 1: During remaining payment period
+            for (let i = 0; i < remainingPayments; i++) {
+                const yearNum = currentYear + i + 1;
+                const yearAge = age + i + 1;
+                const premiumIn = annualPremium;
+                const depletion = annualDepletion;
+                
+                const startBalance = currentBalance;
+                currentBalance = currentBalance + premiumIn - depletion;
+                
+                projection.push({
+                    year: yearNum,
+                    age: yearAge,
+                    startBalance: startBalance,
+                    premiumPaid: premiumIn,
+                    depletion: depletion,
+                    endBalance: Math.max(0, currentBalance),
+                    phase: 'paying',
+                    status: currentBalance > 0 ? 'Active' : 'Lapsed'
+                });
+                
+                if (currentBalance <= 0) {
+                    return {
+                        willLapse: true,
+                        yearsUntilLapse: i + 1,
+                        lapseYear: yearNum,
+                        lapseAge: yearAge,
+                        lapsesDuringPayment: true,
+                        projection: projection,
+                        yearsPaid: yearsPaid,
+                        totalLoss: totalLoss,
+                        annualDepletion: annualDepletion,
+                        remainingPayments: remainingPayments
+                    };
+                }
+            }
+            
+            // Phase 2: After payment period (only depletion)
+            let yearsAfterPayment = 0;
+            const postPaymentStartYear = currentYear + remainingPayments;
+            
+            while (currentBalance > 0 && yearsAfterPayment < 50) {
+                yearsAfterPayment++;
+                const yearNum = postPaymentStartYear + yearsAfterPayment;
+                const yearAge = age + remainingPayments + yearsAfterPayment;
+                const depletion = annualDepletion;
+                
+                const startBalance = currentBalance;
+                currentBalance = currentBalance - depletion;
+                
+                projection.push({
+                    year: yearNum,
+                    age: yearAge,
+                    startBalance: startBalance,
+                    premiumPaid: 0,
+                    depletion: depletion,
+                    endBalance: Math.max(0, currentBalance),
+                    phase: 'depleting',
+                    status: currentBalance > 0 ? 'Active' : 'Lapsed'
+                });
+                
+                if (currentBalance <= 0) {
+                    return {
+                        willLapse: true,
+                        yearsUntilLapse: remainingPayments + yearsAfterPayment,
+                        lapseYear: yearNum,
+                        lapseAge: yearAge,
+                        lapsesDuringPayment: false,
+                        projection: projection,
+                        yearsPaid: yearsPaid,
+                        totalLoss: totalLoss,
+                        annualDepletion: annualDepletion,
+                        remainingPayments: remainingPayments,
+                        peakCashValue: Math.max(...projection.map(p => p.endBalance))
+                    };
+                }
+            }
+            
+            return {
+                willLapse: false,
+                yearsUntilLapse: 50,
+                message: 'Policy appears stable (very rare for Unit Link)',
+                projection: projection,
+                yearsPaid: yearsPaid,
+                totalLoss: totalLoss,
+                annualDepletion: annualDepletion,
+                remainingPayments: remainingPayments
+            };
         }
 
         // Format Rupiah
@@ -1216,6 +1595,104 @@
             document.getElementById('compIncrease').textContent = coverageIncrease > 0
                 ? `+${formatRupiah(coverageIncrease)} (+${coverageIncreasePercent}%)`
                 : formatRupiah(coverageIncrease);
+
+            // Calculate lapse risk
+            const lapseAnalysis = predictLapse(age, totalPaid, cashValue, annualPremium, paymentTerm);
+            
+            // Display lapse risk summary
+            document.getElementById('lapseYearsPaid').textContent = lapseAnalysis.yearsPaid.toFixed(1) + ' years';
+            document.getElementById('lapseTotalLoss').textContent = formatRupiah(lapseAnalysis.totalLoss);
+            document.getElementById('lapseAnnualDepletion').textContent = formatRupiah(lapseAnalysis.annualDepletion) + '/year';
+            document.getElementById('lapseRemainingPayments').textContent = lapseAnalysis.remainingPayments + ' years';
+
+            // Display timeline phases
+            const timelinePhasesDiv = document.getElementById('timelinePhases');
+            timelinePhasesDiv.innerHTML = '';
+
+            // Group projections by phase
+            const payingPhase = lapseAnalysis.projection.filter(p => p.phase === 'paying');
+            const depletingPhase = lapseAnalysis.projection.filter(p => p.phase === 'depleting');
+
+            if (payingPhase.length > 0) {
+                const firstYear = payingPhase[0];
+                const lastYear = payingPhase[payingPhase.length - 1];
+                const phaseDiv = document.createElement('div');
+                phaseDiv.className = 'timeline-phase growing';
+                phaseDiv.innerHTML = `
+                    <div class="timeline-phase-header">
+                        <i class="fas fa-arrow-up" style="color: var(--success);"></i>
+                        <span class="timeline-phase-title">Years ${firstYear.year}-${lastYear.year}: GROWING (Still Paying Premiums)</span>
+                    </div>
+                    <div class="timeline-bar">
+                        <div class="timeline-bar-fill growing" style="width: 0%;" data-width="100">
+                            ${formatRupiah(firstYear.startBalance)} → ${formatRupiah(lastYear.endBalance)}
+                        </div>
+                    </div>
+                    <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.25rem;">
+                        Peak cash value: ${formatRupiah(lastYear.endBalance)} at age ${lastYear.age}
+                    </div>
+                `;
+                timelinePhasesDiv.appendChild(phaseDiv);
+            }
+
+            if (depletingPhase.length > 0) {
+                const firstYear = depletingPhase[0];
+                const lastYear = depletingPhase[depletingPhase.length - 1];
+                const phaseDiv = document.createElement('div');
+                phaseDiv.className = lastYear.status === 'Lapsed' ? 'timeline-phase lapsed' : 'timeline-phase depleting';
+                phaseDiv.innerHTML = `
+                    <div class="timeline-phase-header">
+                        <i class="fas fa-arrow-down" style="color: ${lastYear.status === 'Lapsed' ? 'var(--danger)' : 'var(--warning)'};"></i>
+                        <span class="timeline-phase-title">Years ${firstYear.year}-${lastYear.year}: DEPLETING (No More Premiums)</span>
+                    </div>
+                    <div class="timeline-bar">
+                        <div class="timeline-bar-fill ${lastYear.status === 'Lapsed' ? 'lapsed' : 'depleting'}" style="width: 0%;" data-width="100">
+                            ${formatRupiah(firstYear.startBalance)} → ${formatRupiah(lastYear.endBalance)}
+                        </div>
+                    </div>
+                    <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.25rem;">
+                        ${lastYear.status === 'Lapsed' ? `💀 Policy LAPSES at age ${lastYear.age} (Year ${lastYear.year})` : 'Policy still active'}
+                    </div>
+                `;
+                timelinePhasesDiv.appendChild(phaseDiv);
+            }
+
+            // Animate timeline bars
+            setTimeout(() => {
+                document.querySelectorAll('.timeline-bar-fill').forEach(bar => {
+                    const width = bar.getAttribute('data-width');
+                    bar.style.width = width + '%';
+                });
+            }, 100);
+
+            // Display lapse warning
+            if (lapseAnalysis.willLapse) {
+                const yearsFromNow = lapseAnalysis.yearsUntilLapse;
+                const currentYearNum = new Date().getFullYear();
+                
+                document.getElementById('lapseWarningTitle').textContent = 
+                    lapseAnalysis.lapsesDuringPayment 
+                    ? '🚨 EXTREME DANGER: Policy Will Lapse DURING Payment Period!' 
+                    : yearsFromNow <= 5 
+                    ? '🚨 URGENT: Policy Will Lapse Soon!' 
+                    : yearsFromNow <= 10 
+                    ? '⚠️ WARNING: Policy Will Lapse in ' + yearsFromNow + ' Years' 
+                    : '⚠️ NOTICE: Policy Will Eventually Lapse';
+
+                let warningMsg = '';
+                if (lapseAnalysis.lapsesDuringPayment) {
+                    warningMsg = `Your Unit Link policy will LAPSE in Year ${lapseAnalysis.lapseYear} (Age ${lapseAnalysis.lapseAge}, ${currentYearNum + yearsFromNow}) - BEFORE you even finish paying! You're literally throwing money into a black hole. Convert to Traditional Whole Life NOW to stop the bleeding!`;
+                } else {
+                    warningMsg = `Your Unit Link policy will LAPSE in approximately ${yearsFromNow} years (Year ${lapseAnalysis.lapseYear}, Age ${lapseAnalysis.lapseAge}, ${currentYearNum + yearsFromNow}). After lapse, you lose EVERYTHING - all coverage and all premiums paid (${formatRupiah(totalPaid + unpaidPremium)}). Traditional Whole Life offers LIFETIME coverage with ZERO lapse risk!`;
+                }
+                
+                document.getElementById('lapseWarningMessage').textContent = warningMsg;
+                document.getElementById('ulCoverageDuration').textContent = `Only ${yearsFromNow} years (then LAPSE at age ${lapseAnalysis.lapseAge})`;
+            } else {
+                document.getElementById('lapseWarningTitle').textContent = '✅ Policy Appears Stable';
+                document.getElementById('lapseWarningMessage').textContent = 'Based on current data, your policy appears stable. However, this is very rare for Unit Link policies. Consider converting to Traditional Whole Life for guaranteed lifetime coverage.';
+                document.getElementById('ulCoverageDuration').textContent = 'Appears stable (rare)';
+            }
 
             // Check for coverage shortfall and show recommendation
             if (totalNewUP < upJiwa) {
@@ -1567,6 +2044,134 @@
             doc.setFont('helvetica', 'italic');
             doc.text('Page 1 of 2', pageWidth / 2, yPos + 7, { align: 'center' });
 
+            // Add Lapse Risk Analysis to PDF
+            doc.addPage();
+            
+            // Header Page 2
+            doc.setFillColor(...navyBlue);
+            doc.rect(0, 0, pageWidth, 35, 'F');
+            doc.setFillColor(...gold);
+            doc.rect(0, 35, pageWidth, 2, 'F');
+            
+            doc.setTextColor(...white);
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Unit Link Lapse Risk Analysis', pageWidth / 2, 22, { align: 'center' });
+
+            yPos = 47;
+            
+            // Lapse Risk Summary
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 45, 3, 3, 'F');
+            doc.setFillColor(...red);
+            doc.rect(margin, yPos, 4, 45, 'F');
+            
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Historical Performance & Projection', margin + 8, yPos + 10);
+
+            doc.setTextColor(...darkText);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            yPos += 17;
+            
+            const lapseYearsPaid = document.getElementById('lapseYearsPaid').textContent;
+            const lapseTotalLoss = document.getElementById('lapseTotalLoss').textContent;
+            const lapseAnnualDepletion = document.getElementById('lapseAnnualDepletion').textContent;
+            const lapseRemainingPayments = document.getElementById('lapseRemainingPayments').textContent;
+            
+            doc.text(`Years Already Paid: ${lapseYearsPaid}`, margin + 10, yPos);
+            doc.text(`Remaining Payment Years: ${lapseRemainingPayments}`, margin + 95, yPos);
+            yPos += 7;
+            doc.setTextColor(...red);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Total Loss to Date: ${lapseTotalLoss}`, margin + 10, yPos);
+            doc.setTextColor(...darkText);
+            doc.setFont('helvetica', 'normal');
+            yPos += 7;
+            doc.setTextColor(...red);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Annual Depletion Rate: ${lapseAnnualDepletion}`, margin + 10, yPos);
+            
+            yPos += 15;
+            
+            // Lapse Warning
+            const lapseWarningTitle = document.getElementById('lapseWarningTitle').textContent;
+            const lapseWarningMessage = document.getElementById('lapseWarningMessage').textContent;
+            
+            doc.setFillColor(255, 240, 245);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 40, 3, 3, 'F');
+            doc.setDrawColor(...red);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 40, 3, 3, 'S');
+            
+            doc.setTextColor(...red);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text(lapseWarningTitle.replace(/🚨|⚠️|✅/g, ''), margin + 5, yPos + 10);
+            
+            doc.setTextColor(...darkText);
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
+            const splitWarning = doc.splitTextToSize(lapseWarningMessage, pageWidth - 2 * margin - 10);
+            doc.text(splitWarning, margin + 5, yPos + 18);
+            
+            yPos += 50;
+            
+            // Comparison: Unit Link vs Traditional
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 50, 3, 3, 'F');
+            doc.setFillColor(...gold);
+            doc.rect(margin, yPos, 4, 50, 'F');
+            
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Coverage Duration Comparison', margin + 8, yPos + 10);
+            
+            yPos += 18;
+            
+            // Unit Link side
+            doc.setFillColor(255, 240, 245);
+            doc.roundedRect(margin + 10, yPos, 65, 25, 2, 2, 'F');
+            doc.setDrawColor(...red);
+            doc.roundedRect(margin + 10, yPos, 65, 25, 2, 2, 'S');
+            
+            doc.setTextColor(...red);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Unit Link', margin + 12, yPos + 6);
+            doc.setTextColor(...darkText);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            const ulDuration = document.getElementById('ulCoverageDuration').textContent;
+            doc.text(`Duration: ${ulDuration}`, margin + 12, yPos + 12);
+            doc.setTextColor(...red);
+            doc.setFontSize(7);
+            doc.text('After Lapse:', margin + 12, yPos + 17);
+            doc.text('ZERO Coverage & Cash Value', margin + 12, yPos + 21);
+            
+            // Traditional side
+            doc.setFillColor(220, 252, 231);
+            doc.roundedRect(margin + 85, yPos, 65, 25, 2, 2, 'F');
+            doc.setDrawColor(...green);
+            doc.roundedRect(margin + 85, yPos, 65, 25, 2, 2, 'S');
+            
+            doc.setTextColor(...green);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Traditional Whole Life', margin + 87, yPos + 6);
+            doc.setTextColor(...darkText);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Duration: LIFETIME (Age 100+)', margin + 87, yPos + 12);
+            doc.setTextColor(...green);
+            doc.setFontSize(7);
+            doc.text('Guaranteed:', margin + 87, yPos + 17);
+            doc.text('Full Coverage, No Lapse Risk', margin + 87, yPos + 21);
+            
+            yPos += 35;
+
             // Check if there's a shortfall recommendation
             if (!document.getElementById('shortfallSection').classList.contains('hidden')) {
                 doc.addPage();
@@ -1786,6 +2391,7 @@
             document.getElementById('upJiwa').value = '';
             document.getElementById('resultsSection').classList.add('hidden');
             document.getElementById('downloadPdfBtn').classList.add('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         // Load user email on page load
