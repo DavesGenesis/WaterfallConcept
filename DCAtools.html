@@ -641,6 +641,34 @@
                 </div>
             </div>
 
+            <!-- Growth Summary Bar Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title"><i class="fas fa-chart-bar"></i> Growth Summary (10, 20, 30, 40 Years)</h2>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 450px;">
+                        <canvas id="summaryBarChart"></canvas>
+                    </div>
+                    <div style="margin-top: 2rem;">
+                        <table style="width: 100%; background: var(--bg-card-darker);">
+                            <thead>
+                                <tr>
+                                    <th>Milestone</th>
+                                    <th>Total Contribution</th>
+                                    <th>Redemption Value</th>
+                                    <th>Growth Amount</th>
+                                    <th>Growth %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summaryTableBody">
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- Chart -->
             <div class="card">
                 <div class="card-header">
@@ -658,12 +686,12 @@
         <div class="card" style="background: var(--bg-card-darker); border: 2px solid var(--warning);">
             <div class="card-body" style="padding: 1.5rem;">
                 <h3 style="color: var(--warning); font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fas fa-exclamation-triangle"></i> Important Disclaimer
+                    <i class="fas fa-exclamation-triangle"></i> Disclaimer Penting
                 </h3>
                 <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; text-align: justify;">
-                    The projections and illustrations provided by this calculator are for <strong>ESTIMATION PURPOSES ONLY</strong> and should not be considered as a formal quotation or binding offer from any insurance provider. 
-                    Actual values may vary based on market conditions, policy terms, and other factors. For accurate and binding information, please request an official quotation and policy illustration from the insurance company. 
-                    All rights, obligations, terms, conditions, and exclusions are governed by the official Policy document issued by the respective provider.
+                    Proyeksi dan ilustrasi yang disediakan oleh kalkulator ini adalah untuk <strong>TUJUAN ESTIMASI SAJA</strong> dan tidak boleh dianggap sebagai penawaran resmi atau mengikat dari penyedia asuransi / investasi manapun. 
+                    Nilai aktual dapat bervariasi berdasarkan kondisi pasar, ketentuan polis, dan faktor-faktor lainnya. Untuk informasi yang akurat dan mengikat, silakan meminta penawaran resmi dan ilustrasi polis dari perusahaan asuransi / investasi. 
+                    Semua hak, kewajiban, syarat, ketentuan, dan pengecualian diatur oleh dokumen Polis resmi yang dikeluarkan oleh penyedia terkait.
                 </p>
             </div>
         </div>
@@ -941,6 +969,7 @@
             updateSummary();
             updateBreakEven();
             updateTable();
+            updateSummaryChart();
             updateChart();
             
             // Show results
@@ -1120,6 +1149,149 @@
                             },
                             ticks: {
                                 color: '#a8b2c1'
+                            },
+                            grid: {
+                                color: 'rgba(168, 178, 193, 0.1)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Amount (USD)',
+                                color: '#a8b2c1',
+                                font: {
+                                    family: 'Montserrat',
+                                    size: 12
+                                }
+                            },
+                            ticks: {
+                                color: '#a8b2c1',
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(168, 178, 193, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update summary bar chart
+        let summaryBarChart = null;
+        
+        function updateSummaryChart() {
+            const ctx = document.getElementById('summaryBarChart').getContext('2d');
+            
+            // Destroy existing chart
+            if (summaryBarChart) {
+                summaryBarChart.destroy();
+            }
+            
+            // Get data for years 10, 20, 30, 40
+            const milestones = [10, 20, 30, 40];
+            const summaryData = milestones.map(year => {
+                const data = calculationData.projections[year - 1];
+                const growthAmount = data.redemptionValue - data.cumulativeContribution;
+                const growthPercent = (growthAmount / data.cumulativeContribution) * 100;
+                
+                return {
+                    year: year,
+                    contribution: data.cumulativeContribution,
+                    redemption: data.redemptionValue,
+                    growth: growthAmount,
+                    growthPercent: growthPercent
+                };
+            });
+            
+            // Update summary table
+            const tbody = document.getElementById('summaryTableBody');
+            tbody.innerHTML = '';
+            
+            summaryData.forEach(data => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="font-weight: 600;">Year ${data.year}</td>
+                    <td>${formatCurrency(data.contribution)}</td>
+                    <td>${formatCurrency(data.redemption)}</td>
+                    <td style="color: var(--success); font-weight: 600;">${formatCurrency(data.growth)}</td>
+                    <td style="color: var(--accent); font-weight: 700;">${data.growthPercent.toFixed(2)}%</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Create bar chart
+            summaryBarChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: milestones.map(y => `Year ${y}`),
+                    datasets: [
+                        {
+                            label: 'Total Contribution',
+                            data: summaryData.map(d => d.contribution),
+                            backgroundColor: 'rgba(245, 158, 11, 0.7)',
+                            borderColor: '#f59e0b',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Redemption Value',
+                            data: summaryData.map(d => d.redemption),
+                            backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                            borderColor: '#10b981',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#e2e8f0',
+                                font: {
+                                    family: 'Montserrat',
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#172a46',
+                            titleColor: '#64ffda',
+                            bodyColor: '#e2e8f0',
+                            borderColor: '#64ffda',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += formatCurrency(context.parsed.y);
+                                    
+                                    // Add growth info for Redemption Value
+                                    if (context.datasetIndex === 1) {
+                                        const yearIndex = context.dataIndex;
+                                        const data = summaryData[yearIndex];
+                                        label += '\nGrowth: ' + formatCurrency(data.growth);
+                                        label += ' (' + data.growthPercent.toFixed(2) + '%)';
+                                    }
+                                    
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#a8b2c1',
+                                font: {
+                                    family: 'Montserrat',
+                                    size: 11
+                                }
                             },
                             grid: {
                                 color: 'rgba(168, 178, 193, 0.1)'
@@ -1331,13 +1503,13 @@
             doc.setTextColor(245, 158, 11);
             doc.setFontSize(8);
             doc.setFont('helvetica', 'bold');
-            doc.text('! Important Disclaimer', margin + 4, yPos + 6);
+            doc.text('! Disclaimer Penting', margin + 4, yPos + 6);
             
             doc.setTextColor(80, 80, 80);
             doc.setFontSize(6);
             doc.setFont('helvetica', 'normal');
             
-            const disclaimerText = 'The projections provided are for ESTIMATION PURPOSES ONLY. Actual values may vary based on market conditions and policy terms. For accurate information, please request an official quotation from the insurance company.';
+            const disclaimerText = 'Proyeksi yang disediakan adalah untuk TUJUAN ESTIMASI SAJA. Nilai aktual dapat bervariasi berdasarkan kondisi pasar dan ketentuan polis. Untuk informasi yang akurat, silakan meminta penawaran resmi dari perusahaan asuransi / investasi.';
             
             const splitDisclaimer = doc.splitTextToSize(disclaimerText, pageWidth - 2 * margin - 8);
             doc.text(splitDisclaimer, margin + 4, yPos + 12);
