@@ -1494,11 +1494,143 @@
                 yPos += 4.5;
             });
 
-            // Disclaimer
-            yPos = pageHeight - 35;
+            // ============================================================================
+            // NEW PAGE: Growth Summary Bar Chart
+            // ============================================================================
+            doc.addPage();
+            yPos = 20;
+
+            // Page Title
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Growth Summary (10, 20, 30, 40 Years)', pageWidth / 2, yPos, { align: 'center' });
+            yPos += 10;
+
+            // Add Bar Chart Image
+            if (summaryBarChart) {
+                const barChartImage = summaryBarChart.toBase64Image();
+                const chartWidth = pageWidth - 2 * margin;
+                const chartHeight = 90;
+                doc.addImage(barChartImage, 'PNG', margin, yPos, chartWidth, chartHeight);
+                yPos += chartHeight + 10;
+            }
+
+            // Summary Table
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Growth Milestones Summary', margin, yPos);
+            yPos += 6;
+
+            // Table header
+            doc.setFillColor(...navyBlue);
+            doc.rect(margin, yPos, pageWidth - 2 * margin, 7, 'F');
+            doc.setTextColor(...white);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            
+            const summaryHeaders = ['Milestone', 'Contribution', 'Redemption', 'Growth', 'Growth %'];
+            const summaryColWidths = [25, 32, 32, 32, 25];
+            xPos = margin + 2;
+            summaryHeaders.forEach((header, i) => {
+                doc.text(header, xPos, yPos + 4.5);
+                xPos += summaryColWidths[i];
+            });
+            
+            yPos += 7;
+
+            // Summary table rows
+            const milestones = [10, 20, 30, 40];
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...darkText);
+            doc.setFontSize(7);
+            
+            milestones.forEach((year, index) => {
+                const data = calculationData.projections[year - 1];
+                const growthAmount = data.redemptionValue - data.cumulativeContribution;
+                const growthPercent = (growthAmount / data.cumulativeContribution) * 100;
+                
+                // Alternate row colors
+                if (index % 2 === 0) {
+                    doc.setFillColor(...lightGray);
+                    doc.rect(margin, yPos, pageWidth - 2 * margin, 6, 'F');
+                }
+                
+                xPos = margin + 2;
+                doc.setFont('helvetica', 'bold');
+                doc.text(`Year ${year}`, xPos, yPos + 4);
+                xPos += summaryColWidths[0];
+                
+                doc.setFont('helvetica', 'normal');
+                doc.text(formatCurrency(data.cumulativeContribution), xPos, yPos + 4);
+                xPos += summaryColWidths[1];
+                doc.text(formatCurrency(data.redemptionValue), xPos, yPos + 4);
+                xPos += summaryColWidths[2];
+                
+                doc.setTextColor(16, 185, 129);
+                doc.setFont('helvetica', 'bold');
+                doc.text(formatCurrency(growthAmount), xPos, yPos + 4);
+                xPos += summaryColWidths[3];
+                
+                doc.setTextColor(100, 255, 218);
+                doc.text(growthPercent.toFixed(2) + '%', xPos, yPos + 4);
+                
+                doc.setTextColor(...darkText);
+                yPos += 6;
+            });
+
+            // ============================================================================
+            // NEW PAGE: Growth Projection Line Chart
+            // ============================================================================
+            doc.addPage();
+            yPos = 20;
+
+            // Page Title
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('40-Year Growth Projection Chart', pageWidth / 2, yPos, { align: 'center' });
+            yPos += 10;
+
+            // Add Line Chart Image
+            if (growthChart) {
+                const lineChartImage = growthChart.toBase64Image();
+                const chartWidth = pageWidth - 2 * margin;
+                const chartHeight = 120;
+                doc.addImage(lineChartImage, 'PNG', margin, yPos, chartWidth, chartHeight);
+                yPos += chartHeight + 10;
+            }
+
+            // Chart Legend/Description
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 25, 3, 3, 'F');
+            
+            doc.setTextColor(...navyBlue);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Chart Analysis', margin + 4, yPos + 6);
+            
+            doc.setTextColor(...darkText);
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
+            
+            const chartDesc = `This chart shows the growth of your investment over 40 years. The orange line represents your cumulative contributions, while the green line shows the redemption value including growth. The gap between the lines represents your investment gains.`;
+            const splitDesc = doc.splitTextToSize(chartDesc, pageWidth - 2 * margin - 8);
+            doc.text(splitDesc, margin + 4, yPos + 12);
+
+            // ============================================================================
+            // DISCLAIMER PAGE
+            // ============================================================================
+            yPos += 35;
+            
+            if (yPos > pageHeight - 50) {
+                doc.addPage();
+                yPos = 20;
+            }
             
             doc.setFillColor(255, 250, 230);
-            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 22, 3, 3, 'F');
+            doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 28, 3, 3, 'F');
             
             doc.setTextColor(245, 158, 11);
             doc.setFontSize(8);
@@ -1514,14 +1646,19 @@
             const splitDisclaimer = doc.splitTextToSize(disclaimerText, pageWidth - 2 * margin - 8);
             doc.text(splitDisclaimer, margin + 4, yPos + 12);
 
-            // Footer
-            doc.setFontSize(6);
-            doc.setTextColor(120, 120, 120);
-            doc.setFont('helvetica', 'italic');
-            doc.text('Generated on: ' + new Date().toLocaleDateString('en-US', { 
-                year: 'numeric', month: 'long', day: 'numeric', 
-                hour: '2-digit', minute: '2-digit' 
-            }), pageWidth / 2, pageHeight - 5, { align: 'center' });
+            // Footer on all pages
+            const totalPages = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                doc.setFontSize(6);
+                doc.setTextColor(120, 120, 120);
+                doc.setFont('helvetica', 'italic');
+                doc.text('Generated on: ' + new Date().toLocaleDateString('en-US', { 
+                    year: 'numeric', month: 'long', day: 'numeric', 
+                    hour: '2-digit', minute: '2-digit' 
+                }), pageWidth / 2, pageHeight - 5, { align: 'center' });
+                doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 5, { align: 'right' });
+            }
 
             // Save PDF
             const fileName = 'DCA_Investment_' + calculationData.name.replace(/\s+/g, '_') + '_' + 
