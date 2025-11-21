@@ -206,397 +206,262 @@
         }
 
         .sidebar-desktop-closed #parameterControlToggle h2,
-        .sidebar-desktop-closed #parameterControlToggle #closeSidebar {
-             display: none;
-        }
-
-
-        @media (min-width: 1024px) {
-            .sidebar {
-                transform: translateX(0) !important; 
-                position: sticky;
-            }
-            .sidebar-closed, .sidebar-open {
-                transform: translateX(0); /* Mobile classes do nothing on desktop */
-            }
-            
-            /* Overwrite the mobile padding for open state on desktop */
-            .sidebar:not(.sidebar-desktop-closed) {
-                 padding: 1.5rem 1rem;
-            }
+        .sidebar-desktop-closed #closeSidebar {
+            display: none; /* Hide the text and close button in collapsed state */
         }
 
         .main-content {
-            flex-grow: 1;
-            padding: 2rem 3rem;
-            overflow-y: auto;
-            max-height: 100vh;
-            max-width: 100%;
-            box-sizing: border-box;
-        }
-
-        .kpi-card {
-            background: var(--bg-card-darker);
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-            text-align: center;
-            border: 1px solid var(--border-color);
-            transition: transform 0.2s ease;
-        }
-
-        .kpi-card:hover {
-            transform: translateY(-2px);
-            border-color: var(--accent);
-        }
-
-        .kpi-title {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.75rem;
-            font-weight: 500;
-        }
-
-        .kpi-value {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            line-height: 1.2;
-            margin-bottom: 0.5rem;
-        }
-
-        .kpi-subtitle {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-top: 0.25rem;
-            line-height: 1.4;
-        }
-
-        .calculation-box {
-            background: var(--bg-card-darker);
+            flex: 1;
             padding: 2rem;
-            border-radius: 0.5rem;
-            margin: 2rem 0;
-            border: 1px solid var(--border-color);
-            position: relative;
-            clear: both;
+            overflow-y: auto;
         }
 
-        .calculation-box h3 {
-            margin-bottom: 1.5rem;
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--accent);
+        .input-field {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background-color: var(--bg-card-darker);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-family: 'Montserrat', sans-serif;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.1);
         }
 
         input[type="range"] {
             -webkit-appearance: none;
             appearance: none;
             width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: var(--border-color);
+            height: 4px;
+            background: var(--bg-card-darker);
             outline: none;
+            border-radius: 2px;
+            cursor: pointer;
         }
 
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
+            width: 20px;
+            height: 20px;
             background: var(--accent);
             cursor: pointer;
-            border: 2px solid var(--bg-primary);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(100, 255, 218, 0.5);
         }
 
         input[type="range"]::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
+            width: 20px;
+            height: 20px;
             background: var(--accent);
             cursor: pointer;
-            border: 2px solid var(--bg-primary);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            border-radius: 50%;
+            border: none;
         }
 
-        .input-field {
-            background-color: var(--bg-primary);
+        .kpi-card {
+            background-color: var(--bg-card-darker);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
             border: 1px solid var(--border-color);
-            border-radius: 0.375rem;
-            padding: 0.5rem 0.75rem;
-            color: var(--text-primary);
-            width: 100%;
-            font-family: 'Montserrat', monospace;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
-        .input-field:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 1px var(--accent);
+        .kpi-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-value {
+            color: var(--text-primary);
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .calculation-box {
+            background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%);
+            border: 2px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 6px 12px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        .calculation-box h3 {
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+            padding: 0 0.5rem;
         }
 
         .tab-button {
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
+            padding: 0.75rem 2rem;
+            background: transparent;
             border: none;
+            border-bottom: 3px solid transparent;
+            color: var(--text-secondary);
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
             cursor: pointer;
-            transition: all 0.2s;
-            background: var(--bg-card-darker);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
+            transition: all 0.3s;
         }
 
         .tab-button.active {
-            background: var(--accent);
-            color: var(--bg-primary);
-            border-color: var(--accent);
+            color: var(--accent);
+            border-bottom-color: var(--accent);
         }
 
-        .tab-button:hover:not(.active) {
-            background: var(--bg-card-lighter);
+        .tab-button:hover {
+            color: var(--text-primary);
         }
 
-        /* Story Card Styles */
+        /* Summary boxes */
+        .summary-box {
+            background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%);
+            border: 2px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        /* NEW: Glow box for Waterfall */
+        .summary-box-waterfall {
+            border: 2px solid var(--success);
+            box-shadow: 0 0 30px rgba(100, 255, 218, 0.4);
+            transform: scale(1.02);
+        }
+
+        .summary-box h3 {
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-box p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem;
+            background-color: var(--bg-card);
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .summary-item-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .summary-item-value {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
         .story-card {
             background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%);
             border: 2px solid var(--accent);
-            border-radius: 0.75rem;
-            margin-bottom: 2rem;
+            border-radius: 1rem;
             overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
-
+        
         .story-header {
-            background: var(--bg-card-darker);
+            background: linear-gradient(135deg, var(--accent-darker) 0%, var(--accent) 100%);
             padding: 1rem 1.5rem;
-            border-bottom: 2px solid var(--accent);
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 1rem;
         }
-
-        .story-header i {
-            color: var(--accent);
-            font-size: 1.5rem;
-        }
-
+        
         .story-header h3 {
-            color: var(--accent);
+            color: var(--bg-primary);
             font-size: 1.25rem;
             font-weight: 700;
             margin: 0;
         }
-
+        
+        .story-header i {
+            color: var(--bg-primary);
+            font-size: 1.5rem;
+        }
+        
         .story-body {
             padding: 1.5rem;
         }
-
+        
         .story-content {
-            border-left: 4px solid var(--accent);
             padding-left: 1.5rem;
+            border-left: 4px solid var(--accent);
         }
-
+        
         .story-content p {
             color: var(--text-primary);
-            font-size: 1rem;
             line-height: 1.8;
-            margin-bottom: 1rem;
+            font-size: 1rem;
             text-align: justify;
+            margin-bottom: 1rem;
         }
-
+        
         .story-content p:last-child {
             margin-bottom: 0;
         }
-
-        .story-content strong {
-            color: var(--accent);
-            font-weight: 700;
-        }
-
-        .story-comparison {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border-color);
-            font-style: italic;
-            color: var(--text-secondary);
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .grid {
-            display: grid;
-        }
-
-        .grid-cols-2 {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .grid-cols-3 {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-
-        .grid-cols-4 {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-
-        .gap-4 {
-            gap: 1rem;
-        }
-
-        .gap-6 {
-            gap: 1.5rem;
-        }
-
-        .text-green {
-            color: var(--success);
-            font-weight: 600;
-        }
-
-        .text-red {
-            color: var(--danger);
-            font-weight: 600;
-        }
-
-        .text-blue {
-            color: var(--accent);
-            font-weight: 600;
-        }
-
-        .text-orange {
-            color: var(--warning);
-            font-weight: 600;
-        }
         
-        /* FIX: Pointer events for visualization containers */
-        #traditionalVisualization,
-        #waterfallVisualization {
-            pointer-events: none; /* Allows clicks to pass through static visual elements to elements underneath (like the tab buttons) */
+        .story-content .highlight {
+            font-weight: 600;
         }
 
-        /* COMPACT VISUALIZATION STYLES */
-        .visualization-compact {
-            padding: 0.5rem 0 !important;
-        }
-
-        .visualization-compact > * + * {
-            margin-top: 0.5rem !important;
-        }
-
-        .visualization-compact .text-8xl {
-            font-size: 2.5rem !important;
-            line-height: 1 !important;
-            margin: 0.25rem 0 !important;
-        }
-
-        .visualization-compact .rounded-full {
-            transform: scale(0.85);
-        }
-
-        .visualization-compact .mt-2 {
-            margin-top: 0.25rem !important;
-        }
-
-        .visualization-compact .mt-3 {
-            margin-top: 0.5rem !important;
-        }
-
-        .visualization-compact .gap-6 {
-            gap: 0.75rem !important;
-        }
-
-        .visualization-compact .gap-4 {
-            gap: 0.5rem !important;
-        }
-
-        .visualization-compact .h-28 {
-            height: 6rem !important;
-            width: 6rem !important;
-        }
-
-        .visualization-compact .h-24 {
-            height: 5rem !important;
-            width: 5rem !important;
-        }
-
-        .visualization-compact .h-20 {
-            height: 4.5rem !important;
-            width: 4.5rem !important;
-        }
-
-        .visualization-compact .w-40 {
-            width: 9rem !important;
-        }
-
-        .visualization-compact .w-48 {
-            width: 11rem !important;
-        }
-
-        .visualization-compact .w-36 {
-            width: 8rem !important;
-        }
-
-        .visualization-compact .p-2 {
-            padding: 0.4rem !important;
-        }
-
-        .visualization-compact .p-3 {
-            padding: 0.6rem !important;
-        }
-
-        .visualization-compact .p-4 {
-            padding: 0.75rem !important;
-        }
-
-        .visualization-compact .text-3xl {
-            font-size: 1.5rem !important;
-        }
-
-        .visualization-compact .text-xl {
-            font-size: 1rem !important;
-        }
-
-        .visualization-compact .text-base {
-            font-size: 0.875rem !important;
-        }
-
-        .visualization-compact .text-sm {
-            font-size: 0.75rem !important;
-        }
-
-        /* --- NEW SUMMARY STYLES (v2) --- */
+        /* --- NEW SUMMARY (v2) STYLES --- */
         .summary-chart-box {
-            background: var(--bg-card-darker);
-            border-radius: 0.5rem;
-            border: 1px solid var(--border-color);
-            padding: 1.5rem;
+            background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%);
+            border: 2px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
-            height: 100%;
+            height: 100%; /* NEW: make sure both are same height */
         }
         .summary-chart-box h3 {
             color: var(--text-primary);
             font-size: 1.25rem;
             font-weight: 700;
-            text-align: center;
+            margin-bottom: 0.5rem;
         }
         .summary-chart-box .subtitle {
             color: var(--text-secondary);
-            font-size: 0.85rem;
-            text-align: center;
-            margin-bottom: 1.5rem;
-            min-height: 2.5em; /* Reserve space */
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
         }
-        .summary-chart-box .subtitle span {
-            color: var(--text-primary);
+        .summary-chart-box .subtitle .highlight {
+            color: var(--accent);
             font-weight: 600;
         }
         .summary-chart-box .note {
-            color: var(--text-muted);
+            color: var(--text-secondary);
             font-size: 0.9rem;
             text-align: center;
             font-weight: 600;
@@ -805,7 +670,7 @@
             </div>
         </header>
 
-        <div class="flex relative">
+        <div class="flex">
             <!-- Sidebar -->
             <aside id="sidebar"
                 class="sidebar fixed lg:sticky top-0 left-0 h-screen shadow-2xl z-40 overflow-y-auto">
@@ -954,169 +819,145 @@
 
             <!-- Main Content -->
             <main class="main-content">
-                <!-- Background Story Section -->
-                <div class="story-card">
-                    <div class="story-header">
-                        <i class="fas fa-book-open"></i>
-                        <h3>Scenario Perencanaan Legacy</h3>
-                    </div>
-                    <div class="story-body">
-                        <div class="story-content">
-                            <p>
-                                <strong id="storyClientName">Mr. John</strong> (usia <strong id="storyClientAge">43</strong> tahun) 
-                                memiliki harta kekayaan sebesar <strong id="storyTotalAssets">Rp 30.000.000</strong> 
-                                dan hendak mengatur <strong>LEGACY PLANNING</strong> yang terbaik untuk 
-                                <strong id="storyNumChildren">2</strong> anaknya, dimana usia anak yang sulung adalah 
-                                <strong id="storyOldestChildAge">14</strong> tahun.
-                            </p>
-                            <p class="story-comparison">
-                                Di bawah ini adalah perbandingan LEGACY planning secara 
-                                <strong>Tradisional</strong> atau <strong>Waterfall Concept</strong>.
-                            </p>
+                <div class="container mx-auto">
+                    <!-- Story Section -->
+                    <div class="story-card mb-8">
+                        <div class="story-header">
+                            <i class="fas fa-book-open"></i>
+                            <h3>Cerita Klien</h3>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Tabs -->
-                <div class="w-full max-w-2xl mx-auto mb-8">
-                    <div class="grid grid-cols-2 gap-0 rounded-lg overflow-hidden"
-                        style="background: var(--bg-card-darker); border: 2px solid var(--accent);">
-                        <button id="traditionalTab" class="tab-button active text-sm md:text-base py-3">
-                            KONSEP TRADISIONAL
-                        </button>
-                        <button id="waterfallTab" class="tab-button text-sm md:text-base py-3">
-                            KONSEP WATERFALL
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Traditional Content -->
-                <div id="traditionalContent" class="space-y-8">
-                    <div class="card">
-                        <div class="card-header"
-                            style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-primary) 100%); border-bottom: 2px solid var(--accent);">
-                            <h2 class="text-2xl text-center font-bold" style="color: var(--accent);">
-                                Warisan Berdasarkan Hukum Waris (Traditional)
-                            </h2>
-                            <p class="text-center mt-2" style="color: var(--text-secondary);">
-                                Pembagian warisan secara merata tanpa multiplier
-                            </p>
-                        </div>
-                        <div class="card-body">
-                            <div id="traditionalVisualization" class="flex flex-col items-center space-y-6 visualization-compact">
-                                <!-- Will be populated by JavaScript -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Waterfall Content -->
-                <div id="waterfallContent" class="space-y-8 hidden">
-                    <div class="card">
-                        <div class="card-header"
-                            style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-primary) 100%); border-bottom: 2px solid var(--accent);">
-                            <h2 class="text-2xl text-center font-bold" style="color: var(--accent);">
-                                Warisan Dimultiplikasi (Waterfall Legacy)
-                            </h2>
-                            <p class="text-center mt-2" style="color: var(--text-secondary);">
-                                Perencanaan warisan dengan multiplier Waterfall Concept
-                            </p>
-                        </div>
-                        <div class="card-body">
-                            <div id="waterfallVisualization" class="flex flex-col items-center space-y-6 visualization-compact">
-                                <!-- Will be populated by JavaScript -->
+                        <div class="story-body">
+                            <div class="story-content">
+                                <p>
+                                    <span id="storyClientName" class="highlight">Mr. John</span> (usia <span id="storyClientAge" class="highlight">43</span> tahun) memiliki total aset sebesar 
+                                    <span id="storyTotalAssets" class="highlight">Rp 30.000.000.000</span> 
+                                    dan <span id="storyNumChildren" class="highlight">2</span> orang anak.
+                                </p>
+                                <p>
+                                    Anak sulung saat ini berusia <span id="storyOldestChildAge" class="highlight">14</span> tahun. 
+                                    Dengan menggunakan <span class="highlight">WATERFALL CONCEPT</span>, klien dapat mengalokasikan sebagian kecil asetnya 
+                                    untuk menghasilkan warisan yang berlipat ganda bagi generasi berikutnya, 
+                                    sambil tetap menyimpan sebagian besar aset untuk kebutuhan pribadi, bisnis, atau masa pensiun.
+                                </p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Results Summary -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="kpi-card"
-                            style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%); border: 2px solid var(--accent); padding: 2rem;">
-                            <h3 class="text-sm mb-2 kpi-title">
-                                Total LEGACY Anak
-                            </h3>
-                            <p id="childrenTotalSA" class="text-3xl font-extrabold highlight mb-2">
-                                Rp 60.000.000.000
-                            </p>
-                            <p class="text-sm" style="color: var(--text-secondary);">
-                                LEGACY per Anak: <span id="childrenLegacyEach" class="font-bold highlight">Rp
-                                    30.000.000.000</span>
-                            </p>
-                            <p id="traditionalComparison" class="text-xs mt-2" style="color: var(--text-muted);">
-                                (vs. Rp 15.000.000.000 Traditional)
-                            </p>
-                        </div>
-
-                        <div class="kpi-card"
-                            style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%); border: 2px solid var(--accent); padding: 2rem;">
-                            <h3 class="text-sm mb-2 kpi-title">
-                                Total LEGACY Cucu
-                            </h3>
-                            <p id="grandchildrenTotalSA" class="text-3xl font-extrabold highlight mb-2">
-                                Rp 160.000.000.000
-                            </p>
-                            <p class="text-sm" style="color: var(--text-secondary);">
-                                LEGACY per Cucu: <span id="grandchildrenLegacyEach" class="font-bold highlight">Rp
-                                    40.000.000.000</span>
-                            </p>
-                            <p class="text-xs mt-2" style="color: var(--text-muted);">
-                                (LEGACY Cucu Diciptakan dari Aset Awal)
-                            </p>
-                        </div>
+                    <!-- Tabs -->
+                    <div class="tabs">
+                        <button id="traditionalTab" class="tab-button active">Konsep Tradisional</button>
+                        <button id="waterfallTab" class="tab-button">Konsep Waterfall</button>
                     </div>
 
-                    <!-- Comparison Summary Card -->
-                    <div class="card">
-                        <div class="card-header"
-                            style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-primary) 100%); border-bottom: 2px solid var(--accent);">
-                            <h2 class="text-2xl text-center font-bold" style="color: var(--accent);">
-                                Ringkasan Perbandingan
-                            </h2>
-                        </div>
-                        <div class="card-body">
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <!-- Traditional Chart Box -->
-                                <div class="summary-chart-box summary-chart-box-traditional">
-                                    <h3>Konsep Traditional</h3>
-                                    <p class="subtitle">Initial Assets Available: <span id="chartTradSubtitle"></span></p>
-                                    <div class="chart-container-new">
-                                        <div class="bar-wrapper">
-                                            <div class="bar-value" id="tradBarRequiredValue"></div>
-                                            <div class="bar-fill traditional" id="tradBarRequiredFill" style="height: 0%;"></div>
-                                            <div class="bar-label">Amount Required</div>
-                                        </div>
-                                        <div class="bar-wrapper">
-                                            <div class="bar-value" id="tradBarLegacyValue"></div>
-                                            <div class="bar-fill traditional" id="tradBarLegacyFill" style="height: 0%;"></div>
-                                            <div class="bar-label">Total Legacy</div>
-                                        </div>
-                                    </div>
-                                    <p class="note">Wealth Multiplication Factor: <span id="chartTradNote">1x</span></p>
-                                </div>
-                                
-                                <!-- Waterfall Chart Box -->
-                                <div class="summary-chart-box summary-chart-box-waterfall">
-                                    <h3>Konsep Waterfall</h3>
-                                    <p class="subtitle">Initial Assets Available: <span id="chartWaterSubtitle"></span></p>
-                                    <div class="chart-container-new">
-                                        <div class="bar-wrapper">
-                                            <div class="bar-value" id="waterBarRequiredValue"></div>
-                                            <div class="bar-fill traditional" id="waterBarRequiredFill" style="height: 0%;"></div>
-                                            <div class="bar-label">Amount Required</div>
-                                        </div>
-                                        <div class="bar-wrapper">
-                                            <div class="bar-value" id="waterBarLegacyValue"></div>
-                                            <div class="bar-fill waterfall" id="waterBarLegacyFill" style="height: 0%;"></div>
-                                            <div class="bar-label">Total Legacy</div>
-                                        </div>
-                                    </div>
-                                    <p class="note">Wealth Multiplication Factor: <span id="chartWaterNote"></span></p>
+                    <!-- Traditional Content -->
+                    <div id="traditionalContent">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Warisan Tradisional (Hukum Waris)</h2>
+                                <p class="card-subtitle">Semua aset dibagi rata kepada anak-anak, menghabiskan seluruh aset</p>
+                            </div>
+                            <div class="card-body">
+                                <div id="traditionalVisualization"
+                                    class="flex flex-col items-center gap-8 text-center"
+                                    style="padding: 3rem 1rem;">
                                 </div>
                             </div>
-                            
                         </div>
+                    </div>
+
+                    <!-- Waterfall Content -->
+                    <div id="waterfallContent" class="hidden">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Warisan dengan Konsep Waterfall</h2>
+                                <p class="card-subtitle">Alokasi sebagian kecil untuk warisan, sisanya untuk kebutuhan sendiri</p>
+                            </div>
+                            <div class="card-body">
+                                <div id="waterfallVisualization"
+                                    class="flex flex-col items-center gap-8 text-center"
+                                    style="padding: 3rem 1rem;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Summary Section -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="summary-box">
+                                <h3>Distribusi Legacy (Anak)</h3>
+                                <p>Per Anak dari Total Legacy Anak</p>
+                                <div class="summary-item">
+                                    <span class="summary-item-label">Total Legacy Anak:</span>
+                                    <span id="childrenTotalSA" class="summary-item-value">-</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-item-label">Legacy per Anak:</span>
+                                    <span id="childrenLegacyEach" class="summary-item-value">-</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span id="traditionalComparison" class="summary-item-label text-xs italic">(vs. - Traditional)</span>
+                                </div>
+                            </div>
+
+                            <div class="summary-box summary-box-waterfall">
+                                <h3>Distribusi Legacy (Cucu)</h3>
+                                <p>Per Cucu dari Total Legacy Cucu</p>
+                                <div class="summary-item">
+                                    <span class="summary-item-label">Total Legacy Cucu:</span>
+                                    <span id="grandchildrenTotalSA" class="summary-item-value">-</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-item-label">Legacy per Cucu:</span>
+                                    <span id="grandchildrenLegacyEach" class="summary-item-value">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- NEW SUMMARY SECTION (v2) -->
+                    <div class="mt-8">
+                        <h2 class="text-2xl font-bold mb-6" style="color: var(--text-primary); text-align: center;">
+                            Perbandingan Konsep: Traditional vs. Waterfall
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Traditional Summary Chart -->
+                            <div class="summary-chart-box summary-chart-box-traditional">
+                                <h3>Konsep Tradisional</h3>
+                                <p class="subtitle">Initial Assets Available: <br><span id="chartTradSubtitle" class="highlight"></span></p>
+                                <div class="chart-container-new">
+                                    <div class="bar-wrapper">
+                                        <div class="bar-value" id="tradBarRequiredValue"></div>
+                                        <div class="bar-fill traditional" id="tradBarRequiredFill" style="height: 0%;"></div>
+                                        <div class="bar-label">Amount Required</div>
+                                    </div>
+                                    <div class="bar-wrapper">
+                                        <div class="bar-value" id="tradBarLegacyValue"></div>
+                                        <div class="bar-fill traditional" id="tradBarLegacyFill" style="height: 0%;"></div>
+                                        <div class="bar-label">Total Legacy</div>
+                                    </div>
+                                </div>
+                                <p class="note">Wealth Multiplication Factor: <span id="chartTradNote"></span></p>
+                            </div>
+                            
+                            <!-- Waterfall Summary Chart -->
+                            <div class="summary-chart-box summary-chart-box-waterfall">
+                                <h3>Konsep Waterfall</h3>
+                                <p class="subtitle">Initial Assets Available: <span id="chartWaterSubtitle"></span></p>
+                                <div class="chart-container-new">
+                                    <div class="bar-wrapper">
+                                        <div class="bar-value" id="waterBarRequiredValue"></div>
+                                        <div class="bar-fill traditional" id="waterBarRequiredFill" style="height: 0%;"></div>
+                                        <div class="bar-label">Amount Required</div>
+                                    </div>
+                                    <div class="bar-wrapper">
+                                        <div class="bar-value" id="waterBarLegacyValue"></div>
+                                        <div class="bar-fill waterfall" id="waterBarLegacyFill" style="height: 0%;"></div>
+                                        <div class="bar-label">Total Legacy</div>
+                                    </div>
+                                </div>
+                                <p class="note">Wealth Multiplication Factor: <span id="chartWaterNote"></span></p>
+                            </div>
+                        </div>
+                        
                     </div>
                 </div>
             </main>
@@ -1343,13 +1184,14 @@
                 html += `
                     <div class="flex flex-col items-center">
                         <div class="rounded-full h-24 w-24 flex flex-col items-center justify-center shadow-xl border-2"
-                             style="background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%); 
+                             style="background: linear-gradient(135deg, var(--danger) 0%, #c74565 100%); 
                                     border-color: var(--danger); color: white;">
                             <p class="text-sm font-bold">Anak ${i + 1}</p>
                         </div>
-                        <div class="mt-3 p-2 rounded-lg border shadow-md text-center w-40 kpi-card">
-                            <p class="text-xs font-semibold" style="color: var(--danger);">Warisan</p>
-                            <p class="text-xl font-extrabold leading-tight" style="color: var(--text-primary);">
+                        <div class="mt-3 p-3 rounded-xl border-4 shadow-2xl text-center w-48 transition-all duration-300 transform hover:scale-105 kpi-card"
+                             style="border-color: var(--danger);">
+                            <p class="text-base font-semibold" style="color: var(--danger);">Warisan per Anak</p>
+                            <p class="text-3xl font-extrabold leading-tight" style="color: var(--text-primary);">
                                 ${formatShortRupiah(state.traditionalLegacyEach)}
                             </p>
                         </div>
@@ -1498,267 +1340,47 @@
                 `;
             }
 
-            html += '</div>';
+            html += `
+                </div>
+            `;
 
             container.innerHTML = html;
         }
 
-
-  // Event Listeners - correction from claude
-document.addEventListener('DOMContentLoaded', function () {
-    // ✅ CRITICAL FIX: Add session initialization lock
-    let sessionInitLock = false;
-    
-    // ✅ Initialize session tracker FIRST
-    const sessionTracker = new BroadcastSessionTracker();
-    
-    // Make sessionTracker globally available for logout and debugging
-    window.sessionTracker = sessionTracker;
-    
-    // ✅ FIXED: Initialize session with lock to prevent double counting
-    async function initializeSession(authData) {
-        // Check if already initializing
-        if (sessionInitLock) {
-            console.log('⚠️ Session initialization already in progress, skipping');
-            return null;
-        }
-        
-        // Check if session already exists in Firebase
-        try {
-            await sessionTracker.ensureFirebaseReady();
-            
-            if (sessionTracker.firebaseEnabled && sessionTracker.db) {
-                // Check Firebase for existing session with same email
-                const sessionsRef = sessionTracker.db.ref('sessions');
-                const snapshot = await sessionsRef.orderByChild('email').equalTo(authData.email).once('value');
-                const existingSessions = snapshot.val();
-                
-                if (existingSessions) {
-                    const sessionIds = Object.keys(existingSessions);
-                    console.log(`⚠️ Found ${sessionIds.length} existing Firebase session(s) for ${authData.email}`);
-                    
-                    // Use existing session if it's still active (within last 60 seconds)
-                    for (const sessionId of sessionIds) {
-                        const session = existingSessions[sessionId];
-                        if (session.deviceFingerprint === authData.deviceFingerprint) {
-                            const age = Date.now() - session.lastSeen;
-                            if (age < 60000) { // Less than 1 minute old
-                                console.log('✅ Reusing existing active session:', sessionId);
-                                sessionTracker.currentSession = session;
-                                sessionTracker.startBroadcasting();
-                                return sessionId;
-                            } else {
-                                // Clean up stale session
-                                console.log('🧹 Removing stale session:', sessionId);
-                                await sessionTracker.db.ref(`sessions/${sessionId}`).remove();
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (error) {
-            console.warn('⚠️ Error checking existing sessions:', error);
-        }
-        
-        // Set lock
-        sessionInitLock = true;
-        
-        try {
-            // Start new session
-            console.log('🚀 Starting new session for:', authData.email);
-            const sessionId = await sessionTracker.startSession(authData);
-            
-            if (sessionId) {
-                console.log('✅ SESSION STARTED SUCCESSFULLY!');
-                console.log('  User:', authData.email);
-                console.log('  Session ID:', sessionId);
-                console.log('  Firebase:', sessionTracker.firebaseEnabled);
-            }
-            
-            return sessionId;
-        } finally {
-            // Release lock after 2 seconds
-            setTimeout(() => {
-                sessionInitLock = false;
-            }, 2000);
-        }
-    }
-    
-    // Display user info and setup admin access
+        // DOM Content Loaded
+        document.addEventListener('DOMContentLoaded', async () => {
+    // Display user email
     try {
         const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
-        if (authData.authenticated) {
-            document.getElementById('userEmail').textContent = authData.email;
-            
-            // ✅ FIXED: Initialize session with lock mechanism
-            initializeSession(authData).then(sessionId => {
-                if (sessionId) {
-                    console.log('✅ Session initialization completed:', sessionId);
-                }
-            }).catch(error => {
-                console.error('❌ Session initialization failed:', error);
-            });
-            
-            // Admin dashboard access moved to dashboard.html
+        if (authData.username) {
+            document.getElementById('userEmail').textContent = authData.username;
         }
     } catch (error) {
         console.error('Error loading user data:', error);
     }
-    
-    // ✅ SIMPLIFIED: Just update localStorage timestamp (don't create sessions)
-    function updateGlobalSessionActivity(authData) {
-        try {
-            const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
-            
-            const updatedSessions = globalSessions.map(session => {
-                if (session.email === authData.email && 
-                    session.deviceFingerprint === authData.deviceFingerprint) {
-                    return {
-                        ...session,
-                        lastActivity: Date.now(),
-                        registryTimestamp: Date.now()
-                    };
-                }
-                return session;
-            });
-            
-            // Keep only active sessions (last 8 hours)
-            const eightHoursAgo = Date.now() - (8 * 60 * 60 * 1000);
-            const activeSessions = updatedSessions.filter(s => s.lastActivity > eightHoursAgo);
-            
-            localStorage.setItem('globalSessionRegistry', JSON.stringify(activeSessions));
-            localStorage.setItem('sessionUpdate', Date.now().toString());
-        } catch (error) {
-            console.error('Error updating session activity:', error);
+
+    // Initialize session tracker
+    try {
+        if (typeof SessionTracker !== 'undefined') {
+            console.log('🔍 SessionTracker found, initializing...');
+            sessionTracker = new SessionTracker();
+            const sessionId = await sessionTracker.startSession('waterfall_concept');
+            console.log('✅ Session started with ID:', sessionId);
+        } else {
+            console.warn('⚠️ SessionTracker not loaded, skipping session tracking');
         }
+    } catch (error) {
+        console.error('❌ Error initializing session tracker:', error);
     }
 
-    // Update activity every 30 seconds
-    setInterval(() => {
-        try {
-            const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
-            if (authData.authenticated) {
-                updateGlobalSessionActivity(authData);
-                
-                if (sessionTracker && sessionTracker.currentSession) {
-                    sessionTracker.updateActivity();
-                }
-            }
-        } catch (error) {
-            console.error('Error in activity update:', error);
-        }
-    }, 30000);
-
-    // ✅ Handle browser close/refresh
-    window.addEventListener('beforeunload', function(event) {
-        if (sessionTracker && sessionTracker.currentSession) {
-            console.log('🚪 Browser closing - stopping Firebase session');
+    // Logout button
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        if (confirm('Apakah Anda yakin ingin logout?')) {
+            // Track logout action
             try {
-                if (sessionTracker.firebaseEnabled && sessionTracker.db) {
-                    const sessionRef = sessionTracker.db.ref(`sessions/${sessionTracker.currentSession.id}`);
-                    sessionRef.remove();
-                }
-                sessionTracker.currentSession = null;
-                sessionTracker.isBroadcasting = false;
-                console.log('🚪 Emergency session cleanup initiated');
-            } catch (error) {
-                console.warn('⚠️ Emergency cleanup failed:', error);
-            }
-        }
-    });
-
-    // ✅ Handle page visibility changes
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            if (sessionTracker && sessionTracker.currentSession) {
-                console.log('👁️ Page hidden - updating session activity');
-                sessionTracker.updateActivity();
-            }
-        } else {
-            if (sessionTracker && sessionTracker.currentSession) {
-                console.log('👁️ Page visible - updating session activity');
-                sessionTracker.updateActivity();
-            }
-        }
-    });
-
-    // ✅ DEBUG: Global test functions
-    window.testLogout = async function() {
-        console.log('🧪 Testing manual logout...');
-        if (sessionTracker) {
-            console.log('🔍 sessionTracker exists:', !!sessionTracker);
-            console.log('🔍 currentSession exists:', !!sessionTracker.currentSession);
-            if (sessionTracker.currentSession) {
-                console.log('🔍 Session ID:', sessionTracker.currentSession.id);
-                console.log('🔍 Session email:', sessionTracker.currentSession.email);
-                console.log('🛑 Calling stopSession...');
-                await sessionTracker.stopSession();
-                console.log('✅ Manual logout test completed');
-            } else {
-                console.warn('⚠️ No session to stop');
-            }
-        } else {
-            console.error('❌ sessionTracker not found');
-        }
-    };
-
-    window.getSessionInfo = function() {
-        console.log('📊 Session Information:');
-        console.log('- sessionTracker exists:', !!sessionTracker);
-        if (sessionTracker) {
-            console.log('- Firebase enabled:', sessionTracker.firebaseEnabled);
-            console.log('- Is broadcasting:', sessionTracker.isBroadcasting);
-            console.log('- Current session:', sessionTracker.currentSession);
-        }
-    };
-
-    // ✅ SAME-TAB LOGOUT BROADCAST: Listen for logout events from other tabs
-    window.addEventListener('storage', function(e) {
-        if (e.key === 'logoutBroadcast') {
-            console.log('🔔 Logout broadcast received from another tab');
-            
-            try {
-                const logoutData = JSON.parse(e.newValue || '{}');
-                const currentAuth = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
-                
-                // Only logout if it's the same user
-                if (logoutData.email === currentAuth.email) {
-                    console.log('🚪 Logging out this tab (same user)');
-                    
-                    // Clear session data
-                    sessionStorage.removeItem('waterfallAuth');
-                    localStorage.removeItem('waterfallActiveSession');
-                    
-                    // Show message and redirect
-                    alert('🚪 You have been logged out from another tab.');
-                    window.location.href = 'index.html';
-                }
-            } catch (error) {
-                console.error('Error processing logout broadcast:', error);
-            }
-        }
-    });
-
-    // Logout functionality
-    document.getElementById('logoutBtn').addEventListener('click', async function() {
-        if (confirm('Are you sure you want to logout?')) {
-            try {
-                const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
-                
-                // ✅ BROADCAST LOGOUT TO OTHER TABS (same user only)
-                localStorage.setItem('logoutBroadcast', JSON.stringify({
-                    email: authData.email,
-                    timestamp: Date.now()
-                }));
-                
-                // Clean up the broadcast signal after a moment
-                setTimeout(() => {
-                    localStorage.removeItem('logoutBroadcast');
-                }, 1000);
-                
-                if (typeof SecurityUtils !== 'undefined') {
-                    SecurityUtils.logSecurityEvent('LOGOUT', {
-                        email: authData.email,
+                if (sessionTracker && sessionTracker.firebaseEnabled) {
+                    await sessionTracker.trackAction('logout', {
+                        action: 'button_click',
                         message: 'User logged out manually',
                         timestamp: Date.now()
                     });
@@ -1880,20 +1502,31 @@ document.addEventListener('DOMContentLoaded', function () {
         traditionalContent.classList.add('hidden');
     });
 
-    // Client Title input
+    // ✅ FIXED: Client Title input - Only update labels, not full recalculation
     const clientTitle = document.getElementById('clientTitle');
     clientTitle.addEventListener('change', (e) => {
         state.clientTitle = e.target.value;
         updateClientNameLabels();
-        calculate();
+        // Only update the parts that show the name
+        updateStorySection();
+        renderTraditionalVisualization();
+        renderWaterfallVisualization();
     });
 
-    // Client Name input
+    // ✅ FIXED: Client Name input - Only update labels on input, full calc on blur
     const clientName = document.getElementById('clientName');
+    
+    // Real-time label updates (lightweight)
     clientName.addEventListener('input', (e) => {
         state.clientName = e.target.value.trim() || 'John';
         updateClientNameLabels();
-        calculate();
+    });
+    
+    // Full update when user finishes typing (on blur)
+    clientName.addEventListener('blur', () => {
+        updateStorySection();
+        renderTraditionalVisualization();
+        renderWaterfallVisualization();
     });
 
     // Function to update all client name labels
