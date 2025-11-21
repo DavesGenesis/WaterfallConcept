@@ -823,10 +823,27 @@
                 <div id="sidebarContent" class="p-6 space-y-6 pt-0">
                     <hr style="border-color: var(--border-color);">
 
+                    <!-- Client Name Input -->
+                    <div class="space-y-2">
+                        <label class="text-sm font-semibold" style="color: var(--text-secondary);">
+                            Nama Klien
+                        </label>
+                        <div class="flex gap-2">
+                            <select id="clientTitle" class="input-field" style="width: 80px;">
+                                <option value="Mr.">Mr.</option>
+                                <option value="Mrs.">Mrs.</option>
+                            </select>
+                            <input id="clientName" type="text" value="John" class="input-field flex-1"
+                                placeholder="Masukkan nama" />
+                        </div>
+                    </div>
+
+                    <hr style="border-color: var(--border-color);">
+
                     <!-- Aset Awal -->
                     <div class="space-y-2">
                         <label class="text-sm font-semibold" style="color: var(--text-secondary);">
-                            Total Aset Awal (Mr. John)
+                            Total Aset Awal (<span id="clientNameLabel1">Mr. John</span>)
                         </label>
                         <div id="assetsDisplay" class="text-lg font-bold highlight">
                             Rp 30.000.000.000
@@ -838,10 +855,10 @@
 
                     <hr style="border-color: var(--border-color);">
 
-                    <!-- Usia Mr. John -->
+                    <!-- Usia Client -->
                     <div class="space-y-2">
                         <label class="text-sm font-semibold" style="color: var(--text-secondary);">
-                            Usia Mr. John: <span id="ageDisplay" class="highlight text-lg">43</span> Tahun
+                            Usia <span id="clientNameLabel2">Mr. John</span>: <span id="ageDisplay" class="highlight text-lg">43</span> Tahun
                         </label>
                         <input id="ageSlider" type="range" min="35" max="70" value="43" class="w-full py-4" />
                         <div class="flex justify-between text-xs" style="color: var(--text-muted);">
@@ -1112,6 +1129,8 @@
     <script>
         // State
         let state = {
+            clientTitle: 'Mr.',
+            clientName: 'John',
             initialAssets: 30000000000,
             fatherAge: 43,
             numChildren: 2,
@@ -1296,13 +1315,15 @@
         function renderTraditionalVisualization() {
             const container = document.getElementById('traditionalVisualization');
 
+            const clientFullName = `${state.clientTitle} ${state.clientName}`;
+            
             let html = `
-                <!-- Gen 1: Mr. John -->
+                <!-- Gen 1: Client -->
                 <div class="flex flex-col items-center">
                     <div class="rounded-full h-28 w-28 flex flex-col items-center justify-center shadow-xl border-4" 
                          style="background: linear-gradient(135deg, var(--accent) 0%, var(--accent-darker) 100%); 
                                 border-color: var(--accent); color: var(--bg-primary);">
-                        <p class="text-sm font-bold">Mr. John</p>
+                        <p class="text-sm font-bold">${clientFullName}</p>
                         <p class="text-xs">(Gen 1)</p>
                     </div>
                     <p class="mt-2 text-sm font-semibold" style="color: var(--text-secondary);">
@@ -1357,7 +1378,7 @@
         // Update Story Section
         function updateStorySection() {
             // Get values from state
-            const clientName = "Mr. John"; // You can make this dynamic if you add a name input
+            const clientName = `${state.clientTitle} ${state.clientName}`;
             const clientAge = state.fatherAge;
             const totalAssets = formatRupiah(state.initialAssets);
             const numChildren = state.numChildren;
@@ -1375,13 +1396,15 @@
         function renderWaterfallVisualization() {
             const container = document.getElementById('waterfallVisualization');
 
+            const clientFullName = `${state.clientTitle} ${state.clientName}`;
+            
             let html = `
-                <!-- Gen 1: Mr. John with Retained Capital -->
+                <!-- Gen 1: Client with Retained Capital -->
                 <div class="flex flex-col items-center">
                     <div class="rounded-full h-28 w-28 flex flex-col items-center justify-center shadow-xl border-4"
                          style="background: linear-gradient(135deg, var(--accent) 0%, var(--accent-darker) 100%); 
                                 border-color: var(--accent); color: var(--bg-primary);">
-                        <p class="text-sm font-bold">Mr. John</p>
+                        <p class="text-sm font-bold">${clientFullName}</p>
                         <p class="text-xs">(Gen 1)</p>
                     </div>
                     <p class="mt-2 text-sm font-semibold" style="color: var(--text-secondary);">
@@ -1404,7 +1427,7 @@
                     
                     <!-- Aset Tersisa -->
                     <div class="kpi-card border-2 p-4 shadow-xl max-w-xs flex flex-col justify-center" style="border-color: var(--warning);">
-                        <p class="text-xs font-semibold" style="color: var(--text-secondary);">Aset Tersisa Mr. John</p>
+                        <p class="text-xs font-semibold" style="color: var(--text-secondary);">Aset Tersisa ${clientFullName}</p>
                         <p class="font-extrabold text-xl" style="color: var(--warning);">
                             ${formatShortRupiah(state.retainedCapital)}
                         </p>
@@ -1856,6 +1879,29 @@ document.addEventListener('DOMContentLoaded', function () {
         waterfallContent.classList.remove('hidden');
         traditionalContent.classList.add('hidden');
     });
+
+    // Client Title input
+    const clientTitle = document.getElementById('clientTitle');
+    clientTitle.addEventListener('change', (e) => {
+        state.clientTitle = e.target.value;
+        updateClientNameLabels();
+        calculate();
+    });
+
+    // Client Name input
+    const clientName = document.getElementById('clientName');
+    clientName.addEventListener('input', (e) => {
+        state.clientName = e.target.value.trim() || 'John';
+        updateClientNameLabels();
+        calculate();
+    });
+
+    // Function to update all client name labels
+    function updateClientNameLabels() {
+        const fullName = `${state.clientTitle} ${state.clientName}`;
+        document.getElementById('clientNameLabel1').textContent = fullName;
+        document.getElementById('clientNameLabel2').textContent = fullName;
+    }
 
     // Assets input
     const assetsInput = document.getElementById('assetsInput');
