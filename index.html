@@ -692,6 +692,32 @@ async validateCredentials(email, password) {
         
         console.log('✅ Firebase user authenticated successfully');
         
+        // ============================================================
+        // STEP 3: Check EXPIRATION DATE (for Firebase users only)
+        // ============================================================
+        if (WaterfallConfig.subscription.enabled) {
+            const isExpired = await this.checkUserExpiration(email, firebaseUser);
+            if (isExpired) {
+                console.log('🚫 User subscription expired:', email);
+                this.showMessage('error', '🚫 Access Denied: Your subscription has expired. Please contact your administrator to renew access.');
+                
+                // Log expired login attempt
+                if (typeof SecurityUtils !== 'undefined') {
+                    SecurityUtils.logSecurityEvent('EXPIRED_LOGIN_ATTEMPT', {
+                        email: email,
+                        expirationDate: firebaseUser.expirationDate ? new Date(firebaseUser.expirationDate).toISOString() : 'Not set',
+                        deviceFingerprint: this.deviceFingerprint,
+                        location: `${this.locationData.city}, ${this.locationData.country}`,
+                        message: `Expired user ${email} attempted to login`,
+                        severity: 'WARNING',
+                        timestamp: Date.now()
+                    });
+                }
+                
+                return false;
+            }
+        }
+        
         // Store user data for handleSuccessfulLogin
         this.currentUserData = firebaseUser;
         this.currentUserData.email = email;
@@ -747,6 +773,79 @@ async getFirebaseUser(email) {
         return null;
     }
 }                
+
+// ✅ NEW METHOD: Check user expiration
+async checkUserExpiration(email, userData) {
+    try {
+        console.log('📅 Checking expiration for:', email);
+        
+        // System users never expire
+        if (userData.isSystemUser || WaterfallConfig.users[email]) {
+            console.log('✅ System user - never expires');
+            return false;
+        }
+        
+        // Check if user has expiration date
+        if (!userData.expirationDate) {
+            console.log('⚠️ No expiration date set - granting default trial period');
+            
+            // Set default trial period
+            const trialDays = WaterfallConfig.subscription.defaultTrialDays;
+            const expirationDate = Date.now() + (trialDays * 24 * 60 * 60 * 1000);
+            
+            // Update Firebase with expiration date
+            if (typeof firebaseConfig !== 'undefined' && firebaseConfig.isReady()) {
+                const db = firebaseConfig.getDatabase();
+                const sanitizedEmail = this.sanitizeEmail(email);
+                await db.ref(`users/${sanitizedEmail}/expirationDate`).set(expirationDate);
+                await db.ref(`users/${sanitizedEmail}/subscriptionStatus`).set('trial');
+                console.log(`✅ Trial period set: ${trialDays} days`);
+            }
+            
+            return false; // Allow login with new trial
+        }
+        
+        // Check if expired
+        const now = Date.now();
+        const expirationDate = userData.expirationDate;
+        
+        if (now > expirationDate) {
+            console.log('🚫 Subscription EXPIRED');
+            console.log('   Expiration date:', new Date(expirationDate).toLocaleString());
+            console.log('   Current date:', new Date(now).toLocaleString());
+            
+            // Update status to expired in Firebase
+            if (typeof firebaseConfig !== 'undefined' && firebaseConfig.isReady()) {
+                const db = firebaseConfig.getDatabase();
+                const sanitizedEmail = this.sanitizeEmail(email);
+                await db.ref(`users/${sanitizedEmail}/subscriptionStatus`).set('expired');
+            }
+            
+            return true; // Expired
+        }
+        
+        console.log('✅ Subscription is active');
+        console.log('   Expires on:', new Date(expirationDate).toLocaleString());
+        
+        // Calculate days remaining
+        const daysRemaining = Math.ceil((expirationDate - now) / (24 * 60 * 60 * 1000));
+        console.log('   Days remaining:', daysRemaining);
+        
+        // Update status to active in Firebase
+        if (typeof firebaseConfig !== 'undefined' && firebaseConfig.isReady()) {
+            const db = firebaseConfig.getDatabase();
+            const sanitizedEmail = this.sanitizeEmail(email);
+            await db.ref(`users/${sanitizedEmail}/subscriptionStatus`).set('active');
+        }
+        
+        return false; // Not expired
+        
+    } catch (error) {
+        console.error('❌ Error checking expiration:', error);
+        // On error, allow login (fail-open)
+        return false;
+    }
+}
 
 // ✅ NEW METHOD: Check if user is blocked in Firebase
 async checkIfUserBlocked(email) {

@@ -206,262 +206,332 @@
         }
 
         .sidebar-desktop-closed #parameterControlToggle h2,
-        .sidebar-desktop-closed #closeSidebar {
-            display: none; /* Hide the text and close button in collapsed state */
+        .sidebar-desktop-closed #parameterControlToggle #closeSidebar {
+             display: none;
+        }
+
+
+        @media (min-width: 1024px) {
+            .sidebar {
+                transform: translateX(0) !important; 
+                position: sticky;
+            }
+            .sidebar-closed, .sidebar-open {
+                transform: translateX(0); /* Mobile classes do nothing on desktop */
+            }
+            
+            /* Overwrite the mobile padding for open state on desktop */
+            .sidebar:not(.sidebar-desktop-closed) {
+                 padding: 1.5rem 1rem;
+            }
         }
 
         .main-content {
-            flex: 1;
-            padding: 2rem;
+            flex-grow: 1;
+            padding: 2rem 3rem;
             overflow-y: auto;
+            max-height: 100vh;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
-        .input-field {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            background-color: var(--bg-card-darker);
-            border: 1px solid var(--border-color);
+        .kpi-card {
+            background: var(--bg-card-darker);
+            padding: 1.5rem;
             border-radius: 0.5rem;
-            color: var(--text-primary);
-            font-family: 'Montserrat', sans-serif;
-            outline: none;
-            transition: border-color 0.3s, box-shadow 0.3s;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s ease;
         }
 
-        .input-field:focus {
+        .kpi-card:hover {
+            transform: translateY(-2px);
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.1);
+        }
+
+        .kpi-title {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+        }
+
+        .kpi-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+            line-height: 1.4;
+        }
+
+        .calculation-box {
+            background: var(--bg-card-darker);
+            padding: 2rem;
+            border-radius: 0.5rem;
+            margin: 2rem 0;
+            border: 1px solid var(--border-color);
+            position: relative;
+            clear: both;
+        }
+
+        .calculation-box h3 {
+            margin-bottom: 1.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--accent);
         }
 
         input[type="range"] {
             -webkit-appearance: none;
             appearance: none;
             width: 100%;
-            height: 4px;
-            background: var(--bg-card-darker);
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border-color);
             outline: none;
-            border-radius: 2px;
-            cursor: pointer;
         }
 
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
             background: var(--accent);
             cursor: pointer;
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(100, 255, 218, 0.5);
+            border: 2px solid var(--bg-primary);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
             background: var(--accent);
             cursor: pointer;
-            border-radius: 50%;
-            border: none;
+            border: 2px solid var(--bg-primary);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        .kpi-card {
-            background-color: var(--bg-card-darker);
-            border-radius: 0.75rem;
-            padding: 1.5rem;
+        .input-field {
+            background-color: var(--bg-primary);
             border: 1px solid var(--border-color);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        .kpi-label {
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-        }
-
-        .kpi-value {
+            border-radius: 0.375rem;
+            padding: 0.5rem 0.75rem;
             color: var(--text-primary);
-            font-size: 2rem;
-            font-weight: 700;
+            width: 100%;
+            font-family: 'Montserrat', monospace;
         }
 
-        .calculation-box {
-            background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%);
-            border: 2px solid var(--border-color);
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            box-shadow: 0 6px 12px -1px rgba(0, 0, 0, 0.2);
-        }
-
-        .calculation-box h3 {
-            color: var(--text-primary);
-            margin-bottom: 1.5rem;
-            font-size: 1rem;
-        }
-
-        /* Tabs */
-        .tabs {
-            display: flex;
-            gap: 0.5rem;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 2rem;
-            padding: 0 0.5rem;
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent);
         }
 
         .tab-button {
-            padding: 0.75rem 2rem;
-            background: transparent;
-            border: none;
-            border-bottom: 3px solid transparent;
-            color: var(--text-secondary);
-            font-family: 'Montserrat', sans-serif;
+            padding: 0.75rem 1.5rem;
             font-weight: 600;
-            font-size: 1rem;
+            border: none;
             cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .tab-button.active {
-            color: var(--accent);
-            border-bottom-color: var(--accent);
-        }
-
-        .tab-button:hover {
+            transition: all 0.2s;
+            background: var(--bg-card-darker);
             color: var(--text-primary);
-        }
-
-        /* Summary boxes */
-        .summary-box {
-            background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%);
-            border: 2px solid var(--border-color);
-            border-radius: 1rem;
-            padding: 2rem;
-            box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        /* NEW: Glow box for Waterfall */
-        .summary-box-waterfall {
-            border: 2px solid var(--success);
-            box-shadow: 0 0 30px rgba(100, 255, 218, 0.4);
-            transform: scale(1.02);
-        }
-
-        .summary-box h3 {
-            color: var(--text-primary);
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .summary-box p {
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .summary-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 1rem;
-            background-color: var(--bg-card);
-            border-radius: 0.5rem;
-            margin-bottom: 0.75rem;
             border: 1px solid var(--border-color);
         }
 
-        .summary-item-label {
-            color: var(--text-secondary);
-            font-weight: 500;
+        .tab-button.active {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border-color: var(--accent);
         }
 
-        .summary-item-value {
-            color: var(--accent);
-            font-weight: 700;
+        .tab-button:hover:not(.active) {
+            background: var(--bg-card-lighter);
         }
 
-        .story-card {
-            background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%);
-            border: 2px solid var(--accent);
-            border-radius: 1rem;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        .hidden {
+            display: none;
         }
-        
-        .story-header {
-            background: linear-gradient(135deg, var(--accent-darker) 0%, var(--accent) 100%);
-            padding: 1rem 1.5rem;
-            display: flex;
-            align-items: center;
+
+        .grid {
+            display: grid;
+        }
+
+        .grid-cols-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .grid-cols-3 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .grid-cols-4 {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .gap-4 {
             gap: 1rem;
         }
-        
-        .story-header h3 {
-            color: var(--bg-primary);
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin: 0;
+
+        .gap-6 {
+            gap: 1.5rem;
         }
-        
-        .story-header i {
-            color: var(--bg-primary);
-            font-size: 1.5rem;
-        }
-        
-        .story-body {
-            padding: 1.5rem;
-        }
-        
-        .story-content {
-            padding-left: 1.5rem;
-            border-left: 4px solid var(--accent);
-        }
-        
-        .story-content p {
-            color: var(--text-primary);
-            line-height: 1.8;
-            font-size: 1rem;
-            text-align: justify;
-            margin-bottom: 1rem;
-        }
-        
-        .story-content p:last-child {
-            margin-bottom: 0;
-        }
-        
-        .story-content .highlight {
+
+        .text-green {
+            color: var(--success);
             font-weight: 600;
         }
 
-        /* --- NEW SUMMARY (v2) STYLES --- */
+        .text-red {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        .text-blue {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .text-orange {
+            color: var(--warning);
+            font-weight: 600;
+        }
+        
+        /* FIX: Pointer events for visualization containers */
+        #traditionalVisualization,
+        #waterfallVisualization {
+            pointer-events: none; /* Allows clicks to pass through static visual elements to elements underneath (like the tab buttons) */
+        }
+
+        /* COMPACT VISUALIZATION STYLES */
+        .visualization-compact {
+            padding: 0.5rem 0 !important;
+        }
+
+        .visualization-compact > * + * {
+            margin-top: 0.5rem !important;
+        }
+
+        .visualization-compact .text-8xl {
+            font-size: 2.5rem !important;
+            line-height: 1 !important;
+            margin: 0.25rem 0 !important;
+        }
+
+        .visualization-compact .rounded-full {
+            transform: scale(0.85);
+        }
+
+        .visualization-compact .mt-2 {
+            margin-top: 0.25rem !important;
+        }
+
+        .visualization-compact .mt-3 {
+            margin-top: 0.5rem !important;
+        }
+
+        .visualization-compact .gap-6 {
+            gap: 0.75rem !important;
+        }
+
+        .visualization-compact .gap-4 {
+            gap: 0.5rem !important;
+        }
+
+        .visualization-compact .h-28 {
+            height: 6rem !important;
+            width: 6rem !important;
+        }
+
+        .visualization-compact .h-24 {
+            height: 5rem !important;
+            width: 5rem !important;
+        }
+
+        .visualization-compact .h-20 {
+            height: 4.5rem !important;
+            width: 4.5rem !important;
+        }
+
+        .visualization-compact .w-40 {
+            width: 9rem !important;
+        }
+
+        .visualization-compact .w-48 {
+            width: 11rem !important;
+        }
+
+        .visualization-compact .w-36 {
+            width: 8rem !important;
+        }
+
+        .visualization-compact .p-2 {
+            padding: 0.4rem !important;
+        }
+
+        .visualization-compact .p-3 {
+            padding: 0.6rem !important;
+        }
+
+        .visualization-compact .p-4 {
+            padding: 0.75rem !important;
+        }
+
+        .visualization-compact .text-3xl {
+            font-size: 1.5rem !important;
+        }
+
+        .visualization-compact .text-xl {
+            font-size: 1rem !important;
+        }
+
+        .visualization-compact .text-base {
+            font-size: 0.875rem !important;
+        }
+
+        .visualization-compact .text-sm {
+            font-size: 0.75rem !important;
+        }
+
+        /* --- NEW SUMMARY STYLES (v2) --- */
         .summary-chart-box {
-            background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%);
-            border: 2px solid var(--border-color);
-            border-radius: 1rem;
-            padding: 2rem;
-            box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
+            background: var(--bg-card-darker);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
             display: flex;
             flex-direction: column;
-            height: 100%; /* NEW: make sure both are same height */
+            height: 100%;
         }
         .summary-chart-box h3 {
             color: var(--text-primary);
             font-size: 1.25rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            text-align: center;
         }
         .summary-chart-box .subtitle {
             color: var(--text-secondary);
-            font-size: 0.875rem;
-            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            min-height: 2.5em; /* Reserve space */
         }
-        .summary-chart-box .subtitle .highlight {
-            color: var(--accent);
+        .summary-chart-box .subtitle span {
+            color: var(--text-primary);
             font-weight: 600;
         }
         .summary-chart-box .note {
-            color: var(--text-secondary);
+            color: var(--text-muted);
             font-size: 0.9rem;
             text-align: center;
             font-weight: 600;
@@ -564,34 +634,6 @@
             .summary-box-waterfall {
                 transform: scale(1); /* Disable pop effect on mobile for better layout */
             }
-
-            /* Story Card Mobile Styles */
-            .story-header {
-                padding: 0.75rem 1rem;
-            }
-
-            .story-header h3 {
-                font-size: 1rem;
-            }
-
-            .story-header i {
-                font-size: 1.25rem;
-            }
-
-            .story-body {
-                padding: 1rem;
-            }
-
-            .story-content {
-                padding-left: 1rem;
-                border-left-width: 3px;
-            }
-
-            .story-content p {
-                font-size: 0.9rem;
-                text-align: left;
-                line-height: 1.6;
-            }
         }
 
         @media print {
@@ -652,11 +694,22 @@
                         <div class="hidden lg:flex items-center gap-3 text-sm" style="color: var(--text-secondary);">
                             <i class="fas fa-user h-4 w-4"></i>
                             <span id="userEmail"></span>
-                            <button onclick="window.location.href='dashboard.html'" style="padding: 0.75rem 1.25rem; background: var(--accent); color: var(--bg-primary); border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-family: 'Montserrat', sans-serif;" title="Back to Dashboard">
-                                <i class="fas fa-home"></i> Dashboard
+                            
+                            <!-- Expiration Display -->
+                            <div id="expirationDisplay" style="display: none; padding: 0.5rem 0.75rem; border-radius: 0.375rem; background: var(--bg-card-darker); border: 1px solid var(--border-color);">
+                                <i class="fas fa-calendar-alt" style="color: var(--accent);"></i>
+                                <span id="expirationText" style="color: var(--text-primary); font-weight: 500; margin-left: 0.25rem;"></span>
+                            </div>
+                            
+                            <button onclick="window.location.href='dashboard.html'" class="p-2 rounded hover:bg-blue-600 transition-colors" 
+                                style="color: var(--accent); background: var(--bg-card-darker);" 
+                                title="Back to Dashboard">
+                                <i class="fas fa-home h-4 w-4"></i>
                             </button>
-                            <button id="logoutBtn" style="padding: 0.75rem 1.25rem; background: var(--danger); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-family: 'Montserrat', sans-serif;" title="Logout">
-                                <i class="fas fa-sign-out-alt"></i> Logout
+                            <button id="logoutBtn" class="p-2 rounded hover:bg-red-600 transition-colors" 
+                                style="color: var(--danger); background: var(--bg-card-darker);" 
+                                title="Logout">
+                                <i class="fas fa-sign-out-alt h-4 w-4"></i>
                             </button>
                         </div>
                         
@@ -670,7 +723,7 @@
             </div>
         </header>
 
-        <div class="flex">
+        <div class="flex relative">
             <!-- Sidebar -->
             <aside id="sidebar"
                 class="sidebar fixed lg:sticky top-0 left-0 h-screen shadow-2xl z-40 overflow-y-auto">
@@ -688,27 +741,10 @@
                 <div id="sidebarContent" class="p-6 space-y-6 pt-0">
                     <hr style="border-color: var(--border-color);">
 
-                    <!-- Client Name Input -->
-                    <div class="space-y-2">
-                        <label class="text-sm font-semibold" style="color: var(--text-secondary);">
-                            Nama Klien
-                        </label>
-                        <div class="flex gap-2">
-                            <select id="clientTitle" class="input-field" style="width: 80px;">
-                                <option value="Mr.">Mr.</option>
-                                <option value="Mrs.">Mrs.</option>
-                            </select>
-                            <input id="clientName" type="text" value="John" class="input-field flex-1"
-                                placeholder="Masukkan nama" />
-                        </div>
-                    </div>
-
-                    <hr style="border-color: var(--border-color);">
-
                     <!-- Aset Awal -->
                     <div class="space-y-2">
                         <label class="text-sm font-semibold" style="color: var(--text-secondary);">
-                            Total Aset Awal (<span id="clientNameLabel1">Mr. John</span>)
+                            Total Aset Awal (Mr. John)
                         </label>
                         <div id="assetsDisplay" class="text-lg font-bold highlight">
                             Rp 30.000.000.000
@@ -720,10 +756,10 @@
 
                     <hr style="border-color: var(--border-color);">
 
-                    <!-- Usia Client -->
+                    <!-- Usia Mr. John -->
                     <div class="space-y-2">
                         <label class="text-sm font-semibold" style="color: var(--text-secondary);">
-                            Usia <span id="clientNameLabel2">Mr. John</span>: <span id="ageDisplay" class="highlight text-lg">43</span> Tahun
+                            Usia Mr. John: <span id="ageDisplay" class="highlight text-lg">43</span> Tahun
                         </label>
                         <input id="ageSlider" type="range" min="35" max="70" value="43" class="w-full py-4" />
                         <div class="flex justify-between text-xs" style="color: var(--text-muted);">
@@ -803,7 +839,7 @@
                         <!-- Usia Anak -->
                         <div class="space-y-2">
                             <label class="text-sm font-semibold" style="color: var(--text-secondary);">
-                                Usia Anak Sulung: <span id="childAgeDisplay" class="highlight">14</span> Tahun
+                                Usia Rata-rata Anak: <span id="childAgeDisplay" class="highlight">14</span> Tahun
                             </label>
                             <input id="childAgeSlider" type="range" min="14" max="70" value="14" class="w-full py-4" />
                             <div class="kpi-card text-center">
@@ -819,145 +855,146 @@
 
             <!-- Main Content -->
             <main class="main-content">
-                <div class="container mx-auto">
-                    <!-- Story Section -->
-                    <div class="story-card mb-8">
-                        <div class="story-header">
-                            <i class="fas fa-book-open"></i>
-                            <h3>Cerita Klien</h3>
+                <!-- Tabs -->
+                <div class="w-full max-w-2xl mx-auto mb-8">
+                    <div class="grid grid-cols-2 gap-0 rounded-lg overflow-hidden"
+                        style="background: var(--bg-card-darker); border: 2px solid var(--accent);">
+                        <button id="traditionalTab" class="tab-button active text-sm md:text-base py-3">
+                            KONSEP TRADISIONAL
+                        </button>
+                        <button id="waterfallTab" class="tab-button text-sm md:text-base py-3">
+                            KONSEP WATERFALL
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Traditional Content -->
+                <div id="traditionalContent" class="space-y-8">
+                    <div class="card">
+                        <div class="card-header"
+                            style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-primary) 100%); border-bottom: 2px solid var(--accent);">
+                            <h2 class="text-2xl text-center font-bold" style="color: var(--accent);">
+                                Warisan Berdasarkan Hukum Waris (Traditional)
+                            </h2>
+                            <p class="text-center mt-2" style="color: var(--text-secondary);">
+                                Pembagian warisan secara merata tanpa multiplier
+                            </p>
                         </div>
-                        <div class="story-body">
-                            <div class="story-content">
-                                <p>
-                                    <span id="storyClientName" class="highlight">Mr. John</span> (usia <span id="storyClientAge" class="highlight">43</span> tahun) memiliki total aset sebesar 
-                                    <span id="storyTotalAssets" class="highlight">Rp 30.000.000.000</span> 
-                                    dan <span id="storyNumChildren" class="highlight">2</span> orang anak.
-                                </p>
-                                <p>
-                                    Anak sulung saat ini berusia <span id="storyOldestChildAge" class="highlight">14</span> tahun. 
-                                    Dengan menggunakan <span class="highlight">WATERFALL CONCEPT</span>, klien dapat mengalokasikan sebagian kecil asetnya 
-                                    untuk menghasilkan warisan yang berlipat ganda bagi generasi berikutnya, 
-                                    sambil tetap menyimpan sebagian besar aset untuk kebutuhan pribadi, bisnis, atau masa pensiun.
-                                </p>
+                        <div class="card-body">
+                            <div id="traditionalVisualization" class="flex flex-col items-center space-y-6 visualization-compact">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Waterfall Content -->
+                <div id="waterfallContent" class="space-y-8 hidden">
+                    <div class="card">
+                        <div class="card-header"
+                            style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-primary) 100%); border-bottom: 2px solid var(--accent);">
+                            <h2 class="text-2xl text-center font-bold" style="color: var(--accent);">
+                                Warisan Dimultiplikasi (Waterfall Legacy)
+                            </h2>
+                            <p class="text-center mt-2" style="color: var(--text-secondary);">
+                                Perencanaan warisan dengan multiplier Waterfall Concept
+                            </p>
+                        </div>
+                        <div class="card-body">
+                            <div id="waterfallVisualization" class="flex flex-col items-center space-y-6 visualization-compact">
+                                <!-- Will be populated by JavaScript -->
                             </div>
                         </div>
                     </div>
 
-                    <!-- Tabs -->
-                    <div class="tabs">
-                        <button id="traditionalTab" class="tab-button active">Konsep Tradisional</button>
-                        <button id="waterfallTab" class="tab-button">Konsep Waterfall</button>
-                    </div>
+                    <!-- Results Summary -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="kpi-card"
+                            style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%); border: 2px solid var(--accent); padding: 2rem;">
+                            <h3 class="text-sm mb-2 kpi-title">
+                                Total LEGACY Anak
+                            </h3>
+                            <p id="childrenTotalSA" class="text-3xl font-extrabold highlight mb-2">
+                                Rp 60.000.000.000
+                            </p>
+                            <p class="text-sm" style="color: var(--text-secondary);">
+                                LEGACY per Anak: <span id="childrenLegacyEach" class="font-bold highlight">Rp
+                                    30.000.000.000</span>
+                            </p>
+                            <p id="traditionalComparison" class="text-xs mt-2" style="color: var(--text-muted);">
+                                (vs. Rp 15.000.000.000 Traditional)
+                            </p>
+                        </div>
 
-                    <!-- Traditional Content -->
-                    <div id="traditionalContent">
-                        <div class="card">
-                            <div class="card-header">
-                                <h2 class="card-title">Warisan Tradisional (Hukum Waris)</h2>
-                                <p class="card-subtitle">Semua aset dibagi rata kepada anak-anak, menghabiskan seluruh aset</p>
-                            </div>
-                            <div class="card-body">
-                                <div id="traditionalVisualization"
-                                    class="flex flex-col items-center gap-8 text-center"
-                                    style="padding: 3rem 1rem;">
-                                </div>
-                            </div>
+                        <div class="kpi-card"
+                            style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-card) 100%); border: 2px solid var(--accent); padding: 2rem;">
+                            <h3 class="text-sm mb-2 kpi-title">
+                                Total LEGACY Cucu
+                            </h3>
+                            <p id="grandchildrenTotalSA" class="text-3xl font-extrabold highlight mb-2">
+                                Rp 160.000.000.000
+                            </p>
+                            <p class="text-sm" style="color: var(--text-secondary);">
+                                LEGACY per Cucu: <span id="grandchildrenLegacyEach" class="font-bold highlight">Rp
+                                    40.000.000.000</span>
+                            </p>
+                            <p class="text-xs mt-2" style="color: var(--text-muted);">
+                                (LEGACY Cucu Diciptakan dari Aset Awal)
+                            </p>
                         </div>
                     </div>
 
-                    <!-- Waterfall Content -->
-                    <div id="waterfallContent" class="hidden">
-                        <div class="card">
-                            <div class="card-header">
-                                <h2 class="card-title">Warisan dengan Konsep Waterfall</h2>
-                                <p class="card-subtitle">Alokasi sebagian kecil untuk warisan, sisanya untuk kebutuhan sendiri</p>
-                            </div>
-                            <div class="card-body">
-                                <div id="waterfallVisualization"
-                                    class="flex flex-col items-center gap-8 text-center"
-                                    style="padding: 3rem 1rem;">
-                                </div>
-                            </div>
+                    <!-- Comparison Summary Card -->
+                    <div class="card">
+                        <div class="card-header"
+                            style="background: linear-gradient(135deg, var(--bg-card-darker) 0%, var(--bg-primary) 100%); border-bottom: 2px solid var(--accent);">
+                            <h2 class="text-2xl text-center font-bold" style="color: var(--accent);">
+                                Ringkasan Perbandingan
+                            </h2>
                         </div>
-
-                        <!-- Summary Section -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="summary-box">
-                                <h3>Distribusi Legacy (Anak)</h3>
-                                <p>Per Anak dari Total Legacy Anak</p>
-                                <div class="summary-item">
-                                    <span class="summary-item-label">Total Legacy Anak:</span>
-                                    <span id="childrenTotalSA" class="summary-item-value">-</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-item-label">Legacy per Anak:</span>
-                                    <span id="childrenLegacyEach" class="summary-item-value">-</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span id="traditionalComparison" class="summary-item-label text-xs italic">(vs. - Traditional)</span>
-                                </div>
-                            </div>
-
-                            <div class="summary-box summary-box-waterfall">
-                                <h3>Distribusi Legacy (Cucu)</h3>
-                                <p>Per Cucu dari Total Legacy Cucu</p>
-                                <div class="summary-item">
-                                    <span class="summary-item-label">Total Legacy Cucu:</span>
-                                    <span id="grandchildrenTotalSA" class="summary-item-value">-</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-item-label">Legacy per Cucu:</span>
-                                    <span id="grandchildrenLegacyEach" class="summary-item-value">-</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- NEW SUMMARY SECTION (v2) -->
-                    <div class="mt-8">
-                        <h2 class="text-2xl font-bold mb-6" style="color: var(--text-primary); text-align: center;">
-                            Perbandingan Konsep: Traditional vs. Waterfall
-                        </h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Traditional Summary Chart -->
-                            <div class="summary-chart-box summary-chart-box-traditional">
-                                <h3>Konsep Tradisional</h3>
-                                <p class="subtitle">Initial Assets Available: <br><span id="chartTradSubtitle" class="highlight"></span></p>
-                                <div class="chart-container-new">
-                                    <div class="bar-wrapper">
-                                        <div class="bar-value" id="tradBarRequiredValue"></div>
-                                        <div class="bar-fill traditional" id="tradBarRequiredFill" style="height: 0%;"></div>
-                                        <div class="bar-label">Amount Required</div>
+                        <div class="card-body">
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Traditional Chart Box -->
+                                <div class="summary-chart-box summary-chart-box-traditional">
+                                    <h3>Konsep Traditional</h3>
+                                    <p class="subtitle">Initial Assets Available: <span id="chartTradSubtitle"></span></p>
+                                    <div class="chart-container-new">
+                                        <div class="bar-wrapper">
+                                            <div class="bar-value" id="tradBarRequiredValue"></div>
+                                            <div class="bar-fill traditional" id="tradBarRequiredFill" style="height: 0%;"></div>
+                                            <div class="bar-label">Amount Required</div>
+                                        </div>
+                                        <div class="bar-wrapper">
+                                            <div class="bar-value" id="tradBarLegacyValue"></div>
+                                            <div class="bar-fill traditional" id="tradBarLegacyFill" style="height: 0%;"></div>
+                                            <div class="bar-label">Total Legacy</div>
+                                        </div>
                                     </div>
-                                    <div class="bar-wrapper">
-                                        <div class="bar-value" id="tradBarLegacyValue"></div>
-                                        <div class="bar-fill traditional" id="tradBarLegacyFill" style="height: 0%;"></div>
-                                        <div class="bar-label">Total Legacy</div>
-                                    </div>
+                                    <p class="note">Wealth Multiplication Factor: <span id="chartTradNote">1x</span></p>
                                 </div>
-                                <p class="note">Wealth Multiplication Factor: <span id="chartTradNote"></span></p>
+                                
+                                <!-- Waterfall Chart Box -->
+                                <div class="summary-chart-box summary-chart-box-waterfall">
+                                    <h3>Konsep Waterfall</h3>
+                                    <p class="subtitle">Initial Assets Available: <span id="chartWaterSubtitle"></span></p>
+                                    <div class="chart-container-new">
+                                        <div class="bar-wrapper">
+                                            <div class="bar-value" id="waterBarRequiredValue"></div>
+                                            <div class="bar-fill traditional" id="waterBarRequiredFill" style="height: 0%;"></div>
+                                            <div class="bar-label">Amount Required</div>
+                                        </div>
+                                        <div class="bar-wrapper">
+                                            <div class="bar-value" id="waterBarLegacyValue"></div>
+                                            <div class="bar-fill waterfall" id="waterBarLegacyFill" style="height: 0%;"></div>
+                                            <div class="bar-label">Total Legacy</div>
+                                        </div>
+                                    </div>
+                                    <p class="note">Wealth Multiplication Factor: <span id="chartWaterNote"></span></p>
+                                </div>
                             </div>
                             
-                            <!-- Waterfall Summary Chart -->
-                            <div class="summary-chart-box summary-chart-box-waterfall">
-                                <h3>Konsep Waterfall</h3>
-                                <p class="subtitle">Initial Assets Available: <span id="chartWaterSubtitle"></span></p>
-                                <div class="chart-container-new">
-                                    <div class="bar-wrapper">
-                                        <div class="bar-value" id="waterBarRequiredValue"></div>
-                                        <div class="bar-fill traditional" id="waterBarRequiredFill" style="height: 0%;"></div>
-                                        <div class="bar-label">Amount Required</div>
-                                    </div>
-                                    <div class="bar-wrapper">
-                                        <div class="bar-value" id="waterBarLegacyValue"></div>
-                                        <div class="bar-fill waterfall" id="waterBarLegacyFill" style="height: 0%;"></div>
-                                        <div class="bar-label">Total Legacy</div>
-                                    </div>
-                                </div>
-                                <p class="note">Wealth Multiplication Factor: <span id="chartWaterNote"></span></p>
-                            </div>
                         </div>
-                        
                     </div>
                 </div>
             </main>
@@ -970,8 +1007,6 @@
     <script>
         // State
         let state = {
-            clientTitle: 'Mr.',
-            clientName: 'John',
             initialAssets: 30000000000,
             fatherAge: 43,
             numChildren: 2,
@@ -1098,9 +1133,6 @@
             renderTraditionalVisualization();
             renderWaterfallVisualization();
 
-            // Update story section
-            updateStorySection();
-
             // --- NEW UI UPDATES FOR SUMMARY (v2) ---
             // Update chart subtitles
             document.getElementById('chartTradSubtitle').innerHTML = `Initial Assets Available: <br><span class="highlight">${formatShortRupiah(state.initialAssets)}</span>`;
@@ -1156,15 +1188,13 @@
         function renderTraditionalVisualization() {
             const container = document.getElementById('traditionalVisualization');
 
-            const clientFullName = `${state.clientTitle} ${state.clientName}`;
-            
             let html = `
-                <!-- Gen 1: Client -->
+                <!-- Gen 1: Mr. John -->
                 <div class="flex flex-col items-center">
                     <div class="rounded-full h-28 w-28 flex flex-col items-center justify-center shadow-xl border-4" 
                          style="background: linear-gradient(135deg, var(--accent) 0%, var(--accent-darker) 100%); 
                                 border-color: var(--accent); color: var(--bg-primary);">
-                        <p class="text-sm font-bold">${clientFullName}</p>
+                        <p class="text-sm font-bold">Mr. John</p>
                         <p class="text-xs">(Gen 1)</p>
                     </div>
                     <p class="mt-2 text-sm font-semibold" style="color: var(--text-secondary);">
@@ -1184,14 +1214,13 @@
                 html += `
                     <div class="flex flex-col items-center">
                         <div class="rounded-full h-24 w-24 flex flex-col items-center justify-center shadow-xl border-2"
-                             style="background: linear-gradient(135deg, var(--danger) 0%, #c74565 100%); 
+                             style="background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%); 
                                     border-color: var(--danger); color: white;">
                             <p class="text-sm font-bold">Anak ${i + 1}</p>
                         </div>
-                        <div class="mt-3 p-3 rounded-xl border-4 shadow-2xl text-center w-48 transition-all duration-300 transform hover:scale-105 kpi-card"
-                             style="border-color: var(--danger);">
-                            <p class="text-base font-semibold" style="color: var(--danger);">Warisan per Anak</p>
-                            <p class="text-3xl font-extrabold leading-tight" style="color: var(--text-primary);">
+                        <div class="mt-3 p-2 rounded-lg border shadow-md text-center w-40 kpi-card">
+                            <p class="text-xs font-semibold" style="color: var(--danger);">Warisan</p>
+                            <p class="text-xl font-extrabold leading-tight" style="color: var(--text-primary);">
                                 ${formatShortRupiah(state.traditionalLegacyEach)}
                             </p>
                         </div>
@@ -1217,36 +1246,17 @@
             container.innerHTML = html;
         }
 
-        // Update Story Section
-        function updateStorySection() {
-            // Get values from state
-            const clientName = `${state.clientTitle} ${state.clientName}`;
-            const clientAge = state.fatherAge;
-            const totalAssets = formatRupiah(state.initialAssets);
-            const numChildren = state.numChildren;
-            const oldestChildAge = state.childAge;
-            
-            // Update story content
-            document.getElementById('storyClientName').textContent = clientName;
-            document.getElementById('storyClientAge').textContent = clientAge;
-            document.getElementById('storyTotalAssets').textContent = totalAssets;
-            document.getElementById('storyNumChildren').textContent = numChildren;
-            document.getElementById('storyOldestChildAge').textContent = oldestChildAge;
-        }
-
         // Render Waterfall Visualization
         function renderWaterfallVisualization() {
             const container = document.getElementById('waterfallVisualization');
 
-            const clientFullName = `${state.clientTitle} ${state.clientName}`;
-            
             let html = `
-                <!-- Gen 1: Client with Retained Capital -->
+                <!-- Gen 1: Mr. John with Retained Capital -->
                 <div class="flex flex-col items-center">
                     <div class="rounded-full h-28 w-28 flex flex-col items-center justify-center shadow-xl border-4"
                          style="background: linear-gradient(135deg, var(--accent) 0%, var(--accent-darker) 100%); 
                                 border-color: var(--accent); color: var(--bg-primary);">
-                        <p class="text-sm font-bold">${clientFullName}</p>
+                        <p class="text-sm font-bold">Mr. John</p>
                         <p class="text-xs">(Gen 1)</p>
                     </div>
                     <p class="mt-2 text-sm font-semibold" style="color: var(--text-secondary);">
@@ -1269,7 +1279,7 @@
                     
                     <!-- Aset Tersisa -->
                     <div class="kpi-card border-2 p-4 shadow-xl max-w-xs flex flex-col justify-center" style="border-color: var(--warning);">
-                        <p class="text-xs font-semibold" style="color: var(--text-secondary);">Aset Tersisa ${clientFullName}</p>
+                        <p class="text-xs font-semibold" style="color: var(--text-secondary);">Aset Tersisa Mr. John</p>
                         <p class="font-extrabold text-xl" style="color: var(--warning);">
                             ${formatShortRupiah(state.retainedCapital)}
                         </p>
@@ -1340,47 +1350,397 @@
                 `;
             }
 
-            html += `
-                </div>
-            `;
+            html += '</div>';
 
             container.innerHTML = html;
         }
 
-        // DOM Content Loaded
-        document.addEventListener('DOMContentLoaded', async () => {
-    // Display user email
+
+  // Event Listeners - correction from claude
+document.addEventListener('DOMContentLoaded', function () {
+    // ✅ CRITICAL FIX: Add session initialization lock
+    let sessionInitLock = false;
+    
+    // ✅ Initialize session tracker FIRST
+    const sessionTracker = new BroadcastSessionTracker();
+    
+    // Make sessionTracker globally available for logout and debugging
+    window.sessionTracker = sessionTracker;
+    
+    // ✅ FIXED: Initialize session with lock to prevent double counting
+    async function initializeSession(authData) {
+        // Check if already initializing
+        if (sessionInitLock) {
+            console.log('⚠️ Session initialization already in progress, skipping');
+            return null;
+        }
+        
+        // Check if session already exists in Firebase
+        try {
+            await sessionTracker.ensureFirebaseReady();
+            
+            if (sessionTracker.firebaseEnabled && sessionTracker.db) {
+                // Check Firebase for existing session with same email
+                const sessionsRef = sessionTracker.db.ref('sessions');
+                const snapshot = await sessionsRef.orderByChild('email').equalTo(authData.email).once('value');
+                const existingSessions = snapshot.val();
+                
+                if (existingSessions) {
+                    const sessionIds = Object.keys(existingSessions);
+                    console.log(`⚠️ Found ${sessionIds.length} existing Firebase session(s) for ${authData.email}`);
+                    
+                    // Use existing session if it's still active (within last 60 seconds)
+                    for (const sessionId of sessionIds) {
+                        const session = existingSessions[sessionId];
+                        if (session.deviceFingerprint === authData.deviceFingerprint) {
+                            const age = Date.now() - session.lastSeen;
+                            if (age < 60000) { // Less than 1 minute old
+                                console.log('✅ Reusing existing active session:', sessionId);
+                                sessionTracker.currentSession = session;
+                                sessionTracker.startBroadcasting();
+                                return sessionId;
+                            } else {
+                                // Clean up stale session
+                                console.log('🧹 Removing stale session:', sessionId);
+                                await sessionTracker.db.ref(`sessions/${sessionId}`).remove();
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('⚠️ Error checking existing sessions:', error);
+        }
+        
+        // Set lock
+        sessionInitLock = true;
+        
+        try {
+            // Start new session
+            console.log('🚀 Starting new session for:', authData.email);
+            const sessionId = await sessionTracker.startSession(authData);
+            
+            if (sessionId) {
+                console.log('✅ SESSION STARTED SUCCESSFULLY!');
+                console.log('  User:', authData.email);
+                console.log('  Session ID:', sessionId);
+                console.log('  Firebase:', sessionTracker.firebaseEnabled);
+            }
+            
+            return sessionId;
+        } finally {
+            // Release lock after 2 seconds
+            setTimeout(() => {
+                sessionInitLock = false;
+            }, 2000);
+        }
+    }
+    
+    // Display user info and setup admin access
     try {
         const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
-        if (authData.username) {
-            document.getElementById('userEmail').textContent = authData.username;
+        if (authData.authenticated) {
+            document.getElementById('userEmail').textContent = authData.email;
+            
+            // ✅ Check and display expiration date
+            checkAndDisplayExpiration(authData);
+            
+            // ✅ FIXED: Initialize session with lock mechanism
+            initializeSession(authData).then(sessionId => {
+                if (sessionId) {
+                    console.log('✅ Session initialization completed:', sessionId);
+                }
+            }).catch(error => {
+                console.error('❌ Session initialization failed:', error);
+            });
+            
+            // Admin dashboard access moved to dashboard.html
         }
     } catch (error) {
         console.error('Error loading user data:', error);
     }
-
-    // Initialize session tracker
-    try {
-        if (typeof SessionTracker !== 'undefined') {
-            console.log('🔍 SessionTracker found, initializing...');
-            sessionTracker = new SessionTracker();
-            const sessionId = await sessionTracker.startSession('waterfall_concept');
-            console.log('✅ Session started with ID:', sessionId);
-        } else {
-            console.warn('⚠️ SessionTracker not loaded, skipping session tracking');
+    
+    // ✅ NEW: Check and display expiration date
+    async function checkAndDisplayExpiration(authData) {
+        try {
+            // Skip for system users
+            if (WaterfallConfig.users[authData.email]) {
+                console.log('✅ System user - no expiration');
+                return;
+            }
+            
+            if (!WaterfallConfig.subscription.enabled) {
+                console.log('⚠️ Subscription system disabled');
+                return;
+            }
+            
+            // Get user data from Firebase
+            if (typeof firebaseConfig !== 'undefined' && firebaseConfig.isReady()) {
+                const db = firebaseConfig.getDatabase();
+                const sanitizedEmail = authData.email.replace(/[.#$[\]\/]/g, '_');
+                const userRef = db.ref(`users/${sanitizedEmail}`);
+                const snapshot = await userRef.once('value');
+                const userData = snapshot.val();
+                
+                if (userData && userData.expirationDate) {
+                    const expirationDate = userData.expirationDate;
+                    const now = Date.now();
+                    
+                    // Check if expired
+                    if (now > expirationDate) {
+                        console.log('🚫 Subscription expired - logging out');
+                        alert('⚠️ Your subscription has expired.\n\nPlease contact your administrator to renew access.');
+                        
+                        // Logout
+                        if (window.sessionTracker) {
+                            await window.sessionTracker.endSession();
+                        }
+                        sessionStorage.removeItem('waterfallAuth');
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    
+                    // Calculate days remaining
+                    const daysRemaining = Math.ceil((expirationDate - now) / (24 * 60 * 60 * 1000));
+                    const expirationDateObj = new Date(expirationDate);
+                    
+                    // Display expiration info
+                    const expirationDisplay = document.getElementById('expirationDisplay');
+                    const expirationText = document.getElementById('expirationText');
+                    
+                    if (expirationDisplay && expirationText) {
+                        expirationDisplay.style.display = 'flex';
+                        expirationDisplay.style.alignItems = 'center';
+                        expirationDisplay.style.gap = '0.25rem';
+                        
+                        // Format date
+                        const dateStr = expirationDateObj.toLocaleDateString('id-ID', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                        });
+                        
+                        expirationText.textContent = `Valid until ${dateStr}`;
+                        
+                        // Change color based on days remaining
+                        if (daysRemaining <= WaterfallConfig.subscription.warningDaysBeforeExpiry) {
+                            expirationDisplay.style.borderColor = 'var(--warning)';
+                            expirationDisplay.style.background = 'rgba(245, 158, 11, 0.1)';
+                            expirationText.style.color = 'var(--warning)';
+                            
+                            // Show warning
+                            if (WaterfallConfig.subscription.showExpirationWarning) {
+                                showExpirationWarning(daysRemaining, dateStr);
+                            }
+                        } else {
+                            expirationDisplay.style.borderColor = 'var(--accent)';
+                            expirationText.style.color = 'var(--accent)';
+                        }
+                        
+                        console.log(`✅ Subscription active - expires in ${daysRemaining} days`);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error checking expiration:', error);
         }
-    } catch (error) {
-        console.error('❌ Error initializing session tracker:', error);
+    }
+    
+    // ✅ NEW: Show expiration warning
+    function showExpirationWarning(daysRemaining, dateStr) {
+        const warning = document.createElement('div');
+        warning.style.cssText = `
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: var(--warning);
+            color: var(--bg-primary);
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+            font-weight: 600;
+            max-width: 350px;
+            animation: slideIn 0.3s ease;
+        `;
+        warning.innerHTML = `
+            <div style="display: flex; align-items: start; gap: 0.75rem;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 1.5rem; margin-top: 0.25rem;"></i>
+                <div>
+                    <div style="font-weight: 700; margin-bottom: 0.25rem;">Subscription Expiring Soon!</div>
+                    <div style="font-size: 0.9rem; font-weight: 400;">
+                        Your access will expire in <strong>${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}</strong> (${dateStr}).
+                        <br>Please contact your administrator to extend.
+                    </div>
+                </div>
+                <button onclick="this.closest('div[style*=fixed]').remove()" 
+                    style="background: none; border: none; color: inherit; cursor: pointer; font-size: 1.2rem; margin-left: auto; padding: 0; line-height: 1;">&times;</button>
+            </div>
+        `;
+        document.body.appendChild(warning);
+        
+        // Auto-remove after 10 seconds
+        setTimeout(() => {
+            if (warning.parentElement) {
+                warning.remove();
+            }
+        }, 10000);
+    }
+    
+    // ✅ SIMPLIFIED: Just update localStorage timestamp (don't create sessions)
+    function updateGlobalSessionActivity(authData) {
+        try {
+            const globalSessions = JSON.parse(localStorage.getItem('globalSessionRegistry') || '[]');
+            
+            const updatedSessions = globalSessions.map(session => {
+                if (session.email === authData.email && 
+                    session.deviceFingerprint === authData.deviceFingerprint) {
+                    return {
+                        ...session,
+                        lastActivity: Date.now(),
+                        registryTimestamp: Date.now()
+                    };
+                }
+                return session;
+            });
+            
+            // Keep only active sessions (last 8 hours)
+            const eightHoursAgo = Date.now() - (8 * 60 * 60 * 1000);
+            const activeSessions = updatedSessions.filter(s => s.lastActivity > eightHoursAgo);
+            
+            localStorage.setItem('globalSessionRegistry', JSON.stringify(activeSessions));
+            localStorage.setItem('sessionUpdate', Date.now().toString());
+        } catch (error) {
+            console.error('Error updating session activity:', error);
+        }
     }
 
-    // Logout button
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-        if (confirm('Apakah Anda yakin ingin logout?')) {
-            // Track logout action
+    // Update activity every 30 seconds
+    setInterval(() => {
+        try {
+            const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+            if (authData.authenticated) {
+                updateGlobalSessionActivity(authData);
+                
+                if (sessionTracker && sessionTracker.currentSession) {
+                    sessionTracker.updateActivity();
+                }
+            }
+        } catch (error) {
+            console.error('Error in activity update:', error);
+        }
+    }, 30000);
+
+    // ✅ Handle browser close/refresh
+    window.addEventListener('beforeunload', function(event) {
+        if (sessionTracker && sessionTracker.currentSession) {
+            console.log('🚪 Browser closing - stopping Firebase session');
             try {
-                if (sessionTracker && sessionTracker.firebaseEnabled) {
-                    await sessionTracker.trackAction('logout', {
-                        action: 'button_click',
+                if (sessionTracker.firebaseEnabled && sessionTracker.db) {
+                    const sessionRef = sessionTracker.db.ref(`sessions/${sessionTracker.currentSession.id}`);
+                    sessionRef.remove();
+                }
+                sessionTracker.currentSession = null;
+                sessionTracker.isBroadcasting = false;
+                console.log('🚪 Emergency session cleanup initiated');
+            } catch (error) {
+                console.warn('⚠️ Emergency cleanup failed:', error);
+            }
+        }
+    });
+
+    // ✅ Handle page visibility changes
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            if (sessionTracker && sessionTracker.currentSession) {
+                console.log('👁️ Page hidden - updating session activity');
+                sessionTracker.updateActivity();
+            }
+        } else {
+            if (sessionTracker && sessionTracker.currentSession) {
+                console.log('👁️ Page visible - updating session activity');
+                sessionTracker.updateActivity();
+            }
+        }
+    });
+
+    // ✅ DEBUG: Global test functions
+    window.testLogout = async function() {
+        console.log('🧪 Testing manual logout...');
+        if (sessionTracker) {
+            console.log('🔍 sessionTracker exists:', !!sessionTracker);
+            console.log('🔍 currentSession exists:', !!sessionTracker.currentSession);
+            if (sessionTracker.currentSession) {
+                console.log('🔍 Session ID:', sessionTracker.currentSession.id);
+                console.log('🔍 Session email:', sessionTracker.currentSession.email);
+                console.log('🛑 Calling stopSession...');
+                await sessionTracker.stopSession();
+                console.log('✅ Manual logout test completed');
+            } else {
+                console.warn('⚠️ No session to stop');
+            }
+        } else {
+            console.error('❌ sessionTracker not found');
+        }
+    };
+
+    window.getSessionInfo = function() {
+        console.log('📊 Session Information:');
+        console.log('- sessionTracker exists:', !!sessionTracker);
+        if (sessionTracker) {
+            console.log('- Firebase enabled:', sessionTracker.firebaseEnabled);
+            console.log('- Is broadcasting:', sessionTracker.isBroadcasting);
+            console.log('- Current session:', sessionTracker.currentSession);
+        }
+    };
+
+    // ✅ SAME-TAB LOGOUT BROADCAST: Listen for logout events from other tabs
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'logoutBroadcast') {
+            console.log('🔔 Logout broadcast received from another tab');
+            
+            try {
+                const logoutData = JSON.parse(e.newValue || '{}');
+                const currentAuth = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                
+                // Only logout if it's the same user
+                if (logoutData.email === currentAuth.email) {
+                    console.log('🚪 Logging out this tab (same user)');
+                    
+                    // Clear session data
+                    sessionStorage.removeItem('waterfallAuth');
+                    localStorage.removeItem('waterfallActiveSession');
+                    
+                    // Show message and redirect
+                    alert('🚪 You have been logged out from another tab.');
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                console.error('Error processing logout broadcast:', error);
+            }
+        }
+    });
+
+    // Logout functionality
+    document.getElementById('logoutBtn').addEventListener('click', async function() {
+        if (confirm('Are you sure you want to logout?')) {
+            try {
+                const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                
+                // ✅ BROADCAST LOGOUT TO OTHER TABS (same user only)
+                localStorage.setItem('logoutBroadcast', JSON.stringify({
+                    email: authData.email,
+                    timestamp: Date.now()
+                }));
+                
+                // Clean up the broadcast signal after a moment
+                setTimeout(() => {
+                    localStorage.removeItem('logoutBroadcast');
+                }, 1000);
+                
+                if (typeof SecurityUtils !== 'undefined') {
+                    SecurityUtils.logSecurityEvent('LOGOUT', {
+                        email: authData.email,
                         message: 'User logged out manually',
                         timestamp: Date.now()
                     });
@@ -1501,40 +1861,6 @@
         waterfallContent.classList.remove('hidden');
         traditionalContent.classList.add('hidden');
     });
-
-    // ✅ FIXED: Client Title input - Only update labels, not full recalculation
-    const clientTitle = document.getElementById('clientTitle');
-    clientTitle.addEventListener('change', (e) => {
-        state.clientTitle = e.target.value;
-        updateClientNameLabels();
-        // Only update the parts that show the name
-        updateStorySection();
-        renderTraditionalVisualization();
-        renderWaterfallVisualization();
-    });
-
-    // ✅ FIXED: Client Name input - Only update labels on input, full calc on blur
-    const clientName = document.getElementById('clientName');
-    
-    // Real-time label updates (lightweight)
-    clientName.addEventListener('input', (e) => {
-        state.clientName = e.target.value.trim() || 'John';
-        updateClientNameLabels();
-    });
-    
-    // Full update when user finishes typing (on blur)
-    clientName.addEventListener('blur', () => {
-        updateStorySection();
-        renderTraditionalVisualization();
-        renderWaterfallVisualization();
-    });
-
-    // Function to update all client name labels
-    function updateClientNameLabels() {
-        const fullName = `${state.clientTitle} ${state.clientName}`;
-        document.getElementById('clientNameLabel1').textContent = fullName;
-        document.getElementById('clientNameLabel2').textContent = fullName;
-    }
 
     // Assets input
     const assetsInput = document.getElementById('assetsInput');

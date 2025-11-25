@@ -242,6 +242,35 @@ const WaterfallConfig = {
             sessionHistory: true,
             deviceManagement: true
         }
+    },
+
+    // Subscription/Expiration System
+    subscription: {
+        enabled: true,
+        
+        // Default trial period for new users (days)
+        defaultTrialDays: 7,
+        
+        // Show expiration warning in UI
+        showExpirationWarning: true,
+        
+        // Days before expiry to show warning
+        warningDaysBeforeExpiry: 3,
+        
+        // System users never expire
+        systemUsersNeverExpire: true,
+        
+        // Check expiration on every page load
+        checkOnPageLoad: true,
+        
+        // Subscription extension options (for admin)
+        extensionOptions: [
+            { days: 7, label: '7 Days' },
+            { days: 30, label: '1 Month' },
+            { days: 90, label: '3 Months' },
+            { days: 180, label: '6 Months' },
+            { days: 365, label: '1 Year' }
+        ]
     }
 };
 
