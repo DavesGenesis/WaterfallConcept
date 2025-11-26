@@ -880,6 +880,19 @@
     </div>
 
     <script>
+
+// ============================================================================
+// TIMEOUT PROTECTION HELPER
+// ============================================================================
+function withTimeout(promise, timeoutMs, errorMessage) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => 
+            setTimeout(() => reject(new Error(errorMessage || 'Operation timed out')), timeoutMs)
+        )
+    ]);
+}
+
         class SecurityDashboard {
             constructor() {
                 this.refreshInterval = null;
@@ -1871,32 +1884,51 @@ async resetUserSessions(email) {
         let dashboard;
 
         // ✅ SINGLE CONSOLIDATED DOMContentLoaded - Initialize everything
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             console.log('🚀 Admin Dashboard initializing...');
             
-            // Initialize dashboard
-            dashboard = new SecurityDashboard();
-            
-            // Load blocked users (3 seconds)
-            setTimeout(() => {
-                console.log('📋 Loading blocked users...');
-                refreshBlockedUsers();
-            }, 3000);
-            
-            // Load user management (3.5 seconds)
-            setTimeout(() => {
-                console.log('👥 Loading user management...');
-                loadAllUsers();
-            }, 3500);
-            
-            // Check and assign trial periods + load subscriptions (4.5 seconds)
-            setTimeout(async () => {
-                console.log('🆕 Checking for users needing trial assignment...');
-                await checkAndAssignTrialPeriods();
+            try {
+                // Initialize dashboard
+                dashboard = new SecurityDashboard();
+                console.log('✅ Dashboard instance created');
                 
-                console.log('📊 Loading subscription management...');
-                await loadAllUserSubscriptions();
-            }, 4500);
+                // Load blocked users (3 seconds)
+                setTimeout(() => {
+                    console.log('📋 Loading blocked users...');
+                    try {
+                        refreshBlockedUsers();
+                    } catch (error) {
+                        console.error('❌ Error loading blocked users:', error);
+                    }
+                }, 3000);
+                
+                // Load user management (3.5 seconds)
+                setTimeout(() => {
+                    console.log('👥 Loading user management...');
+                    try {
+                        loadAllUsers();
+                    } catch (error) {
+                        console.error('❌ Error loading users:', error);
+                    }
+                }, 3500);
+                
+                // Check and assign trial periods + load subscriptions (4.5 seconds)
+                setTimeout(async () => {
+                    try {
+                        console.log('🆕 Checking for users needing trial assignment...');
+                        await checkAndAssignTrialPeriods();
+                        
+                        console.log('📊 Loading subscription management...');
+                        await loadAllUserSubscriptions();
+                    } catch (error) {
+                        console.error('❌ Error in subscription initialization:', error);
+                    }
+                }, 4500);
+                
+            } catch (error) {
+                console.error('❌ Fatal error during initialization:', error);
+                alert('Dashboard initialization failed. Check console for details.');
+            }
         });
 
 // ============================================================================
@@ -2650,20 +2682,41 @@ function closeEditUserModal() {
 // ============================================================================
 
 // ============================================================================
-// 1. AUTO-ASSIGN TRIAL FOR USERS WITHOUT EXPIRATION DATE
+// 1. AUTO-ASSIGN TRIAL FOR USERS WITHOUT EXPIRATION DATE (WITH TIMEOUT)
 // ============================================================================
 async function checkAndAssignTrialPeriods() {
     try {
         console.log('🔍 Checking for users without expiration dates...');
         
+        // Timeout protection: 10 seconds max
+        await withTimeout(
+            (async () => {
+                if (!firebaseConfig.isReady()) {
+                    console.log('⏳ Firebase not ready, initializing...');
+                    await firebaseConfig.initialize();
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            })(),
+            10000,
+            'Firebase initialization timed out after 10 seconds'
+        );
+        
+        // Check if still not ready
         if (!firebaseConfig.isReady()) {
-            await firebaseConfig.initialize();
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            console.warn('⚠️ Firebase not available, skipping trial assignment');
+            return;
         }
         
         const db = firebaseConfig.getDatabase();
         const usersRef = db.ref('users');
-        const snapshot = await usersRef.once('value');
+        
+        // Timeout protection: 5 seconds max for database read
+        const snapshot = await withTimeout(
+            usersRef.once('value'),
+            5000,
+            'Database read timed out after 5 seconds'
+        );
+        
         const usersData = snapshot.val();
         
         if (!usersData) {
@@ -2687,74 +2740,113 @@ async function checkAndAssignTrialPeriods() {
                 continue;
             }
             
-            console.log(`🆕 Assigning trial to: ${userData.email}`);
-            
-            // Assign trial period
-            await db.ref(`users/${sanitizedEmail}`).update({
-                expirationDate: trialEndDate,
-                subscriptionStatus: 'trial',
-                trialAssignedDate: now,
-                trialAssignedBy: 'system_auto',
-                updatedAt: now
-            });
-            
-            // Log to history
-            const historyRef = db.ref(`subscriptionHistory/${sanitizedEmail}`).push();
-            await historyRef.set({
-                action: 'trial_assigned',
-                daysAdded: trialDays,
-                previousExpiration: null,
-                newExpiration: trialEndDate,
-                assignedBy: 'system_auto',
-                timestamp: now,
-                date: new Date().toISOString(),
-                note: 'Auto-assigned trial period for legacy user'
-            });
-            
-            assignedCount++;
+            try {
+                console.log(`🆕 Assigning trial to: ${userData.email}`);
+                
+                // Assign trial period with timeout
+                await withTimeout(
+                    db.ref(`users/${sanitizedEmail}`).update({
+                        expirationDate: trialEndDate,
+                        subscriptionStatus: 'trial',
+                        trialAssignedDate: now,
+                        trialAssignedBy: 'system_auto',
+                        updatedAt: now
+                    }),
+                    3000,
+                    'User update timed out'
+                );
+                
+                // Log to history with timeout
+                const historyRef = db.ref(`subscriptionHistory/${sanitizedEmail}`).push();
+                await withTimeout(
+                    historyRef.set({
+                        action: 'trial_assigned',
+                        daysAdded: trialDays,
+                        previousExpiration: null,
+                        newExpiration: trialEndDate,
+                        assignedBy: 'system_auto',
+                        timestamp: now,
+                        date: new Date().toISOString(),
+                        note: 'Auto-assigned trial period for legacy user'
+                    }),
+                    3000,
+                    'History log timed out'
+                );
+                
+                assignedCount++;
+            } catch (userError) {
+                console.error(`❌ Error assigning trial to ${userData.email}:`, userError.message);
+                // Continue with next user
+            }
         }
         
         if (assignedCount > 0) {
             console.log(`✅ Assigned ${trialDays}-day trial to ${assignedCount} user(s)`);
             
-            // Show notification to admin
-            showNotification(
-                `🆕 Trial Assignment Complete`,
-                `${assignedCount} user(s) without expiration dates have been assigned a ${trialDays}-day trial period.`,
-                'info'
-            );
+            // Show notification if function exists
+            if (typeof showNotification === 'function') {
+                showNotification(
+                    `🆕 Trial Assignment Complete`,
+                    `${assignedCount} user(s) without expiration dates have been assigned a ${trialDays}-day trial period.`,
+                    'info'
+                );
+            }
         } else {
             console.log('ℹ️ No users needed trial assignment');
         }
         
     } catch (error) {
-        console.error('❌ Error assigning trial periods:', error);
+        console.error('❌ Error in checkAndAssignTrialPeriods:', error.message);
+        console.error('Stack:', error.stack);
+        // Don't throw - allow page to continue loading
     }
 }
-
 // ============================================================================
-// 2. IMPROVED: Load all user subscriptions
+// 2. IMPROVED: Load all user subscriptions (WITH TIMEOUT)
 // ============================================================================
 async function loadAllUserSubscriptions() {
+    const listElement = document.getElementById('subscriptionManagementList');
+    
     try {
         console.log('📊 Loading subscription data...');
         
+        listElement.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">⏳ Loading subscription data...</p>';
+        
+        // Timeout protection: 10 seconds max for Firebase init
+        await withTimeout(
+            (async () => {
+                if (!firebaseConfig.isReady()) {
+                    console.log('⏳ Initializing Firebase...');
+                    await firebaseConfig.initialize();
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            })(),
+            10000,
+            'Firebase initialization timed out'
+        );
+        
+        // Check if still not ready
         if (!firebaseConfig.isReady()) {
-            document.getElementById('subscriptionManagementList').innerHTML = 
-                '<p style="color: var(--warning); text-align: center;">⏳ Initializing Firebase...</p>';
-            
-            await firebaseConfig.initialize();
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            listElement.innerHTML = '<p style="color: var(--warning); text-align: center;">⚠️ Firebase not available. Subscription management unavailable.</p>';
+            console.warn('⚠️ Firebase not available for subscription management');
+            return;
         }
 
         const db = firebaseConfig.getDatabase();
         const usersRef = db.ref('users');
-        const snapshot = await usersRef.once('value');
+        
+        // Timeout protection: 5 seconds max for database read
+        const snapshot = await withTimeout(
+            usersRef.once('value'),
+            5000,
+            'Database read timed out'
+        );
+        
         const usersData = snapshot.val();
 
         if (!usersData) {
-            document.getElementById('subscriptionManagementList').innerHTML = 
-                '<p style="color: var(--text-muted); text-align: center;">No users found</p>';
+            listElement.innerHTML = '<p style="color: var(--text-muted); text-align: center;">No users found</p>';
+            console.log('ℹ️ No users in database');
             return;
         }
 
@@ -2880,20 +2972,20 @@ async function loadAllUserSubscriptions() {
             html = '<p style="color: var(--text-muted); text-align: center;">No dynamic users found</p>';
         }
 
-        document.getElementById('subscriptionManagementList').innerHTML = html;
+        listElement.innerHTML = html;
         
         // Update alert notifications
         updateSubscriptionAlerts(trialUsers, expiringSoonUsers, expiredUsers);
         
-        console.log('✅ Subscription data loaded');
+        console.log('✅ Subscription data loaded successfully');
         
     } catch (error) {
-        console.error('❌ Error loading subscriptions:', error);
-        document.getElementById('subscriptionManagementList').innerHTML = 
-            `<p style="color: var(--danger); text-align: center;">Error: ${error.message}</p>`;
+        console.error('❌ Error loading subscriptions:', error.message);
+        console.error('Stack:', error.stack);
+        listElement.innerHTML = `<p style="color: var(--danger); text-align: center;">❌ Error loading subscriptions: ${error.message}</p>`;
+        // Don't throw - allow page to continue
     }
 }
-
 // ============================================================================
 // 3. IMPROVED: Update subscription alerts
 // ============================================================================
@@ -3532,18 +3624,34 @@ if (!document.getElementById('notification-styles')) {
     document.head.appendChild(style);
 }
 
-// ============================================================================
 
-// ============================================================================
-// 12. INITIALIZATION: ✅ FIXED - Consolidated into main DOMContentLoaded
-// ============================================================================
-// ⚠️ IMPORTANT: All initialization is now handled by the SINGLE consolidated
-// DOMContentLoaded listener at line ~1871. The duplicate listeners that were
-// here have been removed to fix the loading issue.
-// 
-// DO NOT add another DOMContentLoaded listener here - it will cause conflicts!
-// ============================================================================
 
-    </script>
-</body>
-</html>
+
+//Update the DOMContentLoaded Section
+
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Admin Dashboard initializing...');
+    
+    dashboard = new SecurityDashboard();
+    
+    // Load blocked users
+    setTimeout(() => {
+        console.log('📋 Loading blocked users...');
+        refreshBlockedUsers();
+    }, 3000);
+    
+    // Load user management
+    setTimeout(() => {
+        console.log('👥 Loading user management...');
+        loadAllUsers();
+    }, 3500);
+    
+    // ✅ ADD THIS: Check and assign trial + load subscriptions
+    setTimeout(async () => {
+        console.log('🆕 Checking for users needing trial assignment...');
+        await checkAndAssignTrialPeriods();
+        
+        console.log('📊 Loading subscription management...');
+        await loadAllUserSubscriptions();
+    }, 4500);
+});
