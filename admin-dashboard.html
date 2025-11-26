@@ -880,19 +880,6 @@
     </div>
 
     <script>
-
-// ============================================================================
-// TIMEOUT PROTECTION HELPER
-// ============================================================================
-function withTimeout(promise, timeoutMs, errorMessage) {
-    return Promise.race([
-        promise,
-        new Promise((_, reject) => 
-            setTimeout(() => reject(new Error(errorMessage || 'Operation timed out')), timeoutMs)
-        )
-    ]);
-}
-
         class SecurityDashboard {
             constructor() {
                 this.refreshInterval = null;
@@ -1880,55 +1867,16 @@ async resetUserSessions(email) {
             }
         });
 
-        // Declare dashboard as global variable
-        let dashboard;
-
-        // ✅ SINGLE CONSOLIDATED DOMContentLoaded - Initialize everything
-        document.addEventListener('DOMContentLoaded', async () => {
+        // ✅ SINGLE DOMContentLoaded - Initialize everything
+        document.addEventListener('DOMContentLoaded', () => {
             console.log('🚀 Admin Dashboard initializing...');
             
-            try {
-                // Initialize dashboard
-                dashboard = new SecurityDashboard();
-                console.log('✅ Dashboard instance created');
-                
-                // Load blocked users (3 seconds)
-                setTimeout(() => {
-                    console.log('📋 Loading blocked users...');
-                    try {
-                        refreshBlockedUsers();
-                    } catch (error) {
-                        console.error('❌ Error loading blocked users:', error);
-                    }
-                }, 3000);
-                
-                // Load user management (3.5 seconds)
-                setTimeout(() => {
-                    console.log('👥 Loading user management...');
-                    try {
-                        loadAllUsers();
-                    } catch (error) {
-                        console.error('❌ Error loading users:', error);
-                    }
-                }, 3500);
-                
-                // Check and assign trial periods + load subscriptions (4.5 seconds)
-                setTimeout(async () => {
-                    try {
-                        console.log('🆕 Checking for users needing trial assignment...');
-                        await checkAndAssignTrialPeriods();
-                        
-                        console.log('📊 Loading subscription management...');
-                        await loadAllUserSubscriptions();
-                    } catch (error) {
-                        console.error('❌ Error in subscription initialization:', error);
-                    }
-                }, 4500);
-                
-            } catch (error) {
-                console.error('❌ Fatal error during initialization:', error);
-                alert('Dashboard initialization failed. Check console for details.');
-            }
+            dashboard = new SecurityDashboard();
+            
+            setTimeout(() => {
+                console.log('📋 Loading blocked users...');
+                refreshBlockedUsers();
+            }, 3000);
         });
 
 // ============================================================================
@@ -2676,177 +2624,26 @@ function closeEditUserModal() {
 }
 
 // ============================================================================
-// COMPLETE SUBSCRIPTION MANAGEMENT FIX
-// Place this code in your admin-dashboard.html <script> section
-// Replace all existing subscription functions
+// SUBSCRIPTION/EXPIRATION MANAGEMENT FUNCTIONS
 // ============================================================================
 
-// ============================================================================
-// 1. AUTO-ASSIGN TRIAL FOR USERS WITHOUT EXPIRATION DATE (WITH TIMEOUT)
-// ============================================================================
-async function checkAndAssignTrialPeriods() {
-    try {
-        console.log('🔍 Checking for users without expiration dates...');
-        
-        // Timeout protection: 10 seconds max
-        await withTimeout(
-            (async () => {
-                if (!firebaseConfig.isReady()) {
-                    console.log('⏳ Firebase not ready, initializing...');
-                    await firebaseConfig.initialize();
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-            })(),
-            10000,
-            'Firebase initialization timed out after 10 seconds'
-        );
-        
-        // Check if still not ready
-        if (!firebaseConfig.isReady()) {
-            console.warn('⚠️ Firebase not available, skipping trial assignment');
-            return;
-        }
-        
-        const db = firebaseConfig.getDatabase();
-        const usersRef = db.ref('users');
-        
-        // Timeout protection: 5 seconds max for database read
-        const snapshot = await withTimeout(
-            usersRef.once('value'),
-            5000,
-            'Database read timed out after 5 seconds'
-        );
-        
-        const usersData = snapshot.val();
-        
-        if (!usersData) {
-            console.log('ℹ️ No users found in database');
-            return;
-        }
-        
-        const now = Date.now();
-        const trialDays = WaterfallConfig.subscription.defaultTrialDays;
-        const trialEndDate = now + (trialDays * 24 * 60 * 60 * 1000);
-        let assignedCount = 0;
-        
-        for (const [sanitizedEmail, userData] of Object.entries(usersData)) {
-            // Skip if user already has expiration date
-            if (userData.expirationDate) {
-                continue;
-            }
-            
-            // Skip system users (they never expire)
-            if (userData.isSystemUser) {
-                continue;
-            }
-            
-            try {
-                console.log(`🆕 Assigning trial to: ${userData.email}`);
-                
-                // Assign trial period with timeout
-                await withTimeout(
-                    db.ref(`users/${sanitizedEmail}`).update({
-                        expirationDate: trialEndDate,
-                        subscriptionStatus: 'trial',
-                        trialAssignedDate: now,
-                        trialAssignedBy: 'system_auto',
-                        updatedAt: now
-                    }),
-                    3000,
-                    'User update timed out'
-                );
-                
-                // Log to history with timeout
-                const historyRef = db.ref(`subscriptionHistory/${sanitizedEmail}`).push();
-                await withTimeout(
-                    historyRef.set({
-                        action: 'trial_assigned',
-                        daysAdded: trialDays,
-                        previousExpiration: null,
-                        newExpiration: trialEndDate,
-                        assignedBy: 'system_auto',
-                        timestamp: now,
-                        date: new Date().toISOString(),
-                        note: 'Auto-assigned trial period for legacy user'
-                    }),
-                    3000,
-                    'History log timed out'
-                );
-                
-                assignedCount++;
-            } catch (userError) {
-                console.error(`❌ Error assigning trial to ${userData.email}:`, userError.message);
-                // Continue with next user
-            }
-        }
-        
-        if (assignedCount > 0) {
-            console.log(`✅ Assigned ${trialDays}-day trial to ${assignedCount} user(s)`);
-            
-            // Show notification if function exists
-            if (typeof showNotification === 'function') {
-                showNotification(
-                    `🆕 Trial Assignment Complete`,
-                    `${assignedCount} user(s) without expiration dates have been assigned a ${trialDays}-day trial period.`,
-                    'info'
-                );
-            }
-        } else {
-            console.log('ℹ️ No users needed trial assignment');
-        }
-        
-    } catch (error) {
-        console.error('❌ Error in checkAndAssignTrialPeriods:', error.message);
-        console.error('Stack:', error.stack);
-        // Don't throw - allow page to continue loading
-    }
-}
-// ============================================================================
-// 2. IMPROVED: Load all user subscriptions (WITH TIMEOUT)
-// ============================================================================
+// Load all user subscriptions
 async function loadAllUserSubscriptions() {
-    const listElement = document.getElementById('subscriptionManagementList');
-    
     try {
-        console.log('📊 Loading subscription data...');
-        
-        listElement.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">⏳ Loading subscription data...</p>';
-        
-        // Timeout protection: 10 seconds max for Firebase init
-        await withTimeout(
-            (async () => {
-                if (!firebaseConfig.isReady()) {
-                    console.log('⏳ Initializing Firebase...');
-                    await firebaseConfig.initialize();
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-            })(),
-            10000,
-            'Firebase initialization timed out'
-        );
-        
-        // Check if still not ready
         if (!firebaseConfig.isReady()) {
-            listElement.innerHTML = '<p style="color: var(--warning); text-align: center;">⚠️ Firebase not available. Subscription management unavailable.</p>';
-            console.warn('⚠️ Firebase not available for subscription management');
+            document.getElementById('subscriptionManagementList').innerHTML = 
+                '<p style="color: var(--warning);">Firebase not available</p>';
             return;
         }
 
         const db = firebaseConfig.getDatabase();
         const usersRef = db.ref('users');
-        
-        // Timeout protection: 5 seconds max for database read
-        const snapshot = await withTimeout(
-            usersRef.once('value'),
-            5000,
-            'Database read timed out'
-        );
-        
+        const snapshot = await usersRef.once('value');
         const usersData = snapshot.val();
 
         if (!usersData) {
-            listElement.innerHTML = '<p style="color: var(--text-muted); text-align: center;">No users found</p>';
-            console.log('ℹ️ No users in database');
+            document.getElementById('subscriptionManagementList').innerHTML = 
+                '<p style="color: var(--text-muted);">No users found</p>';
             return;
         }
 
@@ -2856,15 +2653,14 @@ async function loadAllUserSubscriptions() {
         // Arrays to track special cases
         const trialUsers = [];
         const expiringSoonUsers = [];
-        const expiredUsers = [];
         
         for (const [sanitizedEmail, userData] of Object.entries(usersData)) {
-            const email = userData.email || sanitizedEmail.replace(/_/g, '.');
+            const email = userData.email;
             const expirationDate = userData.expirationDate;
             const subscriptionStatus = userData.subscriptionStatus || 'unknown';
             
-            // Skip system users (they're shown separately)
-            if (userData.isSystemUser || WaterfallConfig.users[email]) {
+            // Skip system users
+            if (WaterfallConfig.users[email]) {
                 continue;
             }
             
@@ -2876,9 +2672,8 @@ async function loadAllUserSubscriptions() {
             let isTrial = false;
             
             if (!expirationDate) {
-                // This shouldn't happen after auto-trial assignment
-                statusBadge = '⚠️ No Expiration Set';
-                statusColor = 'var(--danger)';
+                statusBadge = 'No Expiration Set';
+                statusColor = 'var(--text-muted)';
             } else {
                 daysRemaining = Math.ceil((expirationDate - now) / (24 * 60 * 60 * 1000));
                 
@@ -2887,7 +2682,6 @@ async function loadAllUserSubscriptions() {
                     isTrial = true;
                     trialUsers.push({
                         email: email,
-                        sanitizedEmail: sanitizedEmail,
                         name: userData.name || 'Unknown',
                         daysRemaining: daysRemaining,
                         expirationDate: expirationDate
@@ -2895,18 +2689,11 @@ async function loadAllUserSubscriptions() {
                 }
                 
                 if (now > expirationDate) {
-                    statusBadge = '🚫 EXPIRED';
+                    statusBadge = 'EXPIRED';
                     statusColor = 'var(--danger)';
                     isExpired = true;
-                    
-                    expiredUsers.push({
-                        email: email,
-                        sanitizedEmail: sanitizedEmail,
-                        name: userData.name || 'Unknown',
-                        expiredDate: expirationDate
-                    });
                 } else if (daysRemaining <= WaterfallConfig.subscription.warningDaysBeforeExpiry) {
-                    statusBadge = `⚠️ Expiring in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}`;
+                    statusBadge = `Expiring in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}`;
                     statusColor = 'var(--warning)';
                     isExpiringSoon = true;
                     
@@ -2914,14 +2701,13 @@ async function loadAllUserSubscriptions() {
                     if (!isTrial) {
                         expiringSoonUsers.push({
                             email: email,
-                            sanitizedEmail: sanitizedEmail,
                             name: userData.name || 'Unknown',
                             daysRemaining: daysRemaining,
                             expirationDate: expirationDate
                         });
                     }
                 } else {
-                    statusBadge = `✅ Active (${daysRemaining} days left)`;
+                    statusBadge = `Active (${daysRemaining} days left)`;
                     statusColor = 'var(--success)';
                 }
                 
@@ -2940,13 +2726,9 @@ async function loadAllUserSubscriptions() {
                 }) : 'Not set';
             
             html += `
-                <div class="user-row ${isExpired || (isTrial && daysRemaining <= 3) ? 'suspicious' : ''}" 
-                     style="${isExpired ? 'border: 2px solid var(--danger); opacity: 0.8;' : ''}">
+                <div class="user-row ${isExpired || isTrial ? 'suspicious' : ''}">
                     <div class="user-info">
-                        <div class="user-name">
-                            ${email}
-                            ${isExpired ? ' <span style="color: var(--danger); font-weight: 700;">🚫 EXPIRED</span>' : ''}
-                        </div>
+                        <div class="user-name">${email}</div>
                         <div class="user-details">
                             Status: <strong style="color: ${statusColor};">${statusBadge}</strong>
                             ${expirationDate ? ` | Expires: ${expirationDateStr}` : ''}
@@ -2954,12 +2736,11 @@ async function loadAllUserSubscriptions() {
                         </div>
                     </div>
                     <div class="user-actions">
-                        <button class="btn ${isExpired ? 'btn-danger' : 'btn-primary'} btn-small" 
-                                onclick="showExtendSubscriptionModal('${email}', '${sanitizedEmail}', ${expirationDate || 0})">
+                        <button class="btn btn-primary btn-small" onclick="showExtendSubscriptionModal('${email}', ${expirationDate || 0})">
                             <i class="fas fa-calendar-plus"></i>
-                            ${isExpired ? 'Renew' : 'Extend'}
+                            Extend
                         </button>
-                        <button class="btn btn-warning btn-small" onclick="viewSubscriptionHistory('${sanitizedEmail}')">
+                        <button class="btn btn-warning btn-small" onclick="viewSubscriptionHistory('${email}')">
                             <i class="fas fa-history"></i>
                             History
                         </button>
@@ -2972,24 +2753,20 @@ async function loadAllUserSubscriptions() {
             html = '<p style="color: var(--text-muted); text-align: center;">No dynamic users found</p>';
         }
 
-        listElement.innerHTML = html;
+        document.getElementById('subscriptionManagementList').innerHTML = html;
         
         // Update alert notifications
-        updateSubscriptionAlerts(trialUsers, expiringSoonUsers, expiredUsers);
-        
-        console.log('✅ Subscription data loaded successfully');
+        updateSubscriptionAlerts(trialUsers, expiringSoonUsers);
         
     } catch (error) {
-        console.error('❌ Error loading subscriptions:', error.message);
-        console.error('Stack:', error.stack);
-        listElement.innerHTML = `<p style="color: var(--danger); text-align: center;">❌ Error loading subscriptions: ${error.message}</p>`;
-        // Don't throw - allow page to continue
+        console.error('Error loading subscriptions:', error);
+        document.getElementById('subscriptionManagementList').innerHTML = 
+            '<p style="color: var(--danger);">Error loading subscription data</p>';
     }
 }
-// ============================================================================
-// 3. IMPROVED: Update subscription alerts
-// ============================================================================
-function updateSubscriptionAlerts(trialUsers, expiringSoonUsers, expiredUsers) {
+
+// Update subscription alert notifications
+function updateSubscriptionAlerts(trialUsers, expiringSoonUsers) {
     // Trial Users Alert
     const trialAlert = document.getElementById('trialUsersAlert');
     const trialCount = document.getElementById('trialUsersCount');
@@ -3015,9 +2792,7 @@ function updateSubscriptionAlerts(trialUsers, expiringSoonUsers, expiredUsers) {
                             Expires: ${expirationStr} (${user.daysRemaining} day${user.daysRemaining !== 1 ? 's' : ''} left)
                         </div>
                     </div>
-                    <button class="btn btn-primary btn-small" 
-                            onclick="showExtendSubscriptionModal('${user.email}', '${user.sanitizedEmail}', ${user.expirationDate})" 
-                            style="padding: 0.5rem 0.75rem; font-size: 0.75rem;">
+                    <button class="btn btn-primary btn-small" onclick="showExtendSubscriptionModal('${user.email}', ${user.expirationDate})" style="padding: 0.5rem 0.75rem; font-size: 0.75rem;">
                         <i class="fas fa-calendar-plus"></i>
                         Extend Now
                     </button>
@@ -3057,9 +2832,7 @@ function updateSubscriptionAlerts(trialUsers, expiringSoonUsers, expiredUsers) {
                             Expires: ${expirationStr} (${user.daysRemaining} day${user.daysRemaining !== 1 ? 's' : ''} left)
                         </div>
                     </div>
-                    <button class="btn btn-primary btn-small" 
-                            onclick="showExtendSubscriptionModal('${user.email}', '${user.sanitizedEmail}', ${user.expirationDate})" 
-                            style="padding: 0.5rem 0.75rem; font-size: 0.75rem;">
+                    <button class="btn btn-primary btn-small" onclick="showExtendSubscriptionModal('${user.email}', ${user.expirationDate})" style="padding: 0.5rem 0.75rem; font-size: 0.75rem;">
                         <i class="fas fa-calendar-plus"></i>
                         Extend Now
                     </button>
@@ -3075,10 +2848,13 @@ function updateSubscriptionAlerts(trialUsers, expiringSoonUsers, expiredUsers) {
     }
 }
 
-// ============================================================================
-// 4. FIXED: Show extend subscription modal
-// ============================================================================
-function showExtendSubscriptionModal(email, sanitizedEmail, currentExpiration) {
+// Refresh subscription data
+async function refreshSubscriptionData() {
+    await loadAllUserSubscriptions();
+}
+
+// Show extend subscription modal
+function showExtendSubscriptionModal(email, currentExpiration) {
     const now = Date.now();
     const isExpired = currentExpiration && now > currentExpiration;
     const currentExpirationStr = currentExpiration ? 
@@ -3091,22 +2867,20 @@ function showExtendSubscriptionModal(email, sanitizedEmail, currentExpiration) {
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
-    modal.id = 'extendSubscriptionModal';
-    
     modal.innerHTML = `
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title">
                     <i class="fas fa-calendar-plus"></i>
-                    ${isExpired ? 'Renew' : 'Extend'} Subscription
+                    Extend Subscription
                 </h3>
-                <button class="close-btn" onclick="document.getElementById('extendSubscriptionModal').remove()">&times;</button>
+                <button class="close-btn" onclick="this.closest('.modal').remove()">&times;</button>
             </div>
             <div style="padding: 1.5rem;">
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">
                     User: <strong style="color: var(--accent);">${email}</strong><br>
                     Current Expiration: <strong style="color: ${isExpired ? 'var(--danger)' : 'var(--warning)'};">${currentExpirationStr}</strong>
-                    ${isExpired ? '<br><span style="color: var(--danger); font-weight: 600;">⚠️ EXPIRED - Subscription will be renewed</span>' : ''}
+                    ${isExpired ? '<br><span style="color: var(--danger); font-weight: 600;">⚠️ EXPIRED</span>' : ''}
                 </p>
                 
                 <div style="margin-bottom: 1.5rem;">
@@ -3114,27 +2888,23 @@ function showExtendSubscriptionModal(email, sanitizedEmail, currentExpiration) {
                         Extension Period:
                     </label>
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
-                        ${WaterfallConfig.subscription.extensionOptions.map((option, index) => `
-                            <button class="btn btn-primary extension-btn" 
-                                    onclick="selectExtensionDays(${option.days}, this, ${currentExpiration || 0})" 
-                                    style="padding: 0.75rem; font-size: 0.9rem; ${index === 1 ? 'background: linear-gradient(135deg, var(--success), #0a7d5b);' : ''}">
+                        ${WaterfallConfig.subscription.extensionOptions.map(option => `
+                            <button class="btn btn-primary" onclick="selectExtensionDays(${option.days}, this)" 
+                                style="padding: 0.75rem; font-size: 0.9rem;">
                                 <i class="fas fa-calendar"></i>
                                 ${option.label}
                             </button>
                         `).join('')}
                     </div>
                     <input type="hidden" id="selectedDays" value="30">
-                    <input type="hidden" id="modalCurrentExpiration" value="${currentExpiration || 0}">
-                    <input type="hidden" id="modalSanitizedEmail" value="${sanitizedEmail}">
                 </div>
                 
                 <div style="margin-bottom: 1.5rem;">
                     <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500;">
                         Or Custom Days:
                     </label>
-                    <input type="number" id="customDays" min="1" max="3650" placeholder="Enter custom days (1-3650)" 
-                        oninput="handleCustomDaysInput(${currentExpiration || 0})"
-                        style="width: 100%; padding: 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-primary); font-family: 'Montserrat', sans-serif;">
+                    <input type="number" id="customDays" min="1" placeholder="Enter custom days" 
+                        style="width: 100%; padding: 0.75rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-primary);">
                 </div>
                 
                 <div id="newExpirationPreview" style="background: var(--bg-card-darker); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--accent); margin-bottom: 1.5rem;">
@@ -3143,13 +2913,12 @@ function showExtendSubscriptionModal(email, sanitizedEmail, currentExpiration) {
                 </div>
                 
                 <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                    <button class="btn btn-danger" onclick="document.getElementById('extendSubscriptionModal').remove()">
-                        <i class="fas fa-times"></i>
+                    <button class="btn btn-danger" onclick="this.closest('.modal').remove()">
                         Cancel
                     </button>
-                    <button class="btn btn-primary" onclick="extendUserSubscription('${email}')">
+                    <button class="btn btn-primary" onclick="extendUserSubscription('${email}', ${currentExpiration || 0})">
                         <i class="fas fa-check"></i>
-                        ${isExpired ? 'Renew' : 'Extend'} Subscription
+                        Extend Subscription
                     </button>
                 </div>
             </div>
@@ -3157,51 +2926,42 @@ function showExtendSubscriptionModal(email, sanitizedEmail, currentExpiration) {
     `;
     document.body.appendChild(modal);
     
-    // Update preview with default selection (30 days)
-    updateExpirationPreview(currentExpiration || 0, 30);
+    // Update preview
+    updateExpirationPreview(currentExpiration, 30);
+    
+    // Add event listener for custom days
+    document.getElementById('customDays').addEventListener('input', function() {
+        const days = parseInt(this.value) || 0;
+        if (days > 0) {
+            document.getElementById('selectedDays').value = days;
+            updateExpirationPreview(currentExpiration, days);
+        }
+    });
 }
 
-// ============================================================================
-// 5. FIXED: Select extension days
-// ============================================================================
-function selectExtensionDays(days, button, currentExpiration) {
-    const buttons = document.querySelectorAll('.extension-btn');
+// Select extension days
+function selectExtensionDays(days, button) {
+    // Remove active state from all buttons
+    const buttons = button.parentElement.querySelectorAll('button');
     buttons.forEach(btn => {
-        btn.style.background = '';
-        btn.classList.remove('active');
+        btn.style.background = 'linear-gradient(135deg, var(--accent), #4ecdb8)';
     });
     
+    // Set active state
     button.style.background = 'linear-gradient(135deg, var(--success), #0a7d5b)';
-    button.classList.add('active');
     
+    // Update selected days
     document.getElementById('selectedDays').value = days;
     document.getElementById('customDays').value = '';
     
+    // Update preview
+    const modal = button.closest('.modal-content');
+    const email = modal.querySelector('.modal-title').textContent;
+    const currentExpiration = parseInt(modal.querySelector('strong[style*="color"]').getAttribute('data-expiration') || 0);
     updateExpirationPreview(currentExpiration, days);
 }
 
-// ============================================================================
-// 6. NEW: Handle custom days input
-// ============================================================================
-function handleCustomDaysInput(currentExpiration) {
-    const customDaysInput = document.getElementById('customDays');
-    const days = parseInt(customDaysInput.value) || 0;
-    
-    if (days > 0) {
-        const buttons = document.querySelectorAll('.extension-btn');
-        buttons.forEach(btn => {
-            btn.style.background = '';
-            btn.classList.remove('active');
-        });
-        
-        document.getElementById('selectedDays').value = days;
-        updateExpirationPreview(currentExpiration, days);
-    }
-}
-
-// ============================================================================
-// 7. FIXED: Update expiration preview
-// ============================================================================
+// Update expiration preview
 function updateExpirationPreview(currentExpiration, days) {
     const now = Date.now();
     const baseDate = currentExpiration && currentExpiration > now ? currentExpiration : now;
@@ -3220,274 +2980,101 @@ function updateExpirationPreview(currentExpiration, days) {
     }
 }
 
-// ============================================================================
-// 8. COMPLETELY REWRITTEN: Extend user subscription
-// ============================================================================
-async function extendUserSubscription(email) {
-    const selectedDays = parseInt(document.getElementById('selectedDays').value);
-    const customDaysInput = document.getElementById('customDays');
-    const customDays = customDaysInput ? parseInt(customDaysInput.value) : 0;
-    const extensionDays = customDays || selectedDays;
-    const currentExpiration = parseInt(document.getElementById('modalCurrentExpiration').value) || 0;
-    const sanitizedEmail = document.getElementById('modalSanitizedEmail').value;
-    
-    console.log('📝 Extension Request:', {
-        email,
-        sanitizedEmail,
-        extensionDays,
-        currentExpiration: currentExpiration ? new Date(currentExpiration).toISOString() : 'null',
-        selectedDays,
-        customDays
-    });
+// Extend user subscription
+async function extendUserSubscription(email, currentExpiration) {
+    const days = parseInt(document.getElementById('selectedDays').value);
+    const customDays = parseInt(document.getElementById('customDays').value);
+    const extensionDays = customDays || days;
     
     if (!extensionDays || extensionDays < 1) {
-        alert('❌ Please select or enter a valid extension period (minimum 1 day)');
-        return;
-    }
-    
-    if (extensionDays > 3650) {
-        alert('❌ Maximum extension period is 3650 days (10 years)');
+        alert('Please select or enter a valid extension period');
         return;
     }
     
     try {
-        // Show loading indicator
-        const modal = document.getElementById('extendSubscriptionModal');
-        const submitBtn = modal.querySelector('button[onclick*="extendUserSubscription"]');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-        submitBtn.disabled = true;
-        
-        // Ensure Firebase is ready
-        if (!firebaseConfig.isReady()) {
-            console.log('⏳ Firebase not ready, initializing...');
-            await firebaseConfig.initialize();
-            await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-        
         const db = firebaseConfig.getDatabase();
-        
-        console.log('🔍 Looking up user with sanitized email:', sanitizedEmail);
-        
-        // Use the sanitized email directly (passed from the button)
+        const sanitizedEmail = email.replace(/[.#$[\]\/]/g, '_');
         const userRef = db.ref(`users/${sanitizedEmail}`);
-        const snapshot = await userRef.once('value');
-        
-        if (!snapshot.exists()) {
-            console.error('❌ User not found with key:', sanitizedEmail);
-            
-            // List all users for debugging
-            const allUsersRef = db.ref('users');
-            const allSnapshot = await allUsersRef.once('value');
-            const allUsers = allSnapshot.val();
-            console.log('📋 Available users in database:', Object.keys(allUsers || {}));
-            
-            throw new Error(`User not found in database. Email: ${email}`);
-        }
-        
-        const userData = snapshot.val();
-        console.log('✅ User found:', userData.email);
         
         // Calculate new expiration
         const now = Date.now();
         const baseDate = currentExpiration && currentExpiration > now ? currentExpiration : now;
         const newExpiration = baseDate + (extensionDays * 24 * 60 * 60 * 1000);
         
-        console.log('📅 Date calculations:', {
-            now: new Date(now).toISOString(),
-            currentExpiration: currentExpiration ? new Date(currentExpiration).toISOString() : 'null',
-            baseDate: new Date(baseDate).toISOString(),
-            extensionDays,
-            newExpiration: new Date(newExpiration).toISOString()
+        // Update Firebase
+        await userRef.update({
+            expirationDate: newExpiration,
+            subscriptionStatus: 'active',
+            lastExtended: now,
+            extendedBy: JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}').email || 'admin'
         });
         
-        // Get current admin info
-        const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
-        const adminEmail = authData.email || 'admin';
-        
-        // Determine new subscription status
-        let newStatus = 'active';
-        if (userData.subscriptionStatus === 'trial' && extensionDays > 7) {
-            newStatus = 'active'; // Upgraded from trial
-        } else if (extensionDays === 7 && !currentExpiration) {
-            newStatus = 'trial';
-        }
-        
-        // Update Firebase user data
-        const updateData = {
-            expirationDate: newExpiration,
-            subscriptionStatus: newStatus,
-            lastExtended: now,
-            lastExtendedDate: new Date(now).toISOString(),
-            extendedBy: adminEmail,
-            updatedAt: now,
-            updatedDate: new Date(now).toISOString()
-        };
-        
-        console.log('💾 Updating user with data:', updateData);
-        
-        await userRef.update(updateData);
-        console.log('✅ User record updated successfully');
-        
-        // Log extension to history
+        // Log extension history
         const historyRef = db.ref(`subscriptionHistory/${sanitizedEmail}`).push();
-        const historyData = {
+        await historyRef.set({
             action: 'extended',
             daysAdded: extensionDays,
             previousExpiration: currentExpiration || null,
-            previousExpirationDate: currentExpiration ? new Date(currentExpiration).toISOString() : null,
             newExpiration: newExpiration,
-            newExpirationDate: new Date(newExpiration).toISOString(),
-            statusChange: userData.subscriptionStatus !== newStatus ? {
-                from: userData.subscriptionStatus,
-                to: newStatus
-            } : null,
-            extendedBy: adminEmail,
+            extendedBy: JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}').email || 'admin',
             timestamp: now,
-            date: new Date(now).toISOString(),
-            note: currentExpiration && now > currentExpiration ? 'Renewed expired subscription' : 'Extended active subscription'
-        };
-        
-        await historyRef.set(historyData);
-        console.log('✅ History logged successfully');
-        
-        // Log security event
-        if (typeof SecurityUtils !== 'undefined') {
-            SecurityUtils.logSecurityEvent('SUBSCRIPTION_EXTENDED', {
-                email: email,
-                daysAdded: extensionDays,
-                newExpiration: newExpiration,
-                statusChange: userData.subscriptionStatus !== newStatus,
-                extendedBy: adminEmail,
-                timestamp: now
-            });
-        }
-        
-        // Format success message
-        const newExpirationStr = new Date(newExpiration).toLocaleDateString('id-ID', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
+            date: new Date().toISOString()
         });
         
-        const wasExpired = currentExpiration && now > currentExpiration;
-        const statusChangeMsg = userData.subscriptionStatus !== newStatus ? 
-            `\n\nStatus: ${userData.subscriptionStatus} → ${newStatus}` : '';
-        
-        alert(`✅ Subscription ${wasExpired ? 'renewed' : 'extended'} successfully!\n\nUser: ${email}\nExtension: ${extensionDays} day${extensionDays !== 1 ? 's' : ''}\nNew expiration: ${newExpirationStr}${statusChangeMsg}`);
-        
-        // Close modal and refresh
-        document.getElementById('extendSubscriptionModal').remove();
+        alert(`✅ Successfully extended subscription for ${email} by ${extensionDays} days!`);
+        document.querySelector('.modal').remove();
         await loadAllUserSubscriptions();
-        
-        console.log('✅ Subscription extension complete');
-        
     } catch (error) {
-        console.error('❌ Extension failed:', error);
-        console.error('Error stack:', error.stack);
-        
-        alert(`❌ Failed to extend subscription\n\nError: ${error.message}\n\nPlease check the browser console for details and try again.`);
-        
-        // Re-enable button
-        const modal = document.getElementById('extendSubscriptionModal');
-        if (modal) {
-            const submitBtn = modal.querySelector('button[onclick*="extendUserSubscription"]');
-            if (submitBtn) {
-                submitBtn.innerHTML = '<i class="fas fa-check"></i> Extend Subscription';
-                submitBtn.disabled = false;
-            }
-        }
+        console.error('Error extending subscription:', error);
+        alert('❌ Error extending subscription');
     }
 }
 
-// ============================================================================
-// 9. IMPROVED: View subscription history
-// ============================================================================
-async function viewSubscriptionHistory(sanitizedEmail) {
+// View subscription history
+async function viewSubscriptionHistory(email) {
     try {
         const db = firebaseConfig.getDatabase();
+        const sanitizedEmail = email.replace(/[.#$[\]\/]/g, '_');
         const historyRef = db.ref(`subscriptionHistory/${sanitizedEmail}`);
         const snapshot = await historyRef.orderByChild('timestamp').once('value');
         const historyData = snapshot.val();
         
-        // Get user email for display
-        const userRef = db.ref(`users/${sanitizedEmail}`);
-        const userSnapshot = await userRef.once('value');
-        const userData = userSnapshot.val();
-        const email = userData ? userData.email : sanitizedEmail.replace(/_/g, '.');
-        
         let html = `
-            <div style="max-height: 500px; overflow-y: auto;">
+            <div style="max-height: 400px; overflow-y: auto;">
                 <h4 style="color: var(--accent); margin-bottom: 1rem;">
-                    📜 Subscription History: ${email}
+                    Subscription History for ${email}
                 </h4>
         `;
         
         if (!historyData) {
-            html += '<p style="color: var(--text-muted); text-align: center; padding: 2rem;">No subscription history found</p>';
+            html += '<p style="color: var(--text-muted);">No history found</p>';
         } else {
             const history = Object.values(historyData).reverse();
             
             history.forEach(record => {
-                let icon, color, actionText;
-                
-                if (record.action === 'extended') {
-                    icon = 'calendar-plus';
-                    color = 'var(--success)';
-                    actionText = `Extended by ${record.daysAdded} day${record.daysAdded !== 1 ? 's' : ''}`;
-                } else if (record.action === 'trial_assigned') {
-                    icon = 'gift';
-                    color = 'var(--warning)';
-                    actionText = `Trial assigned (${record.daysAdded} days)`;
-                } else {
-                    icon = 'info-circle';
-                    color = 'var(--accent)';
-                    actionText = record.action;
-                }
+                const icon = record.action === 'extended' ? 'calendar-plus' : 'info-circle';
+                const color = 'var(--success)';
                 
                 html += `
                     <div style="background: var(--bg-card-darker); padding: 1rem; margin-bottom: 0.5rem; border-radius: 0.5rem; border-left: 3px solid ${color};">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <i class="fas fa-${icon}" style="color: ${color}; margin-right: 0.5rem;"></i>
-                                <strong style="color: var(--text-primary);">${actionText}</strong>
+                                <i class="fas fa-${icon}" style="color: ${color};"></i>
+                                <strong style="color: var(--text-primary);">Extended by ${record.daysAdded} days</strong>
                             </div>
                             <div style="color: var(--text-muted); font-size: 0.75rem;">
-                                ${new Date(record.timestamp).toLocaleString('id-ID', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                })}
+                                ${new Date(record.timestamp).toLocaleString('id-ID')}
                             </div>
                         </div>
-                        <div style="color: var(--text-secondary); font-size: 0.85rem;">
-                            ${record.previousExpiration ? 
-                                `Previous: ${new Date(record.previousExpiration).toLocaleDateString('id-ID', {
-                                    day: 'numeric',
-                                    month: 'long',
-                                    year: 'numeric'
-                                })} →` : 
-                                'Initial assignment →'
-                            }
-                            <strong style="color: var(--accent);">
-                                ${new Date(record.newExpiration).toLocaleDateString('id-ID', {
-                                    day: 'numeric',
-                                    month: 'long',
-                                    year: 'numeric'
-                                })}
-                            </strong>
+                        <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
+                            New expiration: ${new Date(record.newExpiration).toLocaleDateString('id-ID', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric'
+                            })}
                         </div>
-                        ${record.statusChange ? `
-                            <div style="color: var(--warning); font-size: 0.75rem; margin-top: 0.25rem;">
-                                Status changed: ${record.statusChange.from} → ${record.statusChange.to}
-                            </div>
-                        ` : ''}
                         <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.25rem;">
-                            By: ${record.extendedBy || record.assignedBy || 'system'}
-                            ${record.note ? ` | ${record.note}` : ''}
+                            Extended by: ${record.extendedBy}
                         </div>
                     </div>
                 `;
@@ -3514,144 +3101,34 @@ async function viewSubscriptionHistory(sanitizedEmail) {
             </div>
         `;
         document.body.appendChild(modal);
-        
     } catch (error) {
-        console.error('❌ Error viewing history:', error);
-        alert(`❌ Error loading subscription history: ${error.message}`);
+        console.error('Error viewing history:', error);
+        alert('❌ Error loading subscription history');
     }
 }
 
-// ============================================================================
-// 10. NEW: Refresh subscription data
-// ============================================================================
-async function refreshSubscriptionData() {
-    const btn = event?.target?.closest('button');
-    if (btn) {
-        const originalHTML = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
-        btn.disabled = true;
+
+//----Close Modal
+// Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                closeModal();
+            }
+        });
         
-        try {
-            await loadAllUserSubscriptions();
-        } finally {
-            btn.innerHTML = originalHTML;
-            btn.disabled = false;
-        }
-    } else {
-        await loadAllUserSubscriptions();
-    }
-}
-
-// ============================================================================
-// 11. NEW: Notification helper
-// ============================================================================
-function showNotification(title, message, type = 'info') {
-    const colors = {
-        info: 'var(--accent)',
-        success: 'var(--success)',
-        warning: 'var(--warning)',
-        error: 'var(--danger)'
-    };
-    
-    const icons = {
-        info: 'info-circle',
-        success: 'check-circle',
-        warning: 'exclamation-triangle',
-        error: 'times-circle'
-    };
-    
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: var(--bg-card);
-        border: 2px solid ${colors[type]};
-        border-radius: 0.5rem;
-        padding: 1rem 1.5rem;
-        max-width: 400px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        z-index: 10000;
-        animation: slideIn 0.3s ease-out;
-    `;
-    
-    notification.innerHTML = `
-        <div style="display: flex; align-items: start; gap: 1rem;">
-            <i class="fas fa-${icons[type]}" style="color: ${colors[type]}; font-size: 1.5rem; margin-top: 0.25rem;"></i>
-            <div style="flex: 1;">
-                <strong style="color: ${colors[type]}; display: block; margin-bottom: 0.5rem;">${title}</strong>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">${message}</p>
-            </div>
-            <button onclick="this.closest('div').remove()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; padding: 0; line-height: 1;">&times;</button>
-        </div>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease-out';
-        setTimeout(() => notification.remove(), 300);
-    }, 5000);
-}
-
-// Add CSS animation
-if (!document.getElementById('notification-styles')) {
-    const style = document.createElement('style');
-    style.id = 'notification-styles';
-    style.textContent = `
-        @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-        @keyframes slideOut {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-        }
-    `;
-    document.head.appendChild(style);
-}
-
-
-
-
-//Update the DOMContentLoaded Section
-
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Admin Dashboard initializing...');
-    
-    dashboard = new SecurityDashboard();
-    
-    // Load blocked users
-    setTimeout(() => {
-        console.log('📋 Loading blocked users...');
-        refreshBlockedUsers();
-    }, 3000);
-    
-    // Load user management
-    setTimeout(() => {
-        console.log('👥 Loading user management...');
-        loadAllUsers();
-    }, 3500);
-    
-    // ✅ ADD THIS: Check and assign trial + load subscriptions
-    setTimeout(async () => {
-        console.log('🆕 Checking for users needing trial assignment...');
-        await checkAndAssignTrialPeriods();
-        
-        console.log('📊 Loading subscription management...');
-        await loadAllUserSubscriptions();
-    }, 4500);
-});
+        // ✅ Initialize user management on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                console.log('📋 Loading user management...');
+                loadAllUsers();
+            }, 3500); // Load after blocked users (3 seconds + 500ms)
+            
+            // ✅ Load subscription data
+            setTimeout(() => {
+                console.log('📅 Loading subscription data...');
+                loadAllUserSubscriptions();
+            }, 4000); // Load after user management
+        });
+    </script>
+</body>
+</html>
