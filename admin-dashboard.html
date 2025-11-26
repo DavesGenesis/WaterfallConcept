@@ -2745,10 +2745,6 @@ async function loadAllUserSubscriptions() {
                             <i class="fas fa-calendar-plus"></i>
                             Extend
                         </button>
-                        <button class="btn btn-warning btn-small" onclick="viewSubscriptionHistory('${email}')">
-                            <i class="fas fa-history"></i>
-                            History
-                        </button>
                     </div>
                 </div>
             `;
@@ -3065,28 +3061,8 @@ async function extendUserSubscription(email, currentExpiration) {
         
         console.log('✅ User record updated');
         
-        // ✅ TRY: Log to subscription history (optional - don't fail if this fails)
-        try {
-            console.log('📝 Logging to subscription history...');
-            const historyRef = db.ref(`subscriptionHistory/${sanitizedEmail}`).push();
-            await historyRef.set({
-                action: 'extended',
-                daysAdded: extensionDays,
-                previousExpiration: currentExpiration || null,
-                newExpiration: newExpiration,
-                extendedBy: extendedBy,
-                timestamp: now,
-                date: new Date().toISOString(),
-                note: `Extended subscription by ${extensionDays} day(s)`
-            });
-            console.log('✅ History logged successfully');
-        } catch (historyError) {
-            console.warn('⚠️ Could not log history (non-critical):', historyError.message);
-            console.warn('   Firebase permissions may not allow history writes');
-            console.warn('   The user extension was still successful!');
-        }
-        
         // ✅ SUCCESS: Show success message
+        console.log('📢 Showing success message...');
         alert(`✅ Successfully extended subscription for ${email} by ${extensionDays} days!\n\nNew expiration: ${new Date(newExpiration).toLocaleDateString('id-ID', {
             weekday: 'long',
             day: 'numeric',
@@ -3094,10 +3070,26 @@ async function extendUserSubscription(email, currentExpiration) {
             year: 'numeric'
         })}`);
         
-        // Close modal
-        const modal = document.querySelector('.modal');
-        if (modal) {
-            modal.remove();
+        // ✅ Close modal - try multiple methods to ensure it closes
+        console.log('🔒 Closing extension modal...');
+        try {
+            // Method 1: Find modal by class
+            const modal = document.querySelector('.modal');
+            if (modal) {
+                modal.remove();
+                console.log('✅ Modal closed (method 1)');
+            } else {
+                console.warn('⚠️ Modal not found with .modal selector');
+            }
+            
+            // Method 2: Remove any modal that might still be there
+            const allModals = document.querySelectorAll('.modal');
+            if (allModals.length > 0) {
+                allModals.forEach(m => m.remove());
+                console.log(`✅ Removed ${allModals.length} modal(s)`);
+            }
+        } catch (modalError) {
+            console.error('❌ Error closing modal:', modalError);
         }
         
         // ✅ TRY: Reload subscription data (optional - don't fail if this fails)
