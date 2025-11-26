@@ -2981,52 +2981,139 @@ function updateExpirationPreview(currentExpiration, days) {
 }
 
 // Extend user subscription
+// Extend user subscription - FIXED VERSION
 async function extendUserSubscription(email, currentExpiration) {
     const days = parseInt(document.getElementById('selectedDays').value);
     const customDays = parseInt(document.getElementById('customDays').value);
     const extensionDays = customDays || days;
     
     if (!extensionDays || extensionDays < 1) {
-        alert('Please select or enter a valid extension period');
+        alert('⚠️ Please select or enter a valid extension period');
         return;
     }
     
+    console.log('📊 Extending subscription for:', email);
+    console.log('   Extension days:', extensionDays);
+    console.log('   Current expiration:', currentExpiration);
+    
     try {
+        // ✅ CHECK 1: Verify Firebase is ready
+        if (!firebaseConfig.isReady()) {
+            console.log('⏳ Firebase not ready, initializing...');
+            await firebaseConfig.initialize();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            if (!firebaseConfig.isReady()) {
+                throw new Error('Firebase is not available. Please refresh the page and try again.');
+            }
+        }
+        
+        console.log('✅ Firebase ready');
+        
+        // ✅ CHECK 2: Get database reference
         const db = firebaseConfig.getDatabase();
+        if (!db) {
+            throw new Error('Could not get database connection');
+        }
+        
+        console.log('✅ Database connection obtained');
+        
+        // ✅ CHECK 3: Sanitize email (must match database key)
         const sanitizedEmail = email.replace(/[.#$[\]\/]/g, '_');
+        console.log('   Sanitized email:', sanitizedEmail);
+        
         const userRef = db.ref(`users/${sanitizedEmail}`);
         
-        // Calculate new expiration
+        // ✅ CHECK 4: Verify user exists in database
+        const userSnapshot = await userRef.once('value');
+        const userData = userSnapshot.val();
+        
+        if (!userData) {
+            throw new Error(`User not found in database: ${email}`);
+        }
+        
+        console.log('✅ User found in database');
+        
+        // ✅ CHECK 5: Calculate new expiration
         const now = Date.now();
         const baseDate = currentExpiration && currentExpiration > now ? currentExpiration : now;
         const newExpiration = baseDate + (extensionDays * 24 * 60 * 60 * 1000);
         
-        // Update Firebase
+        console.log('   Base date:', new Date(baseDate).toISOString());
+        console.log('   New expiration:', new Date(newExpiration).toISOString());
+        
+        // ✅ CHECK 6: Get current user info
+        const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+        const extendedBy = authData.email || 'admin';
+        
+        console.log('   Extended by:', extendedBy);
+        
+        // ✅ UPDATE: Update user record in Firebase
+        console.log('📝 Updating user record...');
         await userRef.update({
             expirationDate: newExpiration,
             subscriptionStatus: 'active',
             lastExtended: now,
-            extendedBy: JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}').email || 'admin'
+            extendedBy: extendedBy,
+            updatedAt: now
         });
         
-        // Log extension history
+        console.log('✅ User record updated');
+        
+        // ✅ LOG: Add to subscription history
+        console.log('📝 Logging to subscription history...');
         const historyRef = db.ref(`subscriptionHistory/${sanitizedEmail}`).push();
         await historyRef.set({
             action: 'extended',
             daysAdded: extensionDays,
             previousExpiration: currentExpiration || null,
             newExpiration: newExpiration,
-            extendedBy: JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}').email || 'admin',
+            extendedBy: extendedBy,
             timestamp: now,
-            date: new Date().toISOString()
+            date: new Date().toISOString(),
+            note: `Extended subscription by ${extensionDays} day(s)`
         });
         
-        alert(`✅ Successfully extended subscription for ${email} by ${extensionDays} days!`);
-        document.querySelector('.modal').remove();
+        console.log('✅ History logged successfully');
+        
+        // ✅ SUCCESS: Show success message
+        alert(`✅ Successfully extended subscription for ${email} by ${extensionDays} days!\n\nNew expiration: ${new Date(newExpiration).toLocaleDateString('id-ID', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        })}`);
+        
+        // Close modal
+        const modal = document.querySelector('.modal');
+        if (modal) {
+            modal.remove();
+        }
+        
+        // Reload subscription data
+        console.log('🔄 Reloading subscription data...');
         await loadAllUserSubscriptions();
+        console.log('✅ Subscription extension complete!');
+        
     } catch (error) {
-        console.error('Error extending subscription:', error);
-        alert('❌ Error extending subscription');
+        console.error('❌ Error extending subscription:', error);
+        console.error('   Error details:', {
+            message: error.message,
+            stack: error.stack,
+            email: email,
+            extensionDays: extensionDays
+        });
+        
+        // Show detailed error message
+        let errorMessage = '❌ Error extending subscription\n\n';
+        
+        if (error.message) {
+            errorMessage += `Error: ${error.message}\n\n`;
+        }
+        
+        errorMessage += 'Please check the browser console (F12) for more details.';
+        
+        alert(errorMessage);
     }
 }
 
