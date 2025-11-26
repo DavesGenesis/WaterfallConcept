@@ -17,6 +17,10 @@
     
     <!-- Protection Scripts -->
     <script>
+        // ⚠️ DEVTOOLS PROTECTION TEMPORARILY DISABLED FOR DEBUGGING
+        // Uncomment the sections below after debugging is complete
+        
+        /*
         // Disable right-click context menu
         document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
@@ -66,6 +70,7 @@
             e.preventDefault();
             return false;
         });
+        */
     </script>
     
     <style>
@@ -3060,21 +3065,26 @@ async function extendUserSubscription(email, currentExpiration) {
         
         console.log('✅ User record updated');
         
-        // ✅ LOG: Add to subscription history
-        console.log('📝 Logging to subscription history...');
-        const historyRef = db.ref(`subscriptionHistory/${sanitizedEmail}`).push();
-        await historyRef.set({
-            action: 'extended',
-            daysAdded: extensionDays,
-            previousExpiration: currentExpiration || null,
-            newExpiration: newExpiration,
-            extendedBy: extendedBy,
-            timestamp: now,
-            date: new Date().toISOString(),
-            note: `Extended subscription by ${extensionDays} day(s)`
-        });
-        
-        console.log('✅ History logged successfully');
+        // ✅ TRY: Log to subscription history (optional - don't fail if this fails)
+        try {
+            console.log('📝 Logging to subscription history...');
+            const historyRef = db.ref(`subscriptionHistory/${sanitizedEmail}`).push();
+            await historyRef.set({
+                action: 'extended',
+                daysAdded: extensionDays,
+                previousExpiration: currentExpiration || null,
+                newExpiration: newExpiration,
+                extendedBy: extendedBy,
+                timestamp: now,
+                date: new Date().toISOString(),
+                note: `Extended subscription by ${extensionDays} day(s)`
+            });
+            console.log('✅ History logged successfully');
+        } catch (historyError) {
+            console.warn('⚠️ Could not log history (non-critical):', historyError.message);
+            console.warn('   Firebase permissions may not allow history writes');
+            console.warn('   The user extension was still successful!');
+        }
         
         // ✅ SUCCESS: Show success message
         alert(`✅ Successfully extended subscription for ${email} by ${extensionDays} days!\n\nNew expiration: ${new Date(newExpiration).toLocaleDateString('id-ID', {
@@ -3090,9 +3100,17 @@ async function extendUserSubscription(email, currentExpiration) {
             modal.remove();
         }
         
-        // Reload subscription data
-        console.log('🔄 Reloading subscription data...');
-        await loadAllUserSubscriptions();
+        // ✅ TRY: Reload subscription data (optional - don't fail if this fails)
+        try {
+            console.log('🔄 Reloading subscription data...');
+            await loadAllUserSubscriptions();
+            console.log('✅ Subscription data reloaded');
+        } catch (reloadError) {
+            console.warn('⚠️ Could not reload data (non-critical):', reloadError.message);
+            console.warn('   Firebase permissions may not allow data reads');
+            console.warn('   Please refresh the page (F5) to see the updated data');
+        }
+        
         console.log('✅ Subscription extension complete!');
         
     } catch (error) {
