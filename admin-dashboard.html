@@ -1867,16 +1867,36 @@ async resetUserSessions(email) {
             }
         });
 
-        // ✅ SINGLE DOMContentLoaded - Initialize everything
+        // Declare dashboard as global variable
+        let dashboard;
+
+        // ✅ SINGLE CONSOLIDATED DOMContentLoaded - Initialize everything
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🚀 Admin Dashboard initializing...');
             
+            // Initialize dashboard
             dashboard = new SecurityDashboard();
             
+            // Load blocked users (3 seconds)
             setTimeout(() => {
                 console.log('📋 Loading blocked users...');
                 refreshBlockedUsers();
             }, 3000);
+            
+            // Load user management (3.5 seconds)
+            setTimeout(() => {
+                console.log('👥 Loading user management...');
+                loadAllUsers();
+            }, 3500);
+            
+            // Check and assign trial periods + load subscriptions (4.5 seconds)
+            setTimeout(async () => {
+                console.log('🆕 Checking for users needing trial assignment...');
+                await checkAndAssignTrialPeriods();
+                
+                console.log('📊 Loading subscription management...');
+                await loadAllUserSubscriptions();
+            }, 4500);
         });
 
 // ============================================================================
@@ -3513,48 +3533,17 @@ if (!document.getElementById('notification-styles')) {
 }
 
 // ============================================================================
-// 12. INITIALIZATION: Load on page ready
+
 // ============================================================================
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Subscription management initializing...');
-    
-    // Check and assign trial periods first
-    setTimeout(async () => {
-        console.log('🆕 Checking for users needing trial assignment...');
-        await checkAndAssignTrialPeriods();
-        
-        // Then load subscription data
-        console.log('📊 Loading subscription management...');
-        await loadAllUserSubscriptions();
-    }, 4500); // Load after user management (4 seconds + 500ms)
-});
+// 12. INITIALIZATION: ✅ FIXED - Consolidated into main DOMContentLoaded
+// ============================================================================
+// ⚠️ IMPORTANT: All initialization is now handled by the SINGLE consolidated
+// DOMContentLoaded listener at line ~1871. The duplicate listeners that were
+// here have been removed to fix the loading issue.
+// 
+// DO NOT add another DOMContentLoaded listener here - it will cause conflicts!
+// ============================================================================
 
-
-//Update the DOMContentLoaded Section
-
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Admin Dashboard initializing...');
-    
-    dashboard = new SecurityDashboard();
-    
-    // Load blocked users
-    setTimeout(() => {
-        console.log('📋 Loading blocked users...');
-        refreshBlockedUsers();
-    }, 3000);
-    
-    // Load user management
-    setTimeout(() => {
-        console.log('👥 Loading user management...');
-        loadAllUsers();
-    }, 3500);
-    
-    // ✅ ADD THIS: Check and assign trial + load subscriptions
-    setTimeout(async () => {
-        console.log('🆕 Checking for users needing trial assignment...');
-        await checkAndAssignTrialPeriods();
-        
-        console.log('📊 Loading subscription management...');
-        await loadAllUserSubscriptions();
-    }, 4500);
-});
+    </script>
+</body>
+</html>
