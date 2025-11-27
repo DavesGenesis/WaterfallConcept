@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Insurance Calculator - Genesis Advisory</title>
+    
+    <!-- Firebase SDK Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="broadcast-session-tracker.js"></script>
+    
+    <!-- Authentication Check -->
+    <script>
+        try {
+            const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+            if (!authData.authenticated) {
+                window.location.href = 'index.html';
+            }
+        } catch (error) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    
+    <!-- Protection Scripts -->
+    <script>
+        // Disable right-click context menu
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        // Disable keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.keyCode === 123 || 
+                (e.ctrlKey && e.shiftKey && e.keyCode === 73) || 
+                (e.ctrlKey && e.shiftKey && e.keyCode === 74) || 
+                (e.ctrlKey && e.shiftKey && e.keyCode === 67) || 
+                (e.ctrlKey && e.keyCode === 85) || 
+                (e.ctrlKey && e.keyCode === 83)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Detect DevTools opening
+        (function() {
+            const threshold = 160;
+            let devtools = {open: false};
+            
+            setInterval(function() {
+                if (window.outerWidth - window.innerWidth > threshold || 
+                    window.outerHeight - window.innerHeight > threshold) {
+                    if (!devtools.open) {
+                        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a192f;color:#64ffda;font-family:Montserrat,sans-serif;font-size:24px;text-align:center;padding:20px;">⚠️ Developer Tools detected. Please close it to continue.</div>';
+                    }
+                    devtools.open = true;
+                } else {
+                    devtools.open = false;
+                }
+            }, 500);
+        })();
+
+        // Disable text selection and copy
+        document.addEventListener('selectstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        document.addEventListener('copy', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    </script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* DCAtools Theme Colors */
+            --bg-primary: #0a192f;
+            --bg-card: #172a46;
+            --bg-card-darker: #111e35;
+            --bg-card-lighter: #1d3555;
+            --accent: #64ffda;
+            --accent-darker: #4ecdb8;
+            --text-primary: #e2e8f0;
+            --text-secondary: #a8b2c1;
+            --text-muted: #718096;
+            --border-color: #2d3748;
+            --danger: #ff6496;
+            --success: #10b981;
+            --warning: #f59e0b;
+            
+            /* Calculator Specific Colors */
+            --axa-blue: #0288d1;
+            --axa-blue-light: #03a9f4;
+            --manulife-green: #059669;
+            --manulife-green-light: #10b981;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Header Styles */
+        header {
+            background: var(--bg-card);
+            border-bottom: 2px solid var(--border-color);
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-title h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .header-title .highlight {
+            color: var(--accent);
+        }
+
+        .header-title .icon {
+            font-size: 2.5rem;
+        }
+
+        .back-button {
+            padding: 0.75rem 1.25rem;
+            background: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Montserrat', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: var(--accent-darker);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(100, 255, 218, 0.3);
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        /* Tab Navigation */
+        .tab-navigation {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: var(--bg-card);
+            padding: 1rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            flex: 1;
+            min-width: 200px;
+            padding: 1rem 1.5rem;
+            background: var(--bg-card-darker);
+            color: var(--text-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .tab-button:hover {
+            background: var(--bg-card-lighter);
+            transform: translateY(-2px);
+        }
+
+        .tab-button.active {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border-color: var(--accent);
+            box-shadow: 0 4px 12px rgba(100, 255, 218, 0.3);
+        }
+
+        .tab-button.axa-tab.active {
+            background: var(--axa-blue);
+            border-color: var(--axa-blue);
+        }
+
+        .tab-button.manulife-tab.active {
+            background: var(--manulife-green);
+            border-color: var(--manulife-green);
+        }
+
+        .tab-button .icon {
+            font-size: 1.5rem;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Calculator Container */
+        .calculator-container {
+            background: var(--bg-card);
+            border-radius: 1rem;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .calculator-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .calculator-header h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .calculator-header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Educational Box */
+        .edu-box {
+            background: var(--bg-card-darker);
+            border-left: 5px solid var(--warning);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .edu-box h3 {
+            color: var(--warning);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .edu-box p {
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            line-height: 1.8;
+        }
+
+        .edu-box ul {
+            margin-left: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .edu-box ul li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Form Styles */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 0.75rem 1rem;
+            background: var(--bg-card-darker);
+            border: 2px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: 'Montserrat', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Button Styles */
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Montserrat', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-darker);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(100, 255, 218, 0.3);
+        }
+
+        .btn-axa {
+            background: var(--axa-blue);
+            color: white;
+        }
+
+        .btn-axa:hover {
+            background: var(--axa-blue-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(2, 136, 209, 0.3);
+        }
+
+        .btn-manulife {
+            background: var(--manulife-green);
+            color: white;
+        }
+
+        .btn-manulife:hover {
+            background: var(--manulife-green-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card-lighter);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .button-group .btn {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        /* Results Section */
+        .results-section {
+            margin-top: 2rem;
+            padding: 2rem;
+            background: var(--bg-card-darker);
+            border-radius: 0.75rem;
+            border: 2px solid var(--border-color);
+        }
+
+        .results-section.hidden {
+            display: none;
+        }
+
+        .results-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .results-header h3 {
+            font-size: 1.75rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .result-card {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 2px solid var(--border-color);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .result-card .label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .result-card .value {
+            color: var(--accent);
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .result-card.highlight {
+            background: linear-gradient(135deg, var(--accent), var(--accent-darker));
+            border: none;
+        }
+
+        .result-card.highlight .label {
+            color: var(--bg-primary);
+        }
+
+        .result-card.highlight .value {
+            color: var(--bg-primary);
+        }
+
+        /* Strategy Cards */
+        .strategy-section {
+            margin-top: 2rem;
+        }
+
+        .strategy-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .strategy-card {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 2px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .strategy-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .strategy-card h4 {
+            color: var(--accent);
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .strategy-card .strategy-detail {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .strategy-card .strategy-detail:last-child {
+            border-bottom: none;
+        }
+
+        .strategy-card .strategy-detail .label {
+            color: var(--text-secondary);
+        }
+
+        .strategy-card .strategy-detail .value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            margin-top: 2rem;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+
+        .comparison-table th {
+            background: var(--bg-card-darker);
+            color: var(--accent);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .comparison-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .comparison-table tr:hover {
+            background: var(--bg-card-darker);
+        }
+
+        /* Placeholder Tab */
+        .placeholder-tab {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .placeholder-tab .icon {
+            font-size: 5rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .placeholder-tab h3 {
+            color: var(--text-primary);
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .placeholder-tab p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .header-title h1 {
+                font-size: 1.25rem;
+            }
+
+            .tab-navigation {
+                flex-direction: column;
+            }
+
+            .tab-button {
+                min-width: 100%;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .strategy-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .button-group .btn {
+                width: 100%;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+
+            header,
+            .tab-navigation,
+            .button-group {
+                display: none;
+            }
+
+            .calculator-container {
+                border: 1px solid #ddd;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-container">
+            <div class="header-title">
+                <div class="icon">🏥</div>
+                <h1>Health Insurance <span class="highlight">Calculator</span></h1>
+            </div>
+            <button class="back-button" onclick="window.location.href='dashboard.html'" title="Back to Dashboard">
+                <i class="fas fa-arrow-left"></i>
+                Back to Dashboard
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button axa-tab active" onclick="switchTab('axa')">
+                <span class="icon">🏥</span>
+                <span>AXA Health</span>
+            </button>
+            <button class="tab-button manulife-tab" onclick="switchTab('manulife')">
+                <span class="icon">💚</span>
+                <span>Manulife Health</span>
+            </button>
+            <button class="tab-button" onclick="switchTab('more')" disabled style="opacity: 0.5; cursor: not-allowed;">
+                <span class="icon">➕</span>
+                <span>More Coming Soon</span>
+            </button>
+        </div>
+
+        <!-- AXA Calculator Tab -->
+        <div id="axa-tab" class="tab-content active">
+            <div class="calculator-container">
+                <div class="calculator-header">
+                    <h2>🏥 Kalkulator Strategi Premi AXA</h2>
+                    <p>Hitung dan bandingkan strategi pembayaran premi asuransi kesehatan AXA Anda</p>
+                </div>
+
+                <!-- Educational Section -->
+                <div class="edu-box">
+                    <h3><i class="fas fa-lightbulb"></i> Mengapa Penting?</h3>
+                    <p><strong>Pilihan cara pembayaran premi</strong> sangat mempengaruhi total biaya asuransi Anda dalam jangka panjang!</p>
+                    <ul>
+                        <li><strong>Bulanan:</strong> Lebih fleksibel, tetapi total premi lebih mahal</li>
+                        <li><strong>Semester:</strong> Pembayaran 6 bulan sekali dengan diskon tertentu</li>
+                        <li><strong>Tahunan:</strong> Diskon paling besar, hemat biaya maksimal</li>
+                    </ul>
+                    <p><strong>💡 Tip:</strong> Jika cash flow memungkinkan, pembayaran tahunan adalah pilihan paling ekonomis!</p>
+                </div>
+
+                <!-- Input Form -->
+                <form id="axa-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-calculator"></i> Premi Bulanan (Rp)</label>
+                            <input type="number" id="axa-monthly" placeholder="Contoh: 500000" required>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-percent"></i> Diskon Semester (%)</label>
+                            <input type="number" id="axa-semester-discount" placeholder="Contoh: 3" step="0.1" value="3">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-percent"></i> Diskon Tahunan (%)</label>
+                            <input type="number" id="axa-annual-discount" placeholder="Contoh: 5" step="0.1" value="5">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-alt"></i> Jangka Waktu (Tahun)</label>
+                            <input type="number" id="axa-years" placeholder="Contoh: 10" min="1" value="10">
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-axa">
+                            <i class="fas fa-calculator"></i>
+                            Hitung Sekarang
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="resetAxaForm()">
+                            <i class="fas fa-redo"></i>
+                            Reset
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Results Section -->
+                <div id="axa-results" class="results-section hidden">
+                    <div class="results-header">
+                        <h3>📊 Hasil Perhitungan</h3>
+                        <p>Perbandingan total premi berdasarkan metode pembayaran</p>
+                    </div>
+
+                    <div class="results-grid">
+                        <div class="result-card">
+                            <div class="label">💳 Bulanan</div>
+                            <div class="value" id="axa-monthly-total">Rp 0</div>
+                        </div>
+                        <div class="result-card">
+                            <div class="label">📅 Semester</div>
+                            <div class="value" id="axa-semester-total">Rp 0</div>
+                        </div>
+                        <div class="result-card highlight">
+                            <div class="label">⭐ Tahunan</div>
+                            <div class="value" id="axa-annual-total">Rp 0</div>
+                        </div>
+                    </div>
+
+                    <div class="strategy-section">
+                        <h3 style="color: var(--accent); margin-bottom: 1rem;">💰 Potensi Penghematan</h3>
+                        <div class="strategy-cards">
+                            <div class="strategy-card">
+                                <h4>Semester vs Bulanan</h4>
+                                <div class="strategy-detail">
+                                    <span class="label">Total Penghematan:</span>
+                                    <span class="value" id="axa-saving-semester">Rp 0</span>
+                                </div>
+                                <div class="strategy-detail">
+                                    <span class="label">Persentase:</span>
+                                    <span class="value" id="axa-saving-semester-pct">0%</span>
+                                </div>
+                            </div>
+                            <div class="strategy-card">
+                                <h4>Tahunan vs Bulanan</h4>
+                                <div class="strategy-detail">
+                                    <span class="label">Total Penghematan:</span>
+                                    <span class="value" id="axa-saving-annual">Rp 0</span>
+                                </div>
+                                <div class="strategy-detail">
+                                    <span class="label">Persentase:</span>
+                                    <span class="value" id="axa-saving-annual-pct">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Comparison Table -->
+                    <div style="margin-top: 2rem;">
+                        <h3 style="color: var(--accent); margin-bottom: 1rem;">📋 Perbandingan Detail</h3>
+                        <table class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th>Metode Pembayaran</th>
+                                    <th>Premi Per Periode</th>
+                                    <th>Total Per Tahun</th>
+                                    <th>Total <span id="axa-years-label">10</span> Tahun</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>💳 Bulanan</strong></td>
+                                    <td id="axa-monthly-per">Rp 0</td>
+                                    <td id="axa-monthly-yearly">Rp 0</td>
+                                    <td id="axa-monthly-total-td">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>📅 Semester (6 bulan)</strong></td>
+                                    <td id="axa-semester-per">Rp 0</td>
+                                    <td id="axa-semester-yearly">Rp 0</td>
+                                    <td id="axa-semester-total-td">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>⭐ Tahunan</strong></td>
+                                    <td id="axa-annual-per">Rp 0</td>
+                                    <td id="axa-annual-yearly">Rp 0</td>
+                                    <td id="axa-annual-total-td">Rp 0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manulife Calculator Tab -->
+        <div id="manulife-tab" class="tab-content">
+            <div class="calculator-container">
+                <div class="calculator-header">
+                    <h2>💚 Kalkulator Strategi Premi Manulife</h2>
+                    <p>Hitung dan bandingkan strategi pembayaran premi asuransi kesehatan Manulife Anda</p>
+                </div>
+
+                <!-- Educational Section -->
+                <div class="edu-box">
+                    <h3><i class="fas fa-lightbulb"></i> Strategi Cerdas Bayar Premi</h3>
+                    <p><strong>Manulife</strong> menawarkan berbagai pilihan pembayaran premi dengan diskon menarik!</p>
+                    <ul>
+                        <li><strong>Bulanan:</strong> Bayar tiap bulan, lebih ringan namun total lebih besar</li>
+                        <li><strong>Triwulan:</strong> Bayar tiap 3 bulan dengan diskon</li>
+                        <li><strong>Semester:</strong> Bayar 6 bulan sekali, hemat lebih banyak</li>
+                        <li><strong>Tahunan:</strong> Bayar sekaligus setahun, diskon maksimal!</li>
+                    </ul>
+                    <p><strong>💡 Rekomendasi:</strong> Jika dana tersedia, pilih pembayaran tahunan untuk hemat maksimal!</p>
+                </div>
+
+                <!-- Input Form -->
+                <form id="manulife-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-calculator"></i> Premi Bulanan (Rp)</label>
+                            <input type="number" id="manulife-monthly" placeholder="Contoh: 600000" required>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-percent"></i> Diskon Triwulan (%)</label>
+                            <input type="number" id="manulife-quarterly-discount" placeholder="Contoh: 2" step="0.1" value="2">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-percent"></i> Diskon Semester (%)</label>
+                            <input type="number" id="manulife-semester-discount" placeholder="Contoh: 3.5" step="0.1" value="3.5">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-percent"></i> Diskon Tahunan (%)</label>
+                            <input type="number" id="manulife-annual-discount" placeholder="Contoh: 5.5" step="0.1" value="5.5">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-alt"></i> Jangka Waktu (Tahun)</label>
+                            <input type="number" id="manulife-years" placeholder="Contoh: 10" min="1" value="10">
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-manulife">
+                            <i class="fas fa-calculator"></i>
+                            Hitung Sekarang
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="resetManulifeForm()">
+                            <i class="fas fa-redo"></i>
+                            Reset
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Results Section -->
+                <div id="manulife-results" class="results-section hidden">
+                    <div class="results-header">
+                        <h3>📊 Hasil Perhitungan</h3>
+                        <p>Perbandingan total premi berdasarkan metode pembayaran</p>
+                    </div>
+
+                    <div class="results-grid">
+                        <div class="result-card">
+                            <div class="label">💳 Bulanan</div>
+                            <div class="value" id="manulife-monthly-total">Rp 0</div>
+                        </div>
+                        <div class="result-card">
+                            <div class="label">📊 Triwulan</div>
+                            <div class="value" id="manulife-quarterly-total">Rp 0</div>
+                        </div>
+                        <div class="result-card">
+                            <div class="label">📅 Semester</div>
+                            <div class="value" id="manulife-semester-total">Rp 0</div>
+                        </div>
+                        <div class="result-card highlight">
+                            <div class="label">⭐ Tahunan</div>
+                            <div class="value" id="manulife-annual-total">Rp 0</div>
+                        </div>
+                    </div>
+
+                    <div class="strategy-section">
+                        <h3 style="color: var(--accent); margin-bottom: 1rem;">💰 Potensi Penghematan</h3>
+                        <div class="strategy-cards">
+                            <div class="strategy-card">
+                                <h4>Triwulan vs Bulanan</h4>
+                                <div class="strategy-detail">
+                                    <span class="label">Total Penghematan:</span>
+                                    <span class="value" id="manulife-saving-quarterly">Rp 0</span>
+                                </div>
+                                <div class="strategy-detail">
+                                    <span class="label">Persentase:</span>
+                                    <span class="value" id="manulife-saving-quarterly-pct">0%</span>
+                                </div>
+                            </div>
+                            <div class="strategy-card">
+                                <h4>Semester vs Bulanan</h4>
+                                <div class="strategy-detail">
+                                    <span class="label">Total Penghematan:</span>
+                                    <span class="value" id="manulife-saving-semester">Rp 0</span>
+                                </div>
+                                <div class="strategy-detail">
+                                    <span class="label">Persentase:</span>
+                                    <span class="value" id="manulife-saving-semester-pct">0%</span>
+                                </div>
+                            </div>
+                            <div class="strategy-card">
+                                <h4>Tahunan vs Bulanan</h4>
+                                <div class="strategy-detail">
+                                    <span class="label">Total Penghematan:</span>
+                                    <span class="value" id="manulife-saving-annual">Rp 0</span>
+                                </div>
+                                <div class="strategy-detail">
+                                    <span class="label">Persentase:</span>
+                                    <span class="value" id="manulife-saving-annual-pct">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Comparison Table -->
+                    <div style="margin-top: 2rem;">
+                        <h3 style="color: var(--accent); margin-bottom: 1rem;">📋 Perbandingan Detail</h3>
+                        <table class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th>Metode Pembayaran</th>
+                                    <th>Premi Per Periode</th>
+                                    <th>Total Per Tahun</th>
+                                    <th>Total <span id="manulife-years-label">10</span> Tahun</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>💳 Bulanan</strong></td>
+                                    <td id="manulife-monthly-per">Rp 0</td>
+                                    <td id="manulife-monthly-yearly">Rp 0</td>
+                                    <td id="manulife-monthly-total-td">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>📊 Triwulan (3 bulan)</strong></td>
+                                    <td id="manulife-quarterly-per">Rp 0</td>
+                                    <td id="manulife-quarterly-yearly">Rp 0</td>
+                                    <td id="manulife-quarterly-total-td">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>📅 Semester (6 bulan)</strong></td>
+                                    <td id="manulife-semester-per">Rp 0</td>
+                                    <td id="manulife-semester-yearly">Rp 0</td>
+                                    <td id="manulife-semester-total-td">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>⭐ Tahunan</strong></td>
+                                    <td id="manulife-annual-per">Rp 0</td>
+                                    <td id="manulife-annual-yearly">Rp 0</td>
+                                    <td id="manulife-annual-total-td">Rp 0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- More Coming Soon Tab -->
+        <div id="more-tab" class="tab-content">
+            <div class="calculator-container">
+                <div class="placeholder-tab">
+                    <div class="icon">🚧</div>
+                    <h3>More Calculators Coming Soon!</h3>
+                    <p>We're working on adding more health insurance calculators from different providers. Stay tuned for updates!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // TAB SWITCHING
+        // ============================================================================
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+
+            // Add active class to clicked button
+            if (tabName === 'axa') {
+                document.querySelector('.axa-tab').classList.add('active');
+            } else if (tabName === 'manulife') {
+                document.querySelector('.manulife-tab').classList.add('active');
+            }
+        }
+
+        // ============================================================================
+        // UTILITY FUNCTIONS
+        // ============================================================================
+        function formatCurrency(number) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(number);
+        }
+
+        function formatPercent(number) {
+            return number.toFixed(2) + '%';
+        }
+
+        // ============================================================================
+        // AXA CALCULATOR
+        // ============================================================================
+        document.getElementById('axa-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            calculateAxa();
+        });
+
+        function calculateAxa() {
+            // Get inputs
+            const monthlyPremium = parseFloat(document.getElementById('axa-monthly').value);
+            const semesterDiscount = parseFloat(document.getElementById('axa-semester-discount').value) / 100;
+            const annualDiscount = parseFloat(document.getElementById('axa-annual-discount').value) / 100;
+            const years = parseInt(document.getElementById('axa-years').value);
+
+            if (!monthlyPremium || monthlyPremium <= 0) {
+                alert('Mohon masukkan premi bulanan yang valid');
+                return;
+            }
+
+            // Calculate premiums per period
+            const monthlyPerPeriod = monthlyPremium;
+            const semesterPerPeriod = (monthlyPremium * 6) * (1 - semesterDiscount);
+            const annualPerPeriod = (monthlyPremium * 12) * (1 - annualDiscount);
+
+            // Calculate yearly totals
+            const monthlyYearly = monthlyPerPeriod * 12;
+            const semesterYearly = semesterPerPeriod * 2;
+            const annualYearly = annualPerPeriod;
+
+            // Calculate total over years
+            const monthlyTotal = monthlyYearly * years;
+            const semesterTotal = semesterYearly * years;
+            const annualTotal = annualYearly * years;
+
+            // Calculate savings
+            const savingSemester = monthlyTotal - semesterTotal;
+            const savingSemesterPct = (savingSemester / monthlyTotal) * 100;
+            const savingAnnual = monthlyTotal - annualTotal;
+            const savingAnnualPct = (savingAnnual / monthlyTotal) * 100;
+
+            // Display results
+            document.getElementById('axa-monthly-total').textContent = formatCurrency(monthlyTotal);
+            document.getElementById('axa-semester-total').textContent = formatCurrency(semesterTotal);
+            document.getElementById('axa-annual-total').textContent = formatCurrency(annualTotal);
+
+            document.getElementById('axa-saving-semester').textContent = formatCurrency(savingSemester);
+            document.getElementById('axa-saving-semester-pct').textContent = formatPercent(savingSemesterPct);
+            document.getElementById('axa-saving-annual').textContent = formatCurrency(savingAnnual);
+            document.getElementById('axa-saving-annual-pct').textContent = formatPercent(savingAnnualPct);
+
+            // Update table
+            document.getElementById('axa-years-label').textContent = years;
+            document.getElementById('axa-monthly-per').textContent = formatCurrency(monthlyPerPeriod);
+            document.getElementById('axa-monthly-yearly').textContent = formatCurrency(monthlyYearly);
+            document.getElementById('axa-monthly-total-td').textContent = formatCurrency(monthlyTotal);
+            
+            document.getElementById('axa-semester-per').textContent = formatCurrency(semesterPerPeriod);
+            document.getElementById('axa-semester-yearly').textContent = formatCurrency(semesterYearly);
+            document.getElementById('axa-semester-total-td').textContent = formatCurrency(semesterTotal);
+            
+            document.getElementById('axa-annual-per').textContent = formatCurrency(annualPerPeriod);
+            document.getElementById('axa-annual-yearly').textContent = formatCurrency(annualYearly);
+            document.getElementById('axa-annual-total-td').textContent = formatCurrency(annualTotal);
+
+            // Show results
+            document.getElementById('axa-results').classList.remove('hidden');
+
+            // Scroll to results
+            document.getElementById('axa-results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function resetAxaForm() {
+            document.getElementById('axa-form').reset();
+            document.getElementById('axa-results').classList.add('hidden');
+            document.getElementById('axa-semester-discount').value = 3;
+            document.getElementById('axa-annual-discount').value = 5;
+            document.getElementById('axa-years').value = 10;
+        }
+
+        // ============================================================================
+        // MANULIFE CALCULATOR
+        // ============================================================================
+        document.getElementById('manulife-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            calculateManulife();
+        });
+
+        function calculateManulife() {
+            // Get inputs
+            const monthlyPremium = parseFloat(document.getElementById('manulife-monthly').value);
+            const quarterlyDiscount = parseFloat(document.getElementById('manulife-quarterly-discount').value) / 100;
+            const semesterDiscount = parseFloat(document.getElementById('manulife-semester-discount').value) / 100;
+            const annualDiscount = parseFloat(document.getElementById('manulife-annual-discount').value) / 100;
+            const years = parseInt(document.getElementById('manulife-years').value);
+
+            if (!monthlyPremium || monthlyPremium <= 0) {
+                alert('Mohon masukkan premi bulanan yang valid');
+                return;
+            }
+
+            // Calculate premiums per period
+            const monthlyPerPeriod = monthlyPremium;
+            const quarterlyPerPeriod = (monthlyPremium * 3) * (1 - quarterlyDiscount);
+            const semesterPerPeriod = (monthlyPremium * 6) * (1 - semesterDiscount);
+            const annualPerPeriod = (monthlyPremium * 12) * (1 - annualDiscount);
+
+            // Calculate yearly totals
+            const monthlyYearly = monthlyPerPeriod * 12;
+            const quarterlyYearly = quarterlyPerPeriod * 4;
+            const semesterYearly = semesterPerPeriod * 2;
+            const annualYearly = annualPerPeriod;
+
+            // Calculate total over years
+            const monthlyTotal = monthlyYearly * years;
+            const quarterlyTotal = quarterlyYearly * years;
+            const semesterTotal = semesterYearly * years;
+            const annualTotal = annualYearly * years;
+
+            // Calculate savings
+            const savingQuarterly = monthlyTotal - quarterlyTotal;
+            const savingQuarterlyPct = (savingQuarterly / monthlyTotal) * 100;
+            const savingSemester = monthlyTotal - semesterTotal;
+            const savingSemesterPct = (savingSemester / monthlyTotal) * 100;
+            const savingAnnual = monthlyTotal - annualTotal;
+            const savingAnnualPct = (savingAnnual / monthlyTotal) * 100;
+
+            // Display results
+            document.getElementById('manulife-monthly-total').textContent = formatCurrency(monthlyTotal);
+            document.getElementById('manulife-quarterly-total').textContent = formatCurrency(quarterlyTotal);
+            document.getElementById('manulife-semester-total').textContent = formatCurrency(semesterTotal);
+            document.getElementById('manulife-annual-total').textContent = formatCurrency(annualTotal);
+
+            document.getElementById('manulife-saving-quarterly').textContent = formatCurrency(savingQuarterly);
+            document.getElementById('manulife-saving-quarterly-pct').textContent = formatPercent(savingQuarterlyPct);
+            document.getElementById('manulife-saving-semester').textContent = formatCurrency(savingSemester);
+            document.getElementById('manulife-saving-semester-pct').textContent = formatPercent(savingSemesterPct);
+            document.getElementById('manulife-saving-annual').textContent = formatCurrency(savingAnnual);
+            document.getElementById('manulife-saving-annual-pct').textContent = formatPercent(savingAnnualPct);
+
+            // Update table
+            document.getElementById('manulife-years-label').textContent = years;
+            document.getElementById('manulife-monthly-per').textContent = formatCurrency(monthlyPerPeriod);
+            document.getElementById('manulife-monthly-yearly').textContent = formatCurrency(monthlyYearly);
+            document.getElementById('manulife-monthly-total-td').textContent = formatCurrency(monthlyTotal);
+            
+            document.getElementById('manulife-quarterly-per').textContent = formatCurrency(quarterlyPerPeriod);
+            document.getElementById('manulife-quarterly-yearly').textContent = formatCurrency(quarterlyYearly);
+            document.getElementById('manulife-quarterly-total-td').textContent = formatCurrency(quarterlyTotal);
+            
+            document.getElementById('manulife-semester-per').textContent = formatCurrency(semesterPerPeriod);
+            document.getElementById('manulife-semester-yearly').textContent = formatCurrency(semesterYearly);
+            document.getElementById('manulife-semester-total-td').textContent = formatCurrency(semesterTotal);
+            
+            document.getElementById('manulife-annual-per').textContent = formatCurrency(annualPerPeriod);
+            document.getElementById('manulife-annual-yearly').textContent = formatCurrency(annualYearly);
+            document.getElementById('manulife-annual-total-td').textContent = formatCurrency(annualTotal);
+
+            // Show results
+            document.getElementById('manulife-results').classList.remove('hidden');
+
+            // Scroll to results
+            document.getElementById('manulife-results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function resetManulifeForm() {
+            document.getElementById('manulife-form').reset();
+            document.getElementById('manulife-results').classList.add('hidden');
+            document.getElementById('manulife-quarterly-discount').value = 2;
+            document.getElementById('manulife-semester-discount').value = 3.5;
+            document.getElementById('manulife-annual-discount').value = 5.5;
+            document.getElementById('manulife-years').value = 10;
+        }
+
+        // ============================================================================
+        // INITIALIZATION
+        // ============================================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Health Insurance Calculator loaded');
+            console.log('✅ Authentication verified');
+            
+            // Load user info (optional)
+            try {
+                const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+                console.log('👤 User:', authData.email || 'Unknown');
+            } catch (error) {
+                console.error('Error loading user info:', error);
+            }
+        });
+    </script>
+</body>
+</html>

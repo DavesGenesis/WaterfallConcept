@@ -964,6 +964,38 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Health Insurance Calculator -->
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <div class="tool-icon">🏥</div>
+                        <h3 class="tool-name">Health Insurance Calculator</h3>
+                        <p class="tool-description">
+                            Compare premium payment strategies for AXA and Manulife health insurance
+                        </p>
+                    </div>
+                    <div class="tool-body">
+                        <button class="launch-btn" onclick="window.location.href='health-insurance-calculator.html'">
+                            <i class="fas fa-rocket"></i>
+                            Launch Calculator
+                        </button>
+                        <div class="resource-links">
+                            <div class="resource-link" onclick="openSlides('health')">
+                                <i class="fas fa-presentation"></i>
+                                <span class="label">Slides</span>
+                            </div>
+                            <div class="resource-link" onclick="openPDF('health')">
+                                <i class="fas fa-file-pdf"></i>
+                                <span class="label">PDF Guide</span>
+                            </div>
+                        </div>
+                        <div class="tool-meta">
+                            <div class="status-badge status-active">
+                                <i class="fas fa-check-circle"></i> Active
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1039,6 +1071,11 @@
                 slides: 'PASTE_YOUR_DCASIM_SLIDES_LINK_HERE',
                 pdf: 'PASTE_YOUR_DCASIM_PDF_LINK_HERE',
                 tool: 'DCAtools.html'
+            },
+            health: {
+                slides: 'PASTE_YOUR_HEALTH_SLIDES_LINK_HERE',
+                pdf: 'PASTE_YOUR_HEALTH_PDF_LINK_HERE',
+                tool: 'health-insurance-calculator.html'
             }
         };
 
@@ -1379,7 +1416,8 @@
                 'termlife': 'Term Life Insurance Calculator',
                 'iul': 'IUL Calculator',
                 'dca': 'Dollar Cost Averaging',
-                'dcasim': 'DCA Simulation'
+                'dcasim': 'DCA Simulation',
+                'health': 'Health Insurance Calculator'
             };
             
             document.getElementById('slidesTitle').innerHTML = `
@@ -1406,7 +1444,8 @@
                 'termlife': 'Term Life Insurance Calculator',
                 'iul': 'IUL Calculator',
                 'dca': 'Dollar Cost Averaging',
-                'dcasim': 'DCA Simulation'
+                'dcasim': 'DCA Simulation',
+                'health': 'Health Insurance Calculator'
             };
             
             document.getElementById('pdfTitle').innerHTML = `
