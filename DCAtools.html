@@ -77,6 +77,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root {
@@ -645,6 +646,12 @@
             <div class="card">
                 <div class="card-header">
                     <h2 class="card-title"><i class="fas fa-chart-bar"></i> Growth Summary (10, 20, 30, 40 Years)</h2>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem; line-height: 1.5;">
+                        <i class="fas fa-info-circle" style="color: var(--accent);"></i> 
+                        <strong>Understanding Your Investment Performance:</strong> The "Total Value Realized" includes both your remaining balance 
+                        <em>plus</em> all cumulative withdrawals taken. This gives you the complete picture of your investment's true performance, 
+                        showing the total wealth generated over time.
+                    </p>
                 </div>
                 <div class="card-body">
                     <div class="chart-container" style="height: 450px;">
@@ -656,9 +663,10 @@
                                 <tr>
                                     <th>Milestone</th>
                                     <th>Total Contribution</th>
+                                    <th>Cumulative Withdrawal</th>
                                     <th>Redemption Value</th>
-                                    <th>Growth Amount</th>
-                                    <th>Growth %</th>
+                                    <th>Net Profit/Loss</th>
+                                    <th>Net Growth %</th>
                                 </tr>
                             </thead>
                             <tbody id="summaryTableBody">
@@ -673,6 +681,13 @@
             <div class="card">
                 <div class="card-header">
                     <h2 class="card-title"><i class="fas fa-chart-line"></i> Growth Projection Chart</h2>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem; line-height: 1.5;">
+                        <i class="fas fa-info-circle" style="color: var(--accent);"></i> 
+                        <strong>How to Read This Chart:</strong> The green line shows your "Total Value Realized" - this is the sum of 
+                        your remaining investment balance <em>plus</em> all money you've already withdrawn. Even though withdrawals reduce 
+                        your account balance, they don't reduce the total value you've gained from the investment. The chart shows the 
+                        true accumulation of wealth over time.
+                    </p>
                 </div>
                 <div class="card-body">
                     <div class="chart-container">
@@ -899,6 +914,7 @@
             let breakEvenYear = null;
             let cumulativeContribution = 0;
             let beginningValue = 0;
+            let cumulativeWithdrawal = 0; // NEW TRACKER
             
             for (let year = 1; year <= 40; year++) {
                 const currentAge = age + year - 1;
@@ -917,14 +933,18 @@
                 const expectedValue = (beginningValue + yearlyContribution) * (1 + growthRate);
                 
                 // Withdrawal
-                const withdrawal = (hasWithdrawal && year >= withdrawalStartYear) ? withdrawalAmount : 0;
+                const annualWithdrawal = (hasWithdrawal && year >= withdrawalStartYear) ? withdrawalAmount : 0; // Renamed to avoid conflict
+                cumulativeWithdrawal += annualWithdrawal; // UPDATE NEW TRACKER
                 
                 // Fee
                 const feeRate = getFeeRate(year, investmentType, term);
                 const fee = expectedValue * (feeRate / 100);
                 
                 // Redemption value
-                const redemptionValue = expectedValue - withdrawal - fee;
+                const redemptionValue = expectedValue - annualWithdrawal - fee;
+                
+                // Calculate Total Value Realized (remaining balance + cumulative withdrawals)
+                const totalValueRealized = redemptionValue + cumulativeWithdrawal;
                 
                 projections.push({
                     year: year,
@@ -933,13 +953,17 @@
                     annualContribution: yearlyContribution,
                     cumulativeContribution: cumulativeContribution,
                     expectedValue: expectedValue,
-                    withdrawal: withdrawal,
+                    annualWithdrawal: annualWithdrawal, // Renamed in array
+                    withdrawal: annualWithdrawal, // Keep old name for backward compatibility in table update
+                    cumulativeWithdrawal: cumulativeWithdrawal, // NEW METRIC
+                    totalValueRealized: totalValueRealized, // NEW METRIC
                     fee: fee,
                     redemptionValue: redemptionValue
                 });
                 
                 // Find break-even year
-                if (!breakEvenYear && redemptionValue >= cumulativeContribution) {
+                // Break-even is when Total Value Realized (Redemption + Cumulative Withdrawal) exceeds Cumulative Contribution
+                if (!breakEvenYear && totalValueRealized >= cumulativeContribution) { 
                     breakEvenYear = year;
                 }
                 
@@ -1070,7 +1094,8 @@
             const labels = calculationData.projections.map(p => p.year);
             const ageLabels = calculationData.projections.map(p => p.age);
             const cumulativeData = calculationData.projections.map(p => p.cumulativeContribution);
-            const redemptionData = calculationData.projections.map(p => p.redemptionValue);
+            // UPDATED: Use totalValueRealized instead of redemptionValue
+            const redemptionData = calculationData.projections.map(p => p.totalValueRealized); 
             
             growthChart = new Chart(ctx, {
                 type: 'line',
@@ -1087,7 +1112,8 @@
                             pointRadius: 0
                         },
                         {
-                            label: 'Redemption Value',
+                            // UPDATED LABEL
+                            label: 'Total Value Realized (Remaining + Withdrawn)', 
                             data: redemptionData,
                             borderColor: '#10b981',
                             backgroundColor: 'rgba(16, 185, 129, 0.1)',
@@ -1132,9 +1158,48 @@
                                     }
                                     label += formatCurrency(context.parsed.y);
                                     return label;
+                                },
+                                afterBody: function(context) {
+                                    const yearIndex = context[0].dataIndex;
+                                    const data = calculationData.projections[yearIndex];
+                                    const lines = [];
+                                    
+                                    if (calculationData.hasWithdrawal && data.year >= calculationData.withdrawalStartYear) {
+                                        lines.push('');
+                                        lines.push('📊 Breakdown:');
+                                        lines.push(`  Remaining Balance: ${formatCurrency(data.redemptionValue)}`);
+                                        lines.push(`  Total Withdrawn: ${formatCurrency(data.cumulativeWithdrawal)}`);
+                                        lines.push(`  Annual Withdrawal: ${formatCurrency(data.annualWithdrawal)}`);
+                                    }
+                                    
+                                    return lines;
                                 }
                             }
-                        }
+                        },
+                        annotation: calculationData.hasWithdrawal ? {
+                            annotations: {
+                                withdrawalLine: {
+                                    type: 'line',
+                                    xMin: calculationData.withdrawalStartYear - 1,
+                                    xMax: calculationData.withdrawalStartYear - 1,
+                                    borderColor: '#f59e0b',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5],
+                                    label: {
+                                        display: true,
+                                        content: '💰 Withdrawals Start',
+                                        position: 'start',
+                                        backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                                        color: '#0a192f',
+                                        font: {
+                                            family: 'Montserrat',
+                                            size: 10,
+                                            weight: 'bold'
+                                        }
+                                    }
+                                }
+                            }
+                        } : {}
                     },
                     scales: {
                         x: {
@@ -1194,35 +1259,60 @@
             const milestones = [10, 20, 30, 40];
             const summaryData = milestones.map(year => {
                 const data = calculationData.projections[year - 1];
-                const growthAmount = data.redemptionValue - data.cumulativeContribution;
-                const growthPercent = (growthAmount / data.cumulativeContribution) * 100;
+                
+                // Use Total Value Realized for Growth calculation
+                const totalValueRealized = data.totalValueRealized;
+                const netProfitLoss = totalValueRealized - data.cumulativeContribution; // NET PROFIT
+                const netGrowthPercent = (netProfitLoss / data.cumulativeContribution) * 100;
                 
                 return {
                     year: year,
                     contribution: data.cumulativeContribution,
-                    redemption: data.redemptionValue,
-                    growth: growthAmount,
-                    growthPercent: growthPercent
+                    redemption: data.redemptionValue, // Keep for table display
+                    cumulativeWithdrawal: data.cumulativeWithdrawal, // NEW METRIC
+                    totalValueRealized: totalValueRealized, // NEW METRIC for bar chart
+                    netProfitLoss: netProfitLoss, // NEW METRIC
+                    netGrowthPercent: netGrowthPercent // NEW METRIC
                 };
             });
             
-            // Update summary table
+            // Update summary table (Adjusted headers)
             const tbody = document.getElementById('summaryTableBody');
             tbody.innerHTML = '';
+
+            // Update Table Headers for accuracy
+            const summaryTable = tbody.closest('table');
+            const newTheadContent = `
+                <tr>
+                    <th>Milestone</th>
+                    <th>Total Contribution</th>
+                    <th>Cumulative Withdrawal</th>
+                    <th>Redemption Value</th>
+                    <th>Net Profit/Loss</th>
+                    <th>Net Growth %</th>
+                </tr>
+            `;
+            summaryTable.querySelector('thead').innerHTML = newTheadContent;
             
             summaryData.forEach(data => {
                 const row = document.createElement('tr');
+                
+                // Color logic for Net Profit/Loss
+                const profitColor = data.netProfitLoss >= 0 ? 'var(--success)' : 'var(--danger)';
+                const percentColor = data.netProfitLoss >= 0 ? 'var(--accent)' : 'var(--danger)';
+                
                 row.innerHTML = `
                     <td style="font-weight: 600;">Year ${data.year}</td>
                     <td>${formatCurrency(data.contribution)}</td>
+                    <td>${formatCurrency(data.cumulativeWithdrawal)}</td>
                     <td>${formatCurrency(data.redemption)}</td>
-                    <td style="color: var(--success); font-weight: 600;">${formatCurrency(data.growth)}</td>
-                    <td style="color: var(--accent); font-weight: 700;">${data.growthPercent.toFixed(2)}%</td>
+                    <td style="color: ${profitColor}; font-weight: 600;">${formatCurrency(data.netProfitLoss)}</td>
+                    <td style="color: ${percentColor}; font-weight: 700;">${data.netGrowthPercent.toFixed(2)}%</td>
                 `;
                 tbody.appendChild(row);
             });
             
-            // Create bar chart
+            // Create bar chart (UPDATED: Redemption Value now Total Value Realized)
             summaryBarChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -1236,8 +1326,9 @@
                             borderWidth: 2
                         },
                         {
-                            label: 'Redemption Value',
-                            data: summaryData.map(d => d.redemption),
+                            // UPDATED: Data is Total Value Realized
+                            label: 'Total Value Realized', 
+                            data: summaryData.map(d => d.totalValueRealized),
                             backgroundColor: 'rgba(16, 185, 129, 0.7)',
                             borderColor: '#10b981',
                             borderWidth: 2
@@ -1271,12 +1362,12 @@
                                     }
                                     label += formatCurrency(context.parsed.y);
                                     
-                                    // Add growth info for Redemption Value
+                                    // Add Net Profit/Loss info for Total Value Realized
                                     if (context.datasetIndex === 1) {
                                         const yearIndex = context.dataIndex;
                                         const data = summaryData[yearIndex];
-                                        label += '\nGrowth: ' + formatCurrency(data.growth);
-                                        label += ' (' + data.growthPercent.toFixed(2) + '%)';
+                                        label += '\nNet Profit: ' + formatCurrency(data.netProfitLoss);
+                                        label += ' (' + data.netGrowthPercent.toFixed(2) + '%)';
                                     }
                                     
                                     return label;
@@ -1321,6 +1412,7 @@
                 }
             });
         }
+
 
         // Download PDF
         function downloadPDF() {
@@ -1530,8 +1622,8 @@
             doc.setFontSize(8);
             doc.setFont('helvetica', 'bold');
             
-            const summaryHeaders = ['Milestone', 'Contribution', 'Redemption', 'Growth', 'Growth %'];
-            const summaryColWidths = [25, 32, 32, 32, 25];
+            const summaryHeaders = ['Milestone', 'Contribution', 'Cumul. Withdrawal', 'Redemption', 'Net Profit', 'Net Growth %'];
+            const summaryColWidths = [22, 28, 28, 28, 28, 22];
             xPos = margin + 2;
             summaryHeaders.forEach((header, i) => {
                 doc.text(header, xPos, yPos + 4.5);
@@ -1548,8 +1640,9 @@
             
             milestones.forEach((year, index) => {
                 const data = calculationData.projections[year - 1];
-                const growthAmount = data.redemptionValue - data.cumulativeContribution;
-                const growthPercent = (growthAmount / data.cumulativeContribution) * 100;
+                const totalValueRealized = data.totalValueRealized;
+                const netProfit = totalValueRealized - data.cumulativeContribution;
+                const netGrowthPercent = (netProfit / data.cumulativeContribution) * 100;
                 
                 // Alternate row colors
                 if (index % 2 === 0) {
@@ -1563,18 +1656,23 @@
                 xPos += summaryColWidths[0];
                 
                 doc.setFont('helvetica', 'normal');
+                doc.setTextColor(...darkText);
                 doc.text(formatCurrency(data.cumulativeContribution), xPos, yPos + 4);
                 xPos += summaryColWidths[1];
-                doc.text(formatCurrency(data.redemptionValue), xPos, yPos + 4);
+                doc.text(formatCurrency(data.cumulativeWithdrawal), xPos, yPos + 4);
                 xPos += summaryColWidths[2];
-                
-                doc.setTextColor(16, 185, 129);
-                doc.setFont('helvetica', 'bold');
-                doc.text(formatCurrency(growthAmount), xPos, yPos + 4);
+                doc.text(formatCurrency(data.redemptionValue), xPos, yPos + 4);
                 xPos += summaryColWidths[3];
                 
+                // Color based on profit/loss
+                const profitColor = netProfit >= 0 ? [16, 185, 129] : [255, 100, 150];
+                doc.setTextColor(...profitColor);
+                doc.setFont('helvetica', 'bold');
+                doc.text(formatCurrency(netProfit), xPos, yPos + 4);
+                xPos += summaryColWidths[4];
+                
                 doc.setTextColor(100, 255, 218);
-                doc.text(growthPercent.toFixed(2) + '%', xPos, yPos + 4);
+                doc.text(netGrowthPercent.toFixed(2) + '%', xPos, yPos + 4);
                 
                 doc.setTextColor(...darkText);
                 yPos += 6;
@@ -1615,7 +1713,7 @@
             doc.setFontSize(7);
             doc.setFont('helvetica', 'normal');
             
-            const chartDesc = `This chart shows the growth of your investment over 40 years. The orange line represents your cumulative contributions, while the green line shows the redemption value including growth. The gap between the lines represents your investment gains.`;
+            const chartDesc = `This chart shows the growth of your investment over 40 years. The orange line represents your cumulative contributions, while the green line shows the Total Value Realized (remaining balance plus all withdrawals taken). The gap between the lines represents your net investment gains.`;
             const splitDesc = doc.splitTextToSize(chartDesc, pageWidth - 2 * margin - 8);
             doc.text(splitDesc, margin + 4, yPos + 12);
 
