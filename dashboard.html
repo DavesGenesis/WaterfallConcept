@@ -186,6 +186,76 @@
             text-transform: uppercase;
         }
 
+        /* Subscription Status Styling */
+        .subscription-status {
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.4rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-top: 0.4rem;
+            font-family: Montserrat, sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        /* Active Status (> 30 days) */
+        .subscription-active {
+            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            color: white;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+        }
+
+        /* Warning Status (7-30 days) */
+        .subscription-warning {
+            background: linear-gradient(135deg, #FFA726, #FF9800);
+            color: white;
+            box-shadow: 0 2px 8px rgba(255, 167, 38, 0.3);
+        }
+
+        /* Critical Status (< 7 days) */
+        .subscription-critical {
+            background: linear-gradient(135deg, #F44336, #E53935);
+            color: white;
+            box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+            animation: pulse 2s infinite;
+        }
+
+        /* System User (Unlimited) */
+        .subscription-unlimited {
+            background: linear-gradient(135deg, #64ffda, #4ecdb8);
+            color: white;
+            box-shadow: 0 2px 8px rgba(100, 255, 218, 0.3);
+        }
+
+        /* Expired Status */
+        .subscription-expired {
+            background: linear-gradient(135deg, #9E9E9E, #757575);
+            color: white;
+            box-shadow: 0 2px 8px rgba(158, 158, 158, 0.3);
+        }
+
+        /* Pulse animation for critical status */
+        @keyframes pulse {
+            0%, 100% { 
+                opacity: 1; 
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.8; 
+                transform: scale(1.02);
+            }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .subscription-status {
+                font-size: 0.75rem;
+                padding: 0.3rem 0.6rem;
+            }
+        }
+
         .btn {
             padding: 0.75rem 1.5rem;
             border: none;
@@ -562,6 +632,7 @@
                     <div>
                         <div class="user-email" id="userEmail"></div>
                         <div class="user-role" id="userRole"></div>
+                        <div class="subscription-status" id="subscriptionStatus">Loading...</div>
                     </div>
                 </div>
                 <button id="adminDashboardBtn" class="btn btn-primary" style="display: none;" onclick="window.location.href='admin-dashboard.html'">
@@ -1192,9 +1263,98 @@
                 if (['admin', 'manager'].includes(authData.role)) {
                     document.getElementById('adminDashboardBtn').style.display = 'inline-flex';
                 }
+
+                // ✅ Display subscription status
+                displaySubscriptionStatus(authData);
             } catch (error) {
                 console.error('Error loading user info:', error);
                 window.location.href = 'index.html';
+            }
+        }
+
+        // ✅ DISPLAY SUBSCRIPTION STATUS
+        async function displaySubscriptionStatus(authData) {
+            try {
+                const statusElement = document.getElementById('subscriptionStatus');
+                if (!statusElement) return;
+
+                // System users - show "Unlimited Access"
+                if (authData.isSystemUser || WaterfallConfig.users[authData.email]) {
+                    statusElement.innerHTML = '♾️ Unlimited Access';
+                    statusElement.className = 'subscription-status subscription-unlimited';
+                    console.log('✅ System user - displaying unlimited access');
+                    return;
+                }
+
+                // Dynamic users - show expiration date
+                await firebaseConfig.initialize();
+                if (!firebaseConfig.isReady()) {
+                    statusElement.innerHTML = '⚠️ Checking...';
+                    statusElement.className = 'subscription-status subscription-warning';
+                    return;
+                }
+
+                const db = firebaseConfig.getDatabase();
+                const sanitizedEmail = authData.email.replace(/[.#$[\]\/]/g, '_');
+                const userRef = db.ref(`users/${sanitizedEmail}`);
+                const snapshot = await userRef.once('value');
+                const userData = snapshot.val();
+
+                if (!userData || !userData.expirationDate) {
+                    statusElement.innerHTML = '⚠️ Not Set';
+                    statusElement.className = 'subscription-status subscription-warning';
+                    return;
+                }
+
+                const now = Date.now();
+                const expirationDate = userData.expirationDate;
+                const daysRemaining = Math.ceil((expirationDate - now) / (24 * 60 * 60 * 1000));
+
+                // Format date in Indonesian locale
+                const expDateObj = new Date(expirationDate);
+                const shortDate = expDateObj.toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                });
+
+                let statusHTML;
+                let statusClass;
+
+                if (daysRemaining <= 0) {
+                    // Expired
+                    statusHTML = '❌ EXPIRED';
+                    statusClass = 'subscription-status subscription-expired';
+                } else if (daysRemaining <= 3) {
+                    // Critical (≤ 3 days)
+                    statusHTML = `🚨 ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} | ${shortDate}`;
+                    statusClass = 'subscription-status subscription-critical';
+                } else if (daysRemaining <= 7) {
+                    // Warning (≤ 7 days)
+                    statusHTML = `⚠️ ${daysRemaining} days | ${shortDate}`;
+                    statusClass = 'subscription-status subscription-warning';
+                } else if (daysRemaining <= 30) {
+                    // Warning (≤ 30 days)
+                    statusHTML = `⚠️ ${daysRemaining} days | ${shortDate}`;
+                    statusClass = 'subscription-status subscription-warning';
+                } else {
+                    // Active (> 30 days)
+                    statusHTML = `✅ ${daysRemaining} days | ${shortDate}`;
+                    statusClass = 'subscription-status subscription-active';
+                }
+
+                statusElement.innerHTML = statusHTML;
+                statusElement.className = statusClass;
+
+                console.log(`✅ Subscription status displayed: ${daysRemaining} days remaining`);
+
+            } catch (error) {
+                console.error('❌ Error displaying subscription status:', error);
+                const statusElement = document.getElementById('subscriptionStatus');
+                if (statusElement) {
+                    statusElement.innerHTML = '⚠️ Error';
+                    statusElement.className = 'subscription-status subscription-warning';
+                }
             }
         }
 
