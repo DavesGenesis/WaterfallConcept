@@ -378,7 +378,6 @@
         .summary-item-value {
             color: var(--accent);
             font-weight: 700;
-            font-size: 1.875rem; /* Add this - makes it ~30px like version 449 */
         }
 
         .story-card {
@@ -1374,69 +1373,6 @@
         console.error('❌ Error initializing session tracker:', error);
     }
 
-    // Logout button
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-        if (confirm('Apakah Anda yakin ingin logout?')) {
-            // Track logout action
-            try {
-                if (sessionTracker && sessionTracker.firebaseEnabled) {
-                    await sessionTracker.trackAction('logout', {
-                        action: 'button_click',
-                        message: 'User logged out manually',
-                        timestamp: Date.now()
-                    });
-                }
-            } catch (error) {
-                console.error('Error logging logout:', error);
-            }
-            
-            // ✅ Clean logout
-            if (sessionTracker) {
-                console.log('🛑 LOGOUT DEBUG INFO:');
-                console.log('✅ sessionTracker exists:', !!sessionTracker);
-                console.log('✅ currentSession exists:', !!sessionTracker.currentSession);
-                console.log('✅ Firebase enabled:', sessionTracker.firebaseEnabled);
-                
-                if (sessionTracker.currentSession) {
-                    const integrity = sessionTracker.verifySessionIntegrity();
-                    console.log('📋 SESSION INTEGRITY CHECK:');
-                    console.log('- Valid:', integrity.valid);
-                    
-                    if (!integrity.valid) {
-                        console.warn('- Missing Fields:', integrity.missingFields.join(', '));
-                    }
-                    
-                    console.log('- Field Types:', integrity.fieldTypes);
-                    console.log('- Available Keys:', integrity.sessionKeys.join(', '));
-                    
-                    if (integrity.valid) {
-                        console.log('✅ Session data is VALID - proceeding with stopSession()...');
-                    } else {
-                        console.error('❌ Session data is CORRUPTED! Missing fields:', integrity.missingFields.join(', '));
-                    }
-                } else {
-                    console.warn('⚠️ NO CURRENT SESSION FOUND!');
-                }
-                
-                try {
-                    await sessionTracker.stopSession();
-                    console.log('✅ SUCCESS: Firebase session cleanup completed!');
-                } catch (error) {
-                    console.error('❌ ERROR during session cleanup:', error.message);
-                }
-            } else {
-                console.error('❌ CRITICAL ERROR: sessionTracker is not defined!');
-            }
-            
-            sessionStorage.removeItem('waterfallAuth');
-            localStorage.removeItem('waterfallActiveSession');
-            
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 500);
-        }
-    });
-
     // Sidebar toggle functionality
     const menuToggleMobile = document.getElementById('menuToggleMobile');
     const closeSidebar = document.getElementById('closeSidebar');
@@ -1597,8 +1533,78 @@
     // Initial calculation
     calculate();
 });
+
+// ✅ LOGOUT FUNCTIONALITY - Separate listener for clean logout
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('logoutBtn').addEventListener('click', async function() {
+        if (!confirm('Apakah Anda yakin ingin logout?')) {
+            return;
+        }
+
+        try {
+            const authData = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+            
+            // Broadcast logout to other tabs (same user only)
+            localStorage.setItem('logoutBroadcast', JSON.stringify({
+                email: authData.email,
+                timestamp: Date.now()
+            }));
+            
+            // Clean up the broadcast signal after a moment
+            setTimeout(() => {
+                localStorage.removeItem('logoutBroadcast');
+            }, 1000);
+            
+            // Log logout event if SecurityUtils is available
+            if (typeof SecurityUtils !== 'undefined') {
+                SecurityUtils.logSecurityEvent('LOGOUT', {
+                    email: authData.email,
+                    message: 'User logged out from Waterfall Concept',
+                    timestamp: Date.now()
+                });
+            }
+
+            // Clean up session tracker
+            if (window.sessionTracker) {
+                try {
+                    await window.sessionTracker.stopSession();
+                } catch (error) {
+                    console.error('Error stopping session:', error);
+                }
+            }
+        } catch (error) {
+            console.error('Error during logout:', error);
+        }
+
+        // Clear session data
+        sessionStorage.removeItem('waterfallAuth');
+        localStorage.removeItem('waterfallActiveSession');
+        
+        // Redirect to login
+        window.location.href = 'index.html';
+    });
+});
+
+// Listen for logout broadcast from other tabs
+window.addEventListener('storage', function(e) {
+    if (e.key === 'logoutBroadcast') {
+        try {
+            const logoutData = JSON.parse(e.newValue || '{}');
+            const currentAuth = JSON.parse(sessionStorage.getItem('waterfallAuth') || '{}');
+            
+            // Only logout if it's the same user
+            if (logoutData.email === currentAuth.email) {
+                sessionStorage.removeItem('waterfallAuth');
+                localStorage.removeItem('waterfallActiveSession');
+                alert('🚪 You have been logged out from another tab.');
+                window.location.href = 'index.html';
+            }
+        } catch (error) {
+            console.error('Error processing logout broadcast:', error);
+        }
+    }
+});
     </script>
 </body>
-
 
 </html>
