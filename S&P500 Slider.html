@@ -217,7 +217,69 @@
         input[type="number"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(100,255,218,0.2); }
 
         /* Range Slider */
-        input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer; }
+        input[type="range"] { 
+            width: 100%; 
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: var(--bg-card-darker);
+            border-radius: 5px;
+            outline: none;
+        }
+        
+        /* Webkit (Chrome, Safari, Edge) */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 0 4px rgba(100, 255, 218, 0.2);
+            transition: all 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--primary);
+            box-shadow: 0 0 0 6px rgba(100, 255, 218, 0.3);
+            transform: scale(1.1);
+        }
+        
+        /* Firefox */
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 0 0 4px rgba(100, 255, 218, 0.2);
+            transition: all 0.2s;
+        }
+        
+        input[type="range"]::-moz-range-thumb:hover {
+            background: var(--primary);
+            box-shadow: 0 0 0 6px rgba(100, 255, 218, 0.3);
+            transform: scale(1.1);
+        }
+        
+        /* Track styling */
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-card-darker);
+            border-radius: 5px;
+        }
+        
+        input[type="range"]::-moz-range-track {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-card-darker);
+            border-radius: 5px;
+        }
+        
         .range-value { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--secondary); margin-top: 4px; }
         .curr-val { font-weight: 700; color: var(--primary); }
 
@@ -272,7 +334,7 @@
 </header>
 
 <div class="container">
-    <div class="layout"></div>
+    <div class="layout">
         <!-- CONTROLS -->
         <div class="panel">
             <div class="control-group">
